@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "sk-public-money"
 dynamic = ["version"]
-description = "MCP server for Slovak public-money registers (CRZ contracts, RPVS beneficial owners)"
+description = "MCP server for Slovak public-money registers (CRZ contracts, RPVS beneficial owners, RÚZ financial statements)"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
