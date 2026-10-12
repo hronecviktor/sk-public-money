@@ -7,6 +7,8 @@ name = "sk-public-money"
 dynamic = ["version"]
 description = "MCP server for Slovak public-money registers (CRZ contracts, RPVS beneficial owners, RPO legal entities, RÚZ financial statements, public procurement)"
 readme = "README.md"
+license = "0BSD"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
 dependencies = [
     "mcp>=2.3,<3",
