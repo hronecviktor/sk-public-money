@@ -158,7 +158,7 @@ class VestnikIndex:
             for table, column in (("parties", "notice_id"), ("cpv", "notice_id"), ("search_text", "id"), ("notices", "id")):
                 self.db.executemany(f"DELETE FROM {table} WHERE {column}=?", [(i,) for i in old])
             for notice in notices:
-                award = notice.get("form_type") in AWARD_FORMS or notice.get("kind") == "Súhrnná správa"
+                award = notice.get("form_type") in AWARD_FORMS or (notice.get("kind") or "").endswith("Súhrnná správa")
                 self.db.execute(
                     "INSERT OR REPLACE INTO notices VALUES (?,?,?,?,?,?,?,?,?,?)",
                     (notice["id"], y, n, notice.get("published"), notice.get("kind"), notice.get("form_type"),

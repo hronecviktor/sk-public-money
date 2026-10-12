@@ -304,7 +304,6 @@ def report_records(root: Node) -> list[dict]:
             })
         records.append({
             "record": n,
-            "kind": SUMMARY_REPORT,
             "report_type": head.label_of("vyberTypuSuhrnnejSpravy"),
             "period": period or None,
             "internal_id": z.get("externeIdZakazky"),
@@ -334,7 +333,8 @@ def parse_issue(data: bytes | str) -> tuple[dict, list[dict]]:
             raw = json.loads(text)
             root = build(raw)
             base = {"source": "vestnik", "issue": f"{number}/{year}", "published": published, "kind": (raw.get("name") or "").strip()}
-            if base["kind"] == SUMMARY_REPORT:
+            # A corrected report ("Oprava: Súhrnná správa") repeats the whole report, corrected.
+            if base["kind"].removeprefix("Oprava:").strip() == SUMMARY_REPORT:
                 notices = [{"id": f"vestnik:{raw['id']}-{rec.pop('record')}", **base, **rec} for rec in report_records(root)]
             else:
                 notices = [{"id": f"vestnik:{raw['id']}", **base, **eforms_notice(root)}]

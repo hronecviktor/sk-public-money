@@ -62,6 +62,10 @@ class BadLink(ValueError):
     """The catalogue's download link for an issue is not a data.slovensko.sk address."""
 
 
+class DuplicateUpload(ValueError):
+    """A dataset holds an issue that is already indexed, under another issue's title."""
+
+
 class CatalogueClient(ThrottledClient):
     def __init__(self, http: httpx.AsyncClient | None = None, cache: Path | None = None, interval: float = INTERVAL):
         super().__init__(lambda: interval, http=http, cache=cache)
@@ -135,6 +139,14 @@ async def ingest(catalogue: CatalogueClient, index: VestnikIndex, issue: dict, *
     if not fresh:
         await catalogue.download_to(issue["url"], path)
     meta, notices = vestnik.parse_issue(gzip.decompress(path.read_bytes()))
+    titled, holds = (issue["year"], issue["number"]), (meta["year"], meta["number"])
+    if holds != titled and holds in index.issue_state():
+        # The portal has uploads that repeat a neighbouring issue under another title.
+        path.unlink()
+        raise DuplicateUpload(
+            f"the dataset titled {titled[1]}/{titled[0]} holds issue {holds[1]}/{holds[0]} again (a duplicate upload); "
+            f"{titled[1]}/{titled[0]} itself is not on {DOWNLOAD_HOST}"
+        )
     if not keep_raw and not fresh:
         path.unlink()
     index.add_issue(meta, notices, dataset=issue["dataset"], modified=issue["modified"])
