@@ -23,6 +23,7 @@ dev = ["pytest>=8", "respx>=0.21"]
 
 [project.scripts]
 sk-public-money-mcp = "sk_public_money.server:main"
+sk-public-money-uvo-sync = "sk_public_money.sources.uvo.sync:main"
 
 [tool.hatch.version]
 path = "src/sk_public_money/__init__.py"

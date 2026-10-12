@@ -1,185 +1,276 @@
 # sk-public-money
 
-An [MCP](https://modelcontextprotocol.io) server for Slovak public-money registers. It lets an AI
-assistant follow money across registers: find a company's contracts with the state, read them, see
-who runs and owns the company, and how much it earns.
+[Slovensky](#slovensky) · [English](#english)
 
-Companies are identified by **IČO** in every register, so one tool's result feeds the next. For
-example, a person turns up as a beneficial owner in RPVS (`rpvs_search_person`), and that company's
-IČO then finds its state contracts in CRZ (`crz_search_contracts`).
+## Slovensky
 
-## Sources and tools
+**sk-public-money** je [MCP](https://modelcontextprotocol.io) server, ktorý AI asistentovi (napríklad
+Claude) sprístupní slovenské verejné registre o tom, kam idú verejné peniaze: zmluvy štátu, verejné
+obstarávania, firmy, ich skutočných vlastníkov a účtovné závierky. Asistent v nich vie vyhľadávať,
+čítať ich a prepájať údaje z viacerých registrov v jednej odpovedi.
 
-### CRZ: Centrálny register zmlúv ([crz.gov.sk](https://www.crz.gov.sk))
+### Prepojené registre
 
-Ministries, state bodies and their organisations must publish their contracts here before the contracts
-take effect.
+| Register | Čo obsahuje | Odkiaľ sú údaje | Nástroje |
+| --- | --- | --- | --- |
+| **CRZ**: Centrálny register zmlúv | Zmluvy ministerstiev, štátnych a verejných inštitúcií od roku 2011, s prílohami (PDF) a dodatkami | Web [crz.gov.sk](https://www.crz.gov.sk) a jeho denné exporty | `crz_*` |
+| **ÚVO**: verejné obstarávanie | Kto čo obstarával a akým postupom, koľko prišlo ponúk, kto vyhral a za koľko; súhrnné správy o zákazkách s nízkymi hodnotami | Vestník verejného obstarávania (otvorené dáta na [data.slovensko.sk](https://data.slovensko.sk), od októbra 2023 v lokálnom indexe) a európsky vestník [TED](https://ted.europa.eu) (od roku 2016, zákazky nad finančnými limitmi EÚ) | `uvo_*` |
+| **RPVS**: Register partnerov verejného sektora | Koneční užívatelia výhod (skutoční vlastníci) firiem, ktoré dostávajú verejné peniaze, s dátumom narodenia; oprávnené osoby a verejní funkcionári | Otvorené API [rpvs.gov.sk](https://rpvs.gov.sk/rpvs) | `rpvs_*` |
+| **RPO**: Register právnických osôb | Totožnosť každej firmy, živnostníka, inštitúcie a združenia podľa IČO: názvy v čase, sídlo, štatutári, spoločníci, kapitál, vznik a zánik, právni predchodcovia a nástupcovia | API Ministerstva vnútra SR ([rpo.minv.sk](https://rpo.minv.sk)) | `rpo_*` |
+| **RÚZ**: Register účtovných závierok | Účtovné závierky: tržby, výsledok hospodárenia, aktíva a vlastné imanie po rokoch | Otvorené API [registeruz.sk](https://www.registeruz.sk) | `ruz_*` |
 
-| Tool | What it does |
+Ako sú registre prepojené:
+
+- **IČO je spoločný kľúč.** Každý nástroj, ktorý vráti firmu alebo inštitúciu, vráti aj jej IČO, a
+  s ním sa dá hneď pokračovať v ďalšom registri.
+- **Obstarávania odkazujú na zmluvy.** Výsledky obstarávaní obsahujú ID zmluvy v CRZ, takže od súťaže
+  sa dá prejsť priamo k podpísanej zmluve a jej textu.
+- **Osoby sa dajú hľadať vo viacerých registroch:** v RPVS ako koneční užívatelia výhod a verejní
+  funkcionári, v RPO ako štatutári a spoločníci.
+
+### Čo s tým môžete robiť
+
+Príklady otázok pre asistenta:
+
+- „Aké najväčšie zmluvy má Slovnaft so štátom a kto sú jeho koneční užívatelia výhod?“
+- „V ktorých firmách je táto osoba konečným užívateľom výhod alebo štatutárom a aké zákazky tie firmy
+  vyhrali?“
+- „Koľko ponúk prišlo do súťaží ministerstva vnútra na pohonné hmoty a kto ich vyhrával?“
+- „Firma vyhrala zákazku za 5 miliónov eur. Kedy vznikla a aké mala tržby v posledných rokoch?“
+- „Čo presne je v prílohe tejto zmluvy?“
+- „Ktoré zmluvy včera zverejnilo ministerstvo zdravotníctva?“
+
+| Nástroj | Čo robí |
 | --- | --- |
-| `crz_search_contracts` | Searches by supplier, buyer, IČO, title, contract number, department, amount range and publication date, or by full text. Returns 20 results per page, sorted by newest or by amount. |
-| `crz_get_contract` | Gets the full detail of a contract or amendment by CRZ ID: both parties with address and IČO, dates, amounts, attachments and amendments. |
-| `crz_read_attachment` | Extracts the text of a PDF attachment, page by page. About 1 in 5 recent attachments is a scan without a text layer; the result says so. |
-| `crz_daily_changes` | Lists every record published or changed on a past day, from the official daily export. Its text filter ignores case and diacritics. |
-| `crz_list_departments` | Lists the department (rezort) IDs that the search filter takes. |
+| `crz_search_contracts` | Hľadá zmluvy podľa dodávateľa, objednávateľa, IČO, názvu, čísla zmluvy, rezortu, sumy a dátumu zverejnenia, alebo fulltextom |
+| `crz_get_contract` | Celý záznam zmluvy alebo dodatku: strany s IČO, dátumy, sumy, prílohy, dodatky |
+| `crz_read_attachment` | Text PDF prílohy zmluvy po stranách |
+| `crz_daily_changes` | Všetky zmluvy zverejnené alebo zmenené v daný deň, z denného exportu |
+| `crz_list_departments` | Zoznam rezortov pre filter vyhľadávania |
+| `uvo_search_procurements` | Hľadá obstarávania podľa IČO (ako obstarávateľ, víťaz, uchádzač alebo subdodávateľ), slov, kódu CPV a dátumu |
+| `uvo_get_notice` | Celé oznámenie: po častiach zákazky ponuky, ich sumy a poradie, víťazi a podpísané zmluvy s odkazom do CRZ |
+| `rpvs_get_partner` | Partner verejného sektora podľa IČO: koneční užívatelia výhod s dátumom narodenia, oprávnená osoba, verejní funkcionári, výmaz, pokuty |
+| `rpvs_search_partner` | Hľadá partnerov podľa názvu |
+| `rpvs_search_person` | Kde je osoba konečným užívateľom výhod, verejným funkcionárom alebo oprávnenou osobou |
+| `rpo_get_organization` | Firma alebo inštitúcia podľa IČO: názvy, sídlo, štatutári, spoločníci, kapitál, vznik a zánik |
+| `rpo_search_organization` | Hľadá organizácie podľa súčasného alebo bývalého názvu |
+| `rpo_search_person` | Kde je osoba štatutárom alebo spoločníkom |
+| `ruz_search_entity` | Hľadá účtovné jednotky podľa názvu, IČO alebo DIČ |
+| `ruz_get_entity` | Účtovná jednotka so zoznamom všetkých jej závierok |
+| `ruz_get_financials` | Tržby, výnosy, výsledok hospodárenia, aktíva a vlastné imanie po rokoch, s uvedením riadku výkazu, z ktorého pochádzajú |
 
-Things to know:
+Na čo si dať pozor:
 
-- Full-text search can't be combined with the field filters, because the portal ignores them. Full-text search also matches any word, so it's poor at finding people; use the supplier or buyer name filter instead.
-- In the portal's terms, "buyer" is the *objednávateľ* (the public body) and "supplier" is the *dodávateľ*.
-- CRZ's "text"/"sken" labels on attachments don't tell you whether a PDF has a text layer.
+- **Rovnaké meno ešte neznamená tú istú osobu.** Porovnajte dátum narodenia (RPVS) alebo adresu (RPO).
+- **Hodnota rámcovej dohody je maximum,** nie suma, ktorá sa naozaj zaplatila. Hodnota 0 znamená, že
+  obstarávateľ ju nezverejnil.
+- **TED obsahuje len zákazky nad limitmi EÚ.** Podlimitné zákazky a zákazky s nízkymi hodnotami sú
+  len vo Vestníku, a teda v lokálnom indexe od októbra 2023.
+- **Veľké firmy účtujúce podľa IFRS** (napríklad Slovnaft) majú v RÚZ len PDF dokumenty, z ktorých
+  sa čísla automaticky nečítajú; nástroj na ne odkáže.
+- **Približne pätina príloh v CRZ sú skeny bez textovej vrstvy,** ktorých text sa prečítať nedá.
+- **Niektoré odpovede trvajú niekoľko sekúnd:** portály obmedzujú počet požiadaviek a niektoré API sú
+  pomalé (vyhľadávanie v RPO 5–30 s, prvé načítanie veľkej firmy v RÚZ až 30 s). CRZ má večer
+  pravidelnú údržbu, počas ktorej nie je dostupný.
+- **Vyhľadávanie mien nerozlišuje veľké a malé písmená ani diakritiku:** „Siroky“ nájde Široký,
+  Siroký aj Široky.
 
-### RPVS: Register partnerov verejného sektora ([rpvs.gov.sk](https://rpvs.gov.sk/rpvs))
+### Inštalácia
 
-Companies and people that receive public money above legal thresholds must register here with their
-beneficial owners (*konečný užívateľ výhod*, KUV). An authorized person, usually a law firm, verifies
-the owners.
+Potrebujete [uv](https://docs.astral.sh/uv/getting-started/installation/) (nainštaluje si aj potrebný
+Python). Server sa stiahne priamo z GitHubu a spúšťa sa cez `uvx`, nič netreba klonovať.
 
-| Tool | What it does |
-| --- | --- |
-| `rpvs_get_partner` | Takes an IČO or partner ID and returns the partner's beneficial owners, authorized person and public officials, plus any deletion, fine or qualified complaint. Optionally includes their full history. |
-| `rpvs_search_partner` | Finds partners by part of their name. |
-| `rpvs_search_person` | Finds where a person is a beneficial owner, public official or authorized person, with each partner's IČO. |
-
-Things to know:
-
-- When a partner, or a company that owns it, is listed on a stock exchange, or when no person owns 25 %, RPVS lists **top management** as the beneficial owners. For example, Slovnaft's "owners" are its executives, not MOL's shareholders.
-- Name searches ignore case and **diacritics** in every Slovak, Czech and Hungarian spelling: "Siroky" finds Široký, Siroký and Široky, and "ZDUTOVA - STASTNA" finds Zdútová - Šťastná.
-  - RPVS itself compares strings exactly, so the server matches letter by letter (`s` or `š`, then `i` or `í`, …).
-  - RPVS limits query complexity, so for long names only the first ~14 letters are checked on the server and the rest are verified locally. The `matching` count is then `null`.
-  - `rpvs_search_partner` matches the *start* of a name with any diacritics. Anywhere else in the name it matches only as typed or without diacritics, because the API offers no accent-insensitive substring search.
-- Short Slovak IČOs are zero-padded to 8 digits automatically. Foreign partners keep their own IDs.
-- Results include the full birth date where RPVS has one, which helps tell namesakes apart.
-
-### RPO: Register právnických osôb ([rpo.minv.sk](https://rpo.minv.sk))
-
-The official register of every Slovak legal entity: companies, sole traders, public bodies,
-associations, foundations. It merges the source registers (Obchodný register, Živnostenský register,
-registers of associations and others) under one record per IČO. The Ministry of Interior runs it; the
-API is still served from the Statistical Office's host.
-
-| Tool | What it does |
-| --- | --- |
-| `rpo_get_organization` | Takes an IČO or RPO ID and returns names over time, seat, legal form and status, founding and dissolution dates, source register with court and file number, statutory body, stakeholders (partners, sole shareholder, supervisory board, procurists), capital and contributions, predecessors and successors. Optionally includes their full history. |
-| `rpo_search_organization` | Finds organizations by a word of their current or former name, optionally in one town. |
-| `rpo_search_person` | Finds organizations where a person is in the statutory body or a stakeholder, with each organization's IČO. |
-
-Things to know:
-
-- RPO publishes **no birth dates** and, since the law changed, no beneficial owners. Use RPVS for owners and birth dates.
-- Searches ignore case and diacritics on the server (Oracle Text): "siroky" finds Široký. They match anywhere in the name, current or former; a hit found only by a former name says so in `matched_former_name`.
-- `/search` returns at most 500 records and has no paging; `capped` says when that limit was hit.
-- The API matches a person's first name and surname anywhere in the organization, possibly on two different people. `rpo_search_person` therefore checks each candidate's full record and keeps only real matches, which costs about a second per organization.
-- A dissolved organization is shown as it was on the day before its dissolution (`shown_as_of`), since RPO ends its people and capital then.
-- For foreign companies RPO stores no IČO ("Neuvedené") and a placeholder founding date of 1800-01-01; both come out as `null`.
-- Data lags the source registers by up to a day.
-
-### RÚZ: Register účtovných závierok ([registeruz.sk](https://www.registeruz.sk))
-
-Companies, sole traders with double-entry books, non-profits and public bodies file their financial
-statements (*účtovná závierka*) here. Each statement consists of reports (*výkazy*): balance sheet,
-profit and loss, notes, auditor's report.
-
-| Tool | What it does |
-| --- | --- |
-| `ruz_search_entity` | Finds accounting entities by name, IČO or DIČ. Returns at most 10 matches. |
-| `ruz_get_entity` | Takes an IČO or RÚZ ID and returns the entity (address, legal form, SK NACE, ŠÚSR employee band, ownership) with every statement it filed: period, individual or consolidated, filing and approval dates. |
-| `ruz_get_financials` | Reads key figures per year: `revenue` (tržby), `total_income` (all výnosy or príjmy), `net_profit`, `total_assets` and `equity`. Each figure names the report row and column it came from, and anything that can't be read is listed under `not_mapped` with the reason. Report documents (PDFs, attachments) are linked. |
-
-Things to know:
-
-- Templates differ in their columns: a company's balance sheet has Brutto, Korekcia and Netto for the current year, a sole trader's lists the previous year first, and a single-entry non-profit splits income into taxed and untaxed activity without a total. The current-year column is therefore picked from the header texts, never by position, and rows are found by their labels. Summed columns are labelled as such.
-- Mapped templates: double-entry businesses (Úč POD, also the 2009–2013 versions), micro entities (Úč MUJ), double-entry non-profits (Úč NUJ), single-entry non-profits (Úč NO), single-entry sole traders (Úč FO) and public administration (Úč ROPO SFOV, e.g. municipalities). Banks, insurers and funds have their own templates and come out as `not_mapped`.
-- In single-entry bookkeeping, `net_profit` is income minus expenses (cash), and `equity` is assets minus liabilities.
-- Companies reporting under **IFRS**, including most large and listed ones such as Slovnaft, file only PDFs. Their figures are `not_mapped` and the PDFs are linked.
-- Statements contain no employee count. `employees` is ŠÚSR's current size band on the entity, not a per-year figure.
-- Municipalities and groups also file consolidated statements; `ruz_get_financials` reads individual ones unless `consolidated` is set.
-- Name search uses the portal's suggestion list: it ignores case and diacritics and matches word starts ("szoke" finds Szőke and Szőkeová), but stops at 10 results.
-- One IČO can have several entity records; deleted duplicates are skipped.
-- Amounts are in EUR as filed, whole euros or with cents depending on the filer.
-
-### ÚVO: verejné obstarávanie (public procurement)
-
-Who bought what by which procedure, how many tenders came in, who won and for how much. Notices come
-from [TED](https://ted.europa.eu), the EU's procurement journal, where Slovak buyers publish every
-procurement above the EU thresholds through ÚVO's Vestník.
-
-| Tool | What it does |
-| --- | --- |
-| `uvo_search_procurements` | Searches by IČO as buyer or winner, by words, CPV code (with the codes below it) and publication date; result notices only by default. Returns 20 notices per page with buyer and winners (IČO), procedure type, estimated and final value, tenders received and contract numbers. |
-| `uvo_get_notice` | Gets one notice in full: buyers with contacts and buyer profile, and per lot the result: tenders received by type, lowest and highest bid, each tender with its tenderers (consortium members, subcontractors), amount and whether it won, and the signed contracts with their CRZ ID for `crz_get_contract`. |
-
-Things to know:
-
-- Notices name organisations by whatever the buyer typed as registration number: an IČO, a DIČ, an IČ DPH, or for foreign firms their own numbers. Each ID is labelled `ico`, `dic`, `ic_dph`, `foreign` or `unknown`; `ico` is `null` with an `ico_note` when there is no Slovak IČO. IČOs typed without leading zeros are padded and found either way.
-- Values of framework agreements (*rámcová dohoda*) are the most the buyer may spend, not what was paid; such notices carry a note. A value of 0 means the buyer did not disclose it.
-- TED's search results flatten every field into lists. The search pairs winner names with IDs in the order TED lists them and leaves IDs unpaired when that doesn't line up; `uvo_get_notice` reads the notice itself.
-- Notices published before November 2023 use TED's older format, which records winners only in the text. A winner search finds them by full text and marks them `matched_by`, since the IČO could also be there in another role. Their detail lists only the winners and no contract links.
-- Full-text search ignores case and diacritics.
-
-## Being a polite robot
-
-Each source has its own throttle:
-
-- **CRZ** publishes [rules for machine access](https://www.crz.gov.sk/stahovanie-udajov-z-crz/): by day (06:00–20:00 Bratislava time) at most one request every 2 seconds, at night fewer than 3 per second. Clients that go faster are blocked for up to an hour. CRZ also has maintenance windows, often in the evening between 20:00 and 23:59. During a window it answers with a bare 404 page, and the tools report the portal as unavailable.
-- **RPVS** uses its [open-data OData API](https://rpvs.gov.sk/opendatav2/), which needs no key and publishes no limits. Requests are spaced 0.5 s apart anyway.
-- **RPO** uses the [REST API documented by MV SR](https://rpo.minv.sk/rpo-api-doc.html) at `api.statistics.sk/rpo/v1`, which needs no key and publishes no limits. Requests are spaced 0.5 s apart anyway. A detail takes about a second, while searches take 5–30 s.
-- **TED** uses its [Search API](https://docs.ted.europa.eu/api/latest/index.html), which needs no key and publishes no rate limit; requests are spaced 0.5 s apart. Notice XML is cached for good, since published notices never change (a correction is a new notice). TED data may be reused free of charge with attribution (Commission Decision 2011/833/EU). ÚVO's own website disallows robots in its robots.txt and is not used.
-- **RÚZ** uses its [open API](https://www.registeruz.sk/cruz-public/home/api), which needs no key and publishes no limits; robots.txt only disallows the XLS exports. Requests are spaced 0.5 s apart. Every statement and report is a separate request, so the first look at a large filer takes 10–30 s. Statements and reports are then cached for 3 days, and report templates (which RÚZ never changes) for good. RÚZ data are licensed [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
-
-CRZ daily exports and attachments are cached in `~/.cache/sk-public-money`, or in
-`$SK_PUBLIC_MONEY_CACHE_DIR` when it's set. CRZ export data is licensed
-[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) by Úrad vlády SR, and RPO data under
-CC BY 4.0 by MV SR.
-
-People in these registers are often private individuals, and a matching name isn't proof that two
-records are the same person.
-
-## Install
-
-Requires Python 3.11 or newer.
+Pripojenie ku **Claude Code** (pre všetky vaše projekty):
 
 ```sh
-python3 -m venv ~/envs/sk-public-money
-~/envs/sk-public-money/bin/pip install -e '.[dev]'
+claude mcp add -s user sk-public-money -- uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-mcp
 ```
 
-### Claude Code
-
-```sh
-claude mcp add sk-public-money -- ~/envs/sk-public-money/bin/sk-public-money-mcp
-```
-
-### Claude Desktop and other clients
+Pripojenie ku **Claude Desktop** a iným klientom: do konfigurácie MCP serverov (v Claude Desktop
+*Settings → Developer → Edit Config*) pridajte:
 
 ```json
 {
   "mcpServers": {
-    "sk-public-money": { "command": "/home/you/envs/sk-public-money/bin/sk-public-money-mcp" }
+    "sk-public-money": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/hronecviktor/sk-public-money", "sk-public-money-mcp"]
+    }
   }
 }
 ```
 
-The server speaks MCP over stdio.
+Ak klient `uvx` nenájde, zadajte celú cestu, ktorú vypíše `which uvx` (na Windows `where uvx`).
 
-## Development
+`uvx` si stiahnutú verziu pamätá. Na najnovšiu verziu z GitHubu prejdete jednorazovým spustením
+`uvx --refresh --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-mcp`
+(ukončite ho cez Ctrl+C) a reštartom klienta.
+
+**Index Vestníka verejného obstarávania** (voliteľný, ale bez neho nástroje `uvo_*` hľadajú len
+v TED, teda len zákazky nad limitmi EÚ):
 
 ```sh
-~/envs/sk-public-money/bin/pytest
+uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-uvo-sync
 ```
 
-Each source lives in `src/sk_public_money/sources/<source>/`:
+Prvé spustenie stiahne všetky čísla Vestníka od októbra 2023: asi 770 súborov, spolu približne 7 GB,
+čo trvá okolo 45 minút. Index potom zaberá asi 300 MB a stiahnuté súbory, uložené komprimované, ďalších
+0,75 GB. Príkaz sa dá prerušiť a spustiť znova; stiahne len to, čo chýba. Ďalej sa index dopĺňa sám:
+nástroje každých 6 hodín skontrolujú nové čísla a stiahnu ich.
 
-- `client.py`: HTTP access and throttling, built on `http.ThrottledClient`
-- `parse.py`: turning responses into readable records
-- `tools.py`: the MCP tools, registered on the shared server in `app.py`
+Index a ďalšie údaje sa ukladajú do `~/.cache/sk-public-money`, alebo do priečinka v premennej
+prostredia `SK_PUBLIC_MONEY_CACHE_DIR`.
 
-To add a source, create the same three files and import its `tools` module in `server.py`.
+### Zdroje údajov a licencie
 
-The tests run offline:
+Kód servera je pod licenciou [0BSD](LICENSE): ktokoľvek ho môže používať, kopírovať, upravovať a šíriť
+na akýkoľvek účel bez akýchkoľvek podmienok. Údaje, ktoré nástroje získavajú z registrov, majú vlastné
+licencie:
 
-- **CRZ:** pages and an export saved from crz.gov.sk, in `tests/crz/fixtures`.
-- **RPVS:** a mocked OData API with fictional people.
-- **RPO:** a mocked REST API with fictional organizations and people.
-- **ÚVO:** fictional TED notices in both XML formats in `tests/uvo/fixtures`, and a mocked Search API.
-- **RÚZ:** real report templates in `tests/ruz/fixtures` with fictional entities and amounts, and a mocked API.
+- CRZ: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), Úrad vlády SR
+- Vestník verejného obstarávania: CC BY 4.0, Úrad pre verejné obstarávanie
+- RPO: CC BY 4.0, Ministerstvo vnútra SR
+- RÚZ: [CC0](https://creativecommons.org/publicdomain/zero/1.0/)
+- TED: bezplatné opätovné použitie s uvedením zdroja (Úrad pre publikácie EÚ)
+- RPVS: otvorené údaje Ministerstva spravodlivosti SR
+
+Server dodržiava pravidlá jednotlivých portálov pre automatizovaný prístup a požiadavky na ne posiela
+s odstupom. Podrobnosti o každom zdroji sú v [docs/SOURCES.md](docs/SOURCES.md) a o vývoji
+v [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) (oboje v angličtine).
+
+## English
+
+**sk-public-money** is an [MCP](https://modelcontextprotocol.io) server that gives an AI assistant
+(such as Claude) access to Slovak public registers about where public money goes: state contracts,
+public procurement, companies, their beneficial owners and their financial statements. The assistant
+can search and read them, and combine data from several registers in one answer.
+
+### Connected registers
+
+| Register | What it contains | Where the data comes from | Tools |
+| --- | --- | --- | --- |
+| **CRZ**: Central Register of Contracts | Contracts of ministries, state and public bodies since 2011, with attachments (PDF) and amendments | The [crz.gov.sk](https://www.crz.gov.sk) website and its daily exports | `crz_*` |
+| **ÚVO**: public procurement | Who bought what by which procedure, how many bids came in, who won and for how much; reports of low-value contracts | The Public Procurement Journal (Vestník; open data on [data.slovensko.sk](https://data.slovensko.sk), in a local index since October 2023) and the EU journal [TED](https://ted.europa.eu) (since 2016, contracts above the EU thresholds) | `uvo_*` |
+| **RPVS**: Register of Public Sector Partners | Beneficial owners of companies that receive public money, with birth dates; authorized persons and public officials | The open API of [rpvs.gov.sk](https://rpvs.gov.sk/rpvs) | `rpvs_*` |
+| **RPO**: Register of Legal Entities | The identity of every company, sole trader, public body and association by IČO: names over time, seat, directors, partners, capital, founding and dissolution, predecessors and successors | The Ministry of Interior's API ([rpo.minv.sk](https://rpo.minv.sk)) | `rpo_*` |
+| **RÚZ**: Register of Financial Statements | Financial statements: revenue, profit, assets and equity by year | The open API of [registeruz.sk](https://www.registeruz.sk) | `ruz_*` |
+
+How the registers connect:
+
+- **IČO, the company ID, is the common key.** Every tool that returns a company or public body also
+  returns its IČO, which carries straight on into the next register.
+- **Procurement links to contracts.** Procurement results carry the contract's CRZ ID, so you can go
+  from a tender straight to the signed contract and its text.
+- **People can be searched in several registers:** in RPVS as beneficial owners and public
+  officials, in RPO as directors and partners.
+
+### What you can do with it
+
+Example questions for the assistant:
+
+- "What are Slovnaft's largest contracts with the state, and who are its beneficial owners?"
+- "In which companies is this person a beneficial owner or director, and what tenders did those
+  companies win?"
+- "How many bids came into the Ministry of Interior's fuel tenders, and who won them?"
+- "A company won a €5 million contract. When was it founded, and what was its revenue in recent
+  years?"
+- "What exactly is in this contract's attachment?"
+- "Which contracts did the Ministry of Health publish yesterday?"
+
+| Tool | What it does |
+| --- | --- |
+| `crz_search_contracts` | Searches contracts by supplier, buyer, IČO, title, contract number, department, amount and publication date, or by full text |
+| `crz_get_contract` | A contract or amendment in full: parties with IČO, dates, amounts, attachments, amendments |
+| `crz_read_attachment` | The text of a contract's PDF attachment, page by page |
+| `crz_daily_changes` | Every contract published or changed on a given day, from the daily export |
+| `crz_list_departments` | The departments for the search filter |
+| `uvo_search_procurements` | Searches procurement by IČO (as buyer, winner, tenderer or subcontractor), words, CPV code and date |
+| `uvo_get_notice` | A notice in full: per lot the bids with amounts and ranks, the winners, and the signed contracts with their CRZ link |
+| `rpvs_get_partner` | A public-sector partner by IČO: beneficial owners with birth dates, authorized person, public officials, deletion, fines |
+| `rpvs_search_partner` | Finds partners by name |
+| `rpvs_search_person` | Where a person is a beneficial owner, public official or authorized person |
+| `rpo_get_organization` | A company or public body by IČO: names, seat, directors, partners, capital, founding and dissolution |
+| `rpo_search_organization` | Finds organizations by current or former name |
+| `rpo_search_person` | Where a person is a director or partner |
+| `ruz_search_entity` | Finds accounting entities by name, IČO or DIČ |
+| `ruz_get_entity` | An accounting entity with the list of all its statements |
+| `ruz_get_financials` | Revenue, income, profit, assets and equity by year, each with the report row it came from |
+
+Things to watch out for:
+
+- **The same name doesn't mean the same person.** Compare birth dates (RPVS) or addresses (RPO).
+- **A framework agreement's value is a maximum,** not what was actually paid. A value of 0 means the
+  buyer didn't disclose it.
+- **TED only covers contracts above the EU thresholds.** Below-threshold and low-value contracts are
+  only in the Vestník, and so only in the local index from October 2023.
+- **Large companies reporting under IFRS** (such as Slovnaft) file only PDFs in RÚZ, whose figures
+  aren't read automatically; the tool links to them.
+- **About a fifth of CRZ attachments are scans without a text layer,** whose text can't be read.
+- **Some answers take several seconds:** the portals limit request rates and some APIs are slow
+  (RPO searches 5–30 s, the first look at a large company in RÚZ up to 30 s). CRZ has regular evening
+  maintenance, during which it's unavailable.
+- **Name searches ignore case and diacritics:** "Siroky" finds Široký, Siroký and Široky.
+
+### Installation
+
+You need [uv](https://docs.astral.sh/uv/getting-started/installation/), which also fetches a suitable
+Python. The server is installed straight from GitHub and run with `uvx`; there's nothing to clone.
+
+Connecting to **Claude Code** (for all your projects):
+
+```sh
+claude mcp add -s user sk-public-money -- uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-mcp
+```
+
+Connecting to **Claude Desktop** and other clients: add this to the MCP server configuration (in
+Claude Desktop, *Settings → Developer → Edit Config*):
+
+```json
+{
+  "mcpServers": {
+    "sk-public-money": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/hronecviktor/sk-public-money", "sk-public-money-mcp"]
+    }
+  }
+}
+```
+
+If the client can't find `uvx`, give the full path that `which uvx` prints (on Windows, `where uvx`).
+
+`uvx` keeps the version it downloaded. To move to the latest version on GitHub, run
+`uvx --refresh --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-mcp` once
+(stop it with Ctrl+C) and restart the client.
+
+**The procurement journal index** (optional, but without it the `uvo_*` tools search only TED, so
+only contracts above the EU thresholds):
+
+```sh
+uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-uvo-sync
+```
+
+The first run downloads every Vestník issue since October 2023: about 770 files, roughly 7 GB in
+total, which takes around 45 minutes. The index then takes about 300 MB, and the downloaded files,
+kept compressed, another 0.75 GB. The command can be stopped and run again; it fetches only what's
+missing. After that the index tops itself up: every 6 hours the tools check for new issues and fetch
+them.
+
+The index and other data are stored in `~/.cache/sk-public-money`, or in the folder set in the
+`SK_PUBLIC_MONEY_CACHE_DIR` environment variable.
+
+### Data sources and licences
+
+The server's code is licensed under [0BSD](LICENSE): anyone may use, copy, modify and distribute it
+for any purpose, without any conditions. The data the tools fetch from the registers has its own
+licences:
+
+- CRZ: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), Government Office of the Slovak Republic
+- Public Procurement Journal: CC BY 4.0, Public Procurement Office (ÚVO)
+- RPO: CC BY 4.0, Ministry of Interior of the Slovak Republic
+- RÚZ: [CC0](https://creativecommons.org/publicdomain/zero/1.0/)
+- TED: free reuse with attribution (Publications Office of the EU)
+- RPVS: open data of the Ministry of Justice of the Slovak Republic
+
+The server follows each portal's rules for automated access and spaces out its requests. Details on
+each source are in [docs/SOURCES.md](docs/SOURCES.md), and on development in
+[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
