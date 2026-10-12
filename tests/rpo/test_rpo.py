@@ -306,3 +306,47 @@ async def test_server_error_is_reported(monkeypatch):
     c = client_mod.RPOClient(http=httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(503))))
     with pytest.raises(SourceUnavailable):
         await c.search(identifier="01234567")
+
+
+@pytest.mark.parametrize("name, key", [
+    ("Fiktívne Železiarne Horná Ves a.s.", "fiktivne zeleziarne horna ves"),
+    ("FIKTÍVNE ŽELEZIARNE HORNÁ VES, spol. s r. o.", "fiktivne zeleziarne horna ves"),
+    ("Fiktívne železiarne - Horná Ves, s.r.o.", "fiktivne zeleziarne horna ves"),
+    ("Klub Fiktívne Železiarne Horná Ves", "klub fiktivne zeleziarne horna ves"),
+])
+def test_name_key(name, key):
+    assert tools.name_key(name) == key
+
+
+@pytest.mark.anyio
+async def test_search_organization_ranks_by_relevance(monkeypatch):
+    def org(rec_id, *names, terminated=None):
+        """An organization with names oldest first; the last one is current."""
+        rec = {"id": rec_id, "identifiers": [{"value": f"{rec_id:08d}", "validFrom": "2000-01-01"}],
+               "fullNames": [{"value": n, "validFrom": f"{2000 + i}-01-01", **({"validTo": f"{2000 + i}-12-31"} if i < len(names) - 1 else {})}
+                             for i, n in enumerate(names)],
+               "establishment": "2000-01-01"}
+        return {**rec, "termination": terminated} if terminated else rec
+
+    results = [
+        org(1, "Nadácia Fiktívne Železiarne Horná Ves"),
+        org(2, "Fiktívne železiarne Horná Ves - servis, s.r.o."),
+        org(3, "Agrofarma, s.r.o."),  # found by the server for some other reason
+        org(4, "Fiktívne Železiarne Horná Ves, a.s.", "Nový názov a.s.", terminated="2010-01-01"),
+        org(5, "Fiktívne Železiarne Horná Ves, a.s."),
+        org(6, "Fiktívne Železiarne Horná Ves, š.p.", "Bývalý podnik, a.s."),
+        org(7, "Fiktívne Železiarne Horná Ves, a.s.", "Abeceda s.r.o."),
+    ]
+
+    def handler(request):
+        return httpx.Response(200, json={"results": results, "license": "CC BY 4.0"})
+
+    monkeypatch.setattr(client_mod, "INTERVAL", 0)
+    monkeypatch.setattr(tools, "_client", client_mod.RPOClient(http=httpx.AsyncClient(transport=httpx.MockTransport(handler))))
+    result = await tools.rpo_search_organization(name="fiktivne zeleziarne horna ves", include_terminated=True)
+
+    # Active: exact name, starts with, contains, former names only (alphabetically), no visible match;
+    # then the dissolved company, although its former name was an exact match.
+    assert [o["rpo_id"] for o in result["organizations"]] == [5, 2, 1, 7, 6, 3, 4]
+    assert result["organizations"][3]["matched_former_name"] == "Fiktívne Železiarne Horná Ves, a.s."
+    assert result["organizations"][4]["matched_former_name"] == "Fiktívne Železiarne Horná Ves, š.p."

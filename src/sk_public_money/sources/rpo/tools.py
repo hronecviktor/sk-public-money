@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Annotated, Literal
 
 from pydantic import Field
@@ -67,6 +68,31 @@ async def rpo_get_organization(
     return out
 
 
+# Legal-form suffixes as name_key leaves them (folded, punctuation as spaces), longest first.
+LEGAL_FORMS = sorted(
+    ("a s", "s r o", "spol s r o", "k s", "v o s", "s e", "s p", "n o"),
+    key=len, reverse=True,
+)
+EXACT, PREFIX, CONTAINS, FORMER_NAME, NO_MATCH = range(5)
+
+
+def name_key(text: str) -> str:
+    """Folded name without punctuation and legal-form suffix: 'Železiarne Podbrezová a.s.' -> 'zeleziarne podbrezova'."""
+    key = " ".join(re.sub(r"[^\w]+", " ", fold(text)).split())
+    for form in LEGAL_FORMS:
+        if key.endswith(" " + form):
+            return key[: -len(form) - 1]
+    return key
+
+
+def _relevance(key: str, wanted: str) -> int:
+    if key == wanted:
+        return EXACT
+    if key.startswith(wanted):
+        return PREFIX
+    return CONTAINS if wanted in key else NO_MATCH
+
+
 @mcp.tool(annotations=READ_ONLY)
 @user_errors
 async def rpo_search_organization(
@@ -83,17 +109,19 @@ async def rpo_search_organization(
         addressMunicipality=municipality.strip() if municipality else None,
         onlyActive=None if include_terminated else "true",
     )
-    wanted = fold(name.strip())
-    hits = []
+    wanted = name_key(name)
+    ranked = []
     for rec in results:
         hit = parse.summary(rec)
-        if wanted not in fold(hit["name"] or ""):
-            former = [n["value"] for n in rec.get("fullNames") or [] if wanted in fold(n.get("value") or "")]
+        rank = _relevance(name_key(hit["name"] or ""), wanted)
+        if rank == NO_MATCH:
+            former = [n["value"] for n in rec.get("fullNames") or [] if wanted in name_key(n.get("value") or "")]
             if former:
                 hit["matched_former_name"] = former[-1]
-        hits.append(hit)
-    # Active first, then names that contain the search as typed, then alphabetically.
-    hits.sort(key=lambda h: (h["terminated"] is not None, "matched_former_name" in h, fold(h["name"] or "")))
+                rank = FORMER_NAME
+        ranked.append(((hit["terminated"] is not None, rank, fold(hit["name"] or "")), hit))
+    # Active first; then the name itself, names starting with the search, containing it, former names.
+    hits = [hit for _, hit in sorted(ranked, key=lambda pair: pair[0])]
     return {
         "matching": len(results),
         # RPO returns at most 500 records; narrow the search when this is true.
