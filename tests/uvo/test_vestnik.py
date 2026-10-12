@@ -98,6 +98,9 @@ def test_index_search(ix):
     assert {r["id"] for r in rows} == {"vestnik:900101", "vestnik:900202-1"}  # same day: order by ID
     assert ix.search(icos=["01234567"], role="winner")[1] == 0
     assert ix.search(icos=["01234567"], role="tenderer")[1] == 1
+    assert ix.search(icos=["01234567"], role="any")[1] == 0  # any = buyer or winner
+    assert ix.search(icos=["07654321"], role="tenderer")[1] == 2  # winners, report suppliers included, bid too
+    assert ix.search(icos=["00312345"], role="any")[1] == 1
     assert ix.search(icos=["00312345"], role="buyer")[1] == 1
     assert ix.roles_of(["vestnik:900101"], "01234567") == {"vestnik:900101": ["tenderer"]}
     # Words ignore diacritics and Slovak endings.
@@ -225,6 +228,13 @@ async def test_combined_search(combined):
     assert [r["id"] for r in result["results"]] == ["vestnik:900101", "ted:600001-2023"]
     assert result["results"][0]["matched_as"] == ["buyer"]
     assert result["vestnik_index"] == {"issues": 1, "from": "2026-10-12", "to": "2026-10-12"}
+
+
+@pytest.mark.anyio
+async def test_tenderer_search_says_what_ted_covers(combined):
+    result = await tools.uvo_search_procurements(ico="01234567", role="tenderer")
+    assert result["results"][0]["matched_as"] == ["tenderer"]
+    assert tools.TED_ROLE_NOTES["tenderer"] in result["ted_note"]
 
 
 @pytest.mark.anyio

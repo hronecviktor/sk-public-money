@@ -115,7 +115,7 @@ notice that is also in the index (the same eForms notice ID) is left out. Each r
 
 | Tool | What it does |
 | --- | --- |
-| `uvo_search_procurements` | Searches by IČO as buyer, winner, tenderer (won or lost) or any of these, by words, CPV code (with the codes below it) and publication date; results only by default. Returns 20 per page with buyer and winners (IČO), procedure type, estimated and final value, tenders received, contract numbers and CRZ IDs. |
+| `uvo_search_procurements` | Searches by IČO as buyer or winner (`any`), or only one of them, or as tenderer (won or lost) or subcontractor; by words, CPV code (with the codes below it) and publication date; results only by default. Returns 20 per page with buyer and winners (IČO), procedure type, estimated and final value, tenders received, contract numbers and CRZ IDs. |
 | `uvo_get_notice` | Gets one notice in full: buyers with contacts and buyer profile, and per lot the result: tenders received by type, lowest and highest bid, each tender with its tenderers (consortium members, subcontractors), amount and whether it won, and the signed contracts with their CRZ ID for `crz_get_contract`. A low-value report entry lists its contracts with suppliers and values. |
 
 Building the Vestník index:
@@ -126,6 +126,9 @@ sk-public-money-uvo-sync --since 2026-01-01
 sk-public-money-uvo-sync --reindex    # parse again from the kept files, e.g. after an update
 ```
 
+Each issue is streamed straight into a gzip file; progress lines carry timestamps, so the output can
+be appended to a log file.
+
 The index takes about 300 MB in the cache directory; the downloaded issues are kept gzipped (about
 1 MB each, `--no-keep-raw` to skip). The command can be stopped and run again; it fetches only what is
 missing or was uploaded again. Once built, the tools top it up themselves: every 6 hours they check
@@ -135,7 +138,8 @@ Things to know:
 
 - Notices name organisations by whatever the buyer typed as registration number: an IČO, a DIČ, an IČ DPH, or for foreign firms their own numbers. Each ID is labelled `ico`, `dic`, `ic_dph`, `foreign` or `unknown`; `ico` is `null` with an `ico_note` when there is no Slovak IČO. IČOs typed without leading zeros are padded and found either way.
 - Values of framework agreements (*rámcová dohoda*) are the most the buyer may spend, not what was paid; such notices carry a note. A value of 0 means the buyer did not disclose it. Low-value reports give values without VAT.
-- Vestník results say how the searched IČO appears in them (`matched_as`: buyer, winner, tenderer, subcontractor).
+- Vestník results say how the searched IČO appears in them (`matched_as`: buyer, winner, tenderer, subcontractor). Suppliers in low-value reports count as winners.
+- TED indexes losing tenderers and subcontractors only in eForms notices (from November 2023); for older TED notices a tenderer search finds only wins, and the result says so.
 - TED's search results flatten every field into lists. The search pairs winner names with IDs in the order TED lists them and leaves IDs unpaired when that doesn't line up; `uvo_get_notice` reads the notice itself.
 - TED notices published before November 2023 use the older format, which records winners only in the text. A winner search finds them by full text and marks them `matched_by`, since the IČO could also be there in another role. Their detail lists only the winners and no contract links.
 - Word search ignores case and diacritics. In the Vestník index, words of five or more letters also match other endings (*nafta* finds *nafty*); TED does its own matching.

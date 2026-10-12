@@ -90,31 +90,48 @@ class CatalogueClient(ThrottledClient):
                 issues[key] = issue
         return [issues[k] for k in sorted(issues)]
 
-    async def download(self, url: str) -> bytes:
+    async def download_to(self, url: str, path: Path) -> None:
+        """Stream an issue straight into a gzip file: no uncompressed copy is ever written."""
         if not url.startswith(f"https://{DOWNLOAD_HOST}/"):
             raise ValueError(f"Unexpected download URL: {url}")
-        resp = await self._get(url)
-        if resp.status_code != 200 or not resp.content.lstrip().startswith(b"{"):
-            raise SourceUnavailable(f"data.slovensko.sk returned HTTP {resp.status_code} for {url}.")
-        return resp.content
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(".part")
+        async with self._lock:  # one request at a time, spaced like every other
+            wait = self._last + self._min_interval() - time.monotonic()
+            if wait > 0:
+                await asyncio.sleep(wait)
+            try:
+                async with self._http.stream("GET", url) as resp:
+                    if resp.status_code != 200:
+                        raise SourceUnavailable(f"data.slovensko.sk returned HTTP {resp.status_code} for {url}.")
+                    with gzip.open(tmp, "wb", compresslevel=6) as out:
+                        start = b""
+                        async for chunk in resp.aiter_bytes(1 << 16):
+                            if len(start) < 64:
+                                start += chunk[:64]
+                                if start.strip() and not start.lstrip().startswith(b"{"):
+                                    raise SourceUnavailable(f"data.slovensko.sk sent no JSON for {url}.")
+                            out.write(chunk)
+                tmp.replace(path)
+            except httpx.TransportError as exc:
+                raise SourceUnavailable(f"Could not reach {DOWNLOAD_HOST}: {exc}") from exc
+            finally:
+                tmp.unlink(missing_ok=True)
+                self._last = time.monotonic()
 
 
 async def ingest(catalogue: CatalogueClient, index: VestnikIndex, issue: dict, *, keep_raw: bool) -> int:
     """Download, parse and store one issue; returns its number of records."""
     path = raw_path(issue["year"], issue["number"])
-    if path.exists() and path.stat().st_mtime >= _timestamp(issue["modified"]):
-        data = gzip.decompress(path.read_bytes())
-    else:
-        data = await catalogue.download(issue["url"])
-        if keep_raw:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            tmp = path.with_suffix(".part")
-            tmp.write_bytes(gzip.compress(data, 6))
-            tmp.replace(path)
-    meta, notices = vestnik.parse_issue(data)
+    fresh = path.exists() and path.stat().st_mtime >= _timestamp(issue["modified"])
+    if not fresh:
+        await catalogue.download_to(issue["url"], path)
+    meta, notices = vestnik.parse_issue(gzip.decompress(path.read_bytes()))
+    if not keep_raw and not fresh:
+        path.unlink()
     index.add_issue(meta, notices, dataset=issue["dataset"], modified=issue["modified"])
     for problem in meta.get("skipped", []):
-        log.warning("Vestník %s/%s: skipped %s", issue["number"], issue["year"], problem)
+        log.warning("%s Vestník %s/%s: skipped %s", _now(), issue["number"], issue["year"], problem)
     return len(notices)
 
 
@@ -125,6 +142,10 @@ def _timestamp(value: str | None) -> float:
         return datetime.fromisoformat(value.replace("Z", "+00:00")).timestamp()
     except ValueError:
         return 0.0
+
+
+def _now() -> str:
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
 def pending(listed: list[dict], state: dict[tuple[int, int], str | None]) -> list[dict]:
@@ -167,18 +188,20 @@ async def backfill(since: str, keep_raw: bool, interval: float, *, reindex: bool
         # A dataset is uploaded on its issue's day or (for the first issues) a few weeks later.
         listed = [i for i in await catalogue.list_issues() if (i["issued"] or i["modified"] or "9") >= since]
         todo = listed if reindex else pending(listed, index.issue_state())
-        print(f"{len(listed)} issues since {since}; {len(todo)} to fetch into {index.path}", file=out)
+        print(f"{_now()} {len(listed)} issues since {since}; {len(todo)} to fetch into {index.path}", file=out, flush=True)
         started = time.monotonic()
+        failed = 0
         for n, issue in enumerate(todo, 1):
             try:
                 records = await ingest(catalogue, index, issue, keep_raw=keep_raw)
             except SourceUnavailable as exc:
-                print(f"  {issue['number']}/{issue['year']}: {exc}; skipped, run again to retry", file=out)
+                failed += 1
+                print(f"{_now()} [{n}/{len(todo)}] {issue['number']}/{issue['year']}: {exc}; run again to retry", file=out, flush=True)
                 continue
             left = (time.monotonic() - started) / n * (len(todo) - n)
-            print(f"  [{n}/{len(todo)}] {issue['number']}/{issue['year']}: {records} records, ~{left / 60:.0f} min left", file=out)
+            print(f"{_now()} [{n}/{len(todo)}] {issue['number']}/{issue['year']}: {records} records, ~{left / 60:.0f} min left", file=out, flush=True)
         index.set_meta("checked_at", str(time.time()))
-        print(f"done: {index.coverage()}", file=out)
+        print(f"{_now()} done: {index.coverage()}" + (f"; {failed} issues failed, run again to retry them" if failed else ""), file=out, flush=True)
     finally:
         await catalogue.aclose()
         index.close()
@@ -192,7 +215,7 @@ def main() -> None:
     parser.add_argument("--interval", type=float, default=INTERVAL, help=f"seconds between downloads (default {INTERVAL})")
     parser.add_argument("--reindex", action="store_true", help="parse every issue again (from the kept raw files where present), e.g. after an update of this program")
     args = parser.parse_args()
-    logging.basicConfig(level=logging.WARNING, format="  %(message)s")
+    logging.basicConfig(level=logging.WARNING, format="%(message)s", stream=sys.stderr)
     logging.getLogger("httpx").setLevel(logging.WARNING)
     asyncio.run(backfill(args.since, args.keep_raw, max(args.interval, 0.5), reindex=args.reindex))
 

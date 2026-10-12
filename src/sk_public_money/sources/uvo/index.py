@@ -38,6 +38,14 @@ CREATE INDEX IF NOT EXISTS cpv_notice ON cpv (notice_id);
 CREATE VIRTUAL TABLE IF NOT EXISTS search_text USING fts5 (id UNINDEXED, text, tokenize = 'unicode61 remove_diacritics 2');
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 """
+# Search roles -> stored roles. Winners are tenderers too; "any" is buyer or winner.
+ROLES = {
+    "any": "('buyer','winner')",
+    "buyer": "('buyer')",
+    "winner": "('winner')",
+    "tenderer": "('winner','tenderer')",
+    "subcontractor": "('subcontractor')",
+}
 # Forms that report who won: results and the half-year summary reports.
 AWARD_FORMS = ("result",)
 
@@ -212,8 +220,7 @@ class VestnikIndex:
         where, args = [], []
         if icos:
             marks = ",".join("?" * len(icos))
-            roles_sql = {"buyer": "('buyer')", "winner": "('winner')", "tenderer": "('winner','tenderer')"}.get(role)
-            where.append(f"id IN (SELECT notice_id FROM parties WHERE ico IN ({marks})" + (f" AND role IN {roles_sql})" if roles_sql else ")"))
+            where.append(f"id IN (SELECT notice_id FROM parties WHERE ico IN ({marks}) AND role IN {ROLES[role]})")
             args += icos
         if text and (q := fts_query(text)):
             where.append("id IN (SELECT id FROM search_text WHERE search_text MATCH ?)")

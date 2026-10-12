@@ -24,7 +24,11 @@ PAGE_SIZE = 20
 # eForms became mandatory on TED on 25 October 2023.
 EFORMS_FROM = "20231101"
 TEXT_MATCH_NOTE = "Found by full text in an older notice, which records no winners for search: check the organisation's role with uvo_get_notice."
-TENDERER_NOTE = "The organisation is named in the notice but not as buyer or winner (a losing tenderer, for example); see uvo_get_notice."
+ROLE_NOTE = "The organisation is in this notice as a losing tenderer or a subcontractor, which search results do not list; see uvo_get_notice."
+TED_ROLE_NOTES = {
+    "tenderer": "TED indexes losing tenderers only in eForms notices (from November 2023); its older notices are found only where the organisation won.",
+    "subcontractor": "TED indexes subcontractors only in eForms notices (from November 2023).",
+}
 NO_INDEX_NOTE = ("Only TED was searched (procurements above the EU thresholds): the local Vestník index, which adds "
                  "procurements below them and low-value contracts, has not been built. Build it with sk-public-money-uvo-sync.")
 TED_NUMBER = re.compile(r"(\d{1,8}-\d{4})")
@@ -89,9 +93,16 @@ def ted_query(
         # Notices from before eForms index no winner, so their winners are found by full text.
         legacy = " OR ".join(f"FT~({i})" for i in ids.split())
         winner = f"(winner-identifier IN ({ids}) OR (({legacy}) AND publication-date<{EFORMS_FROM}))"
-        tenderer = f"organisation-identifier-tenderer IN ({ids})"
-        by_role = {"buyer": f"buyer-identifier IN ({ids})", "winner": winner, "tenderer": f"({tenderer} OR {winner})"}
-        clauses.append(by_role.get(role) or f"({by_role['buyer']} OR {tenderer} OR {winner})")
+        buyer = f"buyer-identifier IN ({ids})"
+        by_role = {
+            "any": f"({buyer} OR {winner})",
+            "buyer": buyer,
+            "winner": winner,
+            # Indexed on eForms notices only; older notices name only their winners.
+            "tenderer": f"(organisation-identifier-tenderer IN ({ids}) OR {winner})",
+            "subcontractor": f"organisation-identifier-subcontractor IN ({ids})",
+        }
+        clauses.append(by_role[role])
     if text:
         # TED ignores case and diacritics itself; its query syntax characters are dropped.
         words = re.sub(r"[()\"'~=<>*?{}\[\]\\]", " ", text).split()
@@ -126,7 +137,7 @@ async def _ted_rows(query: str, offset: int, count: int) -> tuple[list[dict], in
 @user_errors
 async def uvo_search_procurements(
     ico: Annotated[str | None, Field(description="IČO of a buyer, tenderer or supplier (up to 8 digits; leading zeros optional).")] = None,
-    role: Annotated[Literal["any", "buyer", "winner", "tenderer"], Field(description="With ico: procurements this organisation ran (buyer), won (winner, including suppliers in low-value contract reports), bid in whether it won or not (tenderer), or any of these.")] = "any",
+    role: Annotated[Literal["any", "buyer", "winner", "tenderer", "subcontractor"], Field(description="With ico: procurements this organisation ran (buyer) or won (winner, including suppliers in low-value contract reports); any = either. tenderer: bid in, whether it won or not. subcontractor: named as a tenderer's subcontractor.")] = "any",
     text: Annotated[str | None, Field(description="Words that must all occur in the notice, ignoring case and diacritics; word endings may differ (nafta finds nafty).")] = None,
     cpv: Annotated[str | None, Field(description="CPV code (e.g. 09134100 for diesel); also finds the codes below it, so 09000000 finds all fuels.")] = None,
     published_from: Annotated[str | None, Field(description="Published on or after this date, YYYY-MM-DD.")] = None,
@@ -183,7 +194,7 @@ async def uvo_search_procurements(
                 if r.get("notice_uuid") in known:
                     continue
                 if icos and role != "buyer" and not set(icos) & {p.get("ico") for p in r.get("buyers", []) + r.get("winners", [])}:
-                    r["matched_by"] = TEXT_MATCH_NOTE if (r.get("published") or "") < "2023-11-01" else TENDERER_NOTE
+                    r["matched_by"] = TEXT_MATCH_NOTE if (r.get("published") or "") < "2023-11-01" else ROLE_NOTE
                 rows.append(r)
 
     total = v_total + t_total
@@ -199,6 +210,8 @@ async def uvo_search_procurements(
         out["note"] = NO_INDEX_NOTE
     if t_total:
         out["ted_note"] = "TED results pair winners with IČOs in the order TED lists them; uvo_get_notice reads the notice itself."
+        if icos and role in TED_ROLE_NOTES:
+            out["ted_note"] += " " + TED_ROLE_NOTES[role]
     return out
 
 
