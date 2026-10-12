@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from crz_mcp import export, parse
+from sk_public_money.sources.crz import export, parse
 
 FIXTURES = Path(__file__).parent / "fixtures"
 

@@ -4,8 +4,8 @@ import httpx
 import pytest
 import respx
 
-from crz_mcp import client as client_mod
-from crz_mcp.client import CRZClient, CRZUnavailable, check_url, min_interval
+from sk_public_money.sources.crz import client as client_mod
+from sk_public_money.sources.crz.client import CRZClient, CRZUnavailable, check_url, min_interval
 
 MAINTENANCE_PAGE = (
     '<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">\n<html><head>\n<title>404 Not Found</title>\n'
@@ -60,7 +60,7 @@ async def test_downloads_are_cached(tmp_path):
         return_value=httpx.Response(200, content=b"zipdata")
     )
     crz = CRZClient(cache=tmp_path)
-    assert await crz.get_bytes("/export/2024-01-15.zip", cache_key="export/2024-01-15.zip") == b"zipdata"
-    assert await crz.get_bytes("/export/2024-01-15.zip", cache_key="export/2024-01-15.zip") == b"zipdata"
+    assert await crz.get_bytes("/export/2024-01-15.zip", cache_key="crz/export/2024-01-15.zip") == b"zipdata"
+    assert await crz.get_bytes("/export/2024-01-15.zip", cache_key="crz/export/2024-01-15.zip") == b"zipdata"
     assert route.call_count == 1
-    assert (tmp_path / "export" / "2024-01-15.zip").read_bytes() == b"zipdata"
+    assert (tmp_path / "crz" / "export" / "2024-01-15.zip").read_bytes() == b"zipdata"

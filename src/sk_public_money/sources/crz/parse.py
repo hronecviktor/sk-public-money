@@ -17,7 +17,7 @@ MONTHS = {
 NOT_FOUND_TITLE = "Vybranú stránku nie je možné zobraziť"
 
 
-class NotFound(Exception):
+class NotFound(LookupError):
     pass
 
 

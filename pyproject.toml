@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "crz-mcp"
+name = "sk-public-money"
 dynamic = ["version"]
-description = "MCP server for the Slovak Central Register of Contracts (crz.gov.sk)"
+description = "MCP server for Slovak public-money registers (CRZ contracts, RPVS beneficial owners)"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -20,10 +20,10 @@ dependencies = [
 dev = ["pytest>=8", "respx>=0.21"]
 
 [project.scripts]
-crz-mcp = "crz_mcp.server:main"
+sk-public-money-mcp = "sk_public_money.server:main"
 
 [tool.hatch.version]
-path = "src/crz_mcp/__init__.py"
+path = "src/sk_public_money/__init__.py"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,57 +1,23 @@
-"""MCP server exposing the Slovak Central Register of Contracts (crz.gov.sk)."""
+"""Tools for the Slovak Central Register of Contracts (Centrálny register zmlúv, crz.gov.sk)."""
 
 from __future__ import annotations
 
-import functools
 import time
 from datetime import date
 from typing import Annotated, Literal
 
-from mcp.server import MCPServer
-from mcp.server.mcpserver.exceptions import ToolError
-from mcp.types import ToolAnnotations
 from pydantic import Field
 
+from ...app import READ_ONLY, mcp, user_errors
 from . import export, parse, pdf
-from .client import CRZClient, CRZUnavailable, check_url
+from .client import CRZClient, check_url
 
 SEARCH_PATH = "/2171273-sk/centralny-register-zmluv/"
 SORT_ORDERS = {"newest": None, "amount_desc": "22", "amount_asc": "21"}
 DEPARTMENTS_TTL = 24 * 3600
 
-INSTRUCTIONS = """\
-Tools for the Slovak Central Register of Contracts (Centrálny register zmlúv, CRZ, https://www.crz.gov.sk),
-where Slovak state bodies must publish their contracts. Names, titles and documents are in Slovak.
-
-- search_contracts: search the live register by supplier/buyer/IČO/title/amount/date, or full text.
-- get_contract: full detail of one contract or amendment by its CRZ ID, with attachments and amendments.
-- read_attachment: text of a PDF attachment (scans have no text layer).
-- daily_changes: every record published or changed on one past day, from the official daily export.
-- list_departments: the ministries/bodies ("rezort") usable as a search filter.
-
-The portal rate-limits robots (one request per 2 s by day), so calls are throttled and can take a few
-seconds; prefer narrow searches over paging through many results. Buyer = objednávateľ (the public body),
-supplier = dodávateľ. Data from the daily exports is licensed CC BY 4.0 by Úrad vlády SR.
-"""
-
-READ_ONLY = ToolAnnotations(readOnlyHint=True, openWorldHint=True)
-
-mcp = MCPServer("crz", instructions=INSTRUCTIONS)
 _client: CRZClient | None = None
 _departments: tuple[float, list[dict]] | None = None
-
-
-def user_errors(fn):
-    """Report anticipated failures to the model with their message instead of a bare error."""
-
-    @functools.wraps(fn)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await fn(*args, **kwargs)
-        except (ValueError, CRZUnavailable, FileNotFoundError, parse.NotFound) as exc:
-            raise ToolError(str(exc)) from exc
-
-    return wrapper
 
 
 def client() -> CRZClient:
@@ -71,7 +37,7 @@ def _amount(value: float) -> str:
 
 @mcp.tool(annotations=READ_ONLY)
 @user_errors
-async def search_contracts(
+async def crz_search_contracts(
     query: Annotated[str | None, Field(description="Full-text search over the register. Cannot be combined with the other filters (the portal ignores them).")] = None,
     supplier: Annotated[str | None, Field(description="Supplier (dodávateľ) name, substring match.")] = None,
     supplier_ico: Annotated[str | None, Field(description="Supplier IČO (company ID, up to 8 digits).")] = None,
@@ -79,7 +45,7 @@ async def search_contracts(
     buyer_ico: Annotated[str | None, Field(description="Buyer IČO.")] = None,
     title: Annotated[str | None, Field(description="Contract title (názov zmluvy), substring match.")] = None,
     contract_number: Annotated[str | None, Field(description="Contract number as assigned by the parties (číslo zmluvy).")] = None,
-    department_id: Annotated[int | None, Field(description="Department (rezort) ID from list_departments.")] = None,
+    department_id: Annotated[int | None, Field(description="Department (rezort) ID from crz_list_departments.")] = None,
     amount_from: Annotated[float | None, Field(description="Minimum total amount in EUR incl. VAT.")] = None,
     amount_to: Annotated[float | None, Field(description="Maximum total amount in EUR incl. VAT.")] = None,
     published_from: Annotated[str | None, Field(description="Published on or after this date, YYYY-MM-DD.")] = None,
@@ -89,7 +55,7 @@ async def search_contracts(
 ) -> dict:
     """Search the Central Register of Contracts. Returns up to 20 contracts per page, each with its
     CRZ ID, publication date, title, contract number, total amount (EUR), supplier and buyer.
-    Use get_contract with an ID for full details and attachments."""
+    Use crz_get_contract with an ID for full details and attachments."""
     filters = {
         "art_zs2": supplier,
         "art_ico": supplier_ico,
@@ -123,8 +89,8 @@ async def search_contracts(
 
 @mcp.tool(annotations=READ_ONLY)
 @user_errors
-async def get_contract(
-    contract_id: Annotated[int, Field(description="CRZ ID of a contract or amendment (as returned by search_contracts, daily_changes or the amendments list).")],
+async def crz_get_contract(
+    contract_id: Annotated[int, Field(description="CRZ ID of a contract or amendment (as returned by crz_search_contracts, crz_daily_changes or the amendments list).")],
 ) -> dict:
     """Full detail of one contract or amendment: parties with addresses and IČO, department, dates
     (published, concluded/signed, effective, valid until), amounts in EUR, attachment links, and for a
@@ -139,8 +105,8 @@ async def get_contract(
 
 @mcp.tool(annotations=READ_ONLY)
 @user_errors
-async def read_attachment(
-    url: Annotated[str, Field(description="Attachment URL from get_contract or daily_changes (https://www.crz.gov.sk/data/att/...).")],
+async def crz_read_attachment(
+    url: Annotated[str, Field(description="Attachment URL from crz_get_contract or crz_daily_changes (https://www.crz.gov.sk/data/att/...).")],
     start_page: Annotated[int, Field(ge=1, description="First page to return (1-based).")] = 1,
     max_pages: Annotated[int, Field(ge=1, le=200, description="Maximum number of pages to return.")] = 20,
     max_chars: Annotated[int, Field(ge=1000, le=200_000, description="Maximum characters of text to return.")] = 40_000,
@@ -151,14 +117,14 @@ async def read_attachment(
     if "/data/att/" not in full:
         raise ValueError("Only attachment URLs under https://www.crz.gov.sk/data/att/ can be read.")
     name = full.rsplit("/", 1)[-1]
-    data = await client().get_bytes(full, cache_key=f"att/{name}")
+    data = await client().get_bytes(full, cache_key=f"crz/att/{name}")
     result = pdf.extract_text(data, start_page=start_page, max_pages=max_pages, max_chars=max_chars)
     return {"url": full, **result}
 
 
 @mcp.tool(annotations=READ_ONLY)
 @user_errors
-async def daily_changes(
+async def crz_daily_changes(
     day: Annotated[str, Field(description="A past day, YYYY-MM-DD. The export for a day is built the following night around 02:00.")],
     text: Annotated[str | None, Field(description="Keep records whose number, title, description, buyer or supplier contains this text (case-insensitive).")] = None,
     ico: Annotated[str | None, Field(description="Keep records where the buyer or supplier has this IČO.")] = None,
@@ -184,7 +150,7 @@ async def daily_changes(
 
 @mcp.tool(annotations=READ_ONLY)
 @user_errors
-async def list_departments() -> dict:
+async def crz_list_departments() -> dict:
     """Departments (rezorty: ministries, central bodies and other publishers) with their IDs,
     for the department_id filter."""
     global _departments
@@ -193,10 +159,3 @@ async def list_departments() -> dict:
         _departments = (time.monotonic(), parse.parse_department_options(html))
     return {"departments": _departments[1]}
 
-
-def main() -> None:
-    mcp.run()
-
-
-if __name__ == "__main__":
-    main()

@@ -7,26 +7,21 @@ and blocks clients that go faster for up to an hour. Every request goes through 
 
 from __future__ import annotations
 
-import asyncio
-import os
-import time
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from urllib.parse import urljoin, urlparse
-from zoneinfo import ZoneInfo
 
 import httpx
 
-from . import __version__
+from ...http import TZ, SourceUnavailable, ThrottledClient
+from ...http import check_url as _check_url
 from .parse import BASE_URL
 
-TZ = ZoneInfo("Europe/Bratislava")
 DAY_INTERVAL = 2.1
 NIGHT_INTERVAL = 0.5
 ALLOWED_HOSTS = {"www.crz.gov.sk", "crz.gov.sk"}
 
 
-class CRZUnavailable(Exception):
+class CRZUnavailable(SourceUnavailable):
     """The portal answered with its generic server error page (maintenance or a block)."""
 
 
@@ -35,46 +30,14 @@ def min_interval(now: datetime | None = None) -> float:
     return DAY_INTERVAL if 6 <= hour < 20 else NIGHT_INTERVAL
 
 
-def cache_dir() -> Path:
-    base = os.environ.get("CRZ_MCP_CACHE_DIR")
-    if base:
-        return Path(base)
-    xdg = os.environ.get("XDG_CACHE_HOME") or str(Path.home() / ".cache")
-    return Path(xdg) / "crz-mcp"
-
-
 def check_url(url: str) -> str:
-    """Resolve a path or URL against the portal and refuse anything outside it."""
-    full = urljoin(BASE_URL + "/", url)
-    parsed = urlparse(full)
-    if parsed.scheme not in ("http", "https") or parsed.hostname not in ALLOWED_HOSTS:
-        raise ValueError(f"Only crz.gov.sk URLs are allowed, got: {url}")
-    return parsed._replace(scheme="https", netloc="www.crz.gov.sk").geturl()
+    return _check_url(url, BASE_URL, ALLOWED_HOSTS)
 
 
-class CRZClient:
+class CRZClient(ThrottledClient):
     def __init__(self, http: httpx.AsyncClient | None = None, cache: Path | None = None):
-        self._http = http or httpx.AsyncClient(
-            timeout=httpx.Timeout(60.0, connect=15.0),
-            follow_redirects=True,
-            headers={"User-Agent": f"crz-mcp/{__version__} (MCP server; follows the CRZ robot rate limits)"},
-        )
-        self._cache = cache or cache_dir()
-        self._lock = asyncio.Lock()
-        self._last = 0.0
-
-    async def aclose(self) -> None:
-        await self._http.aclose()
-
-    async def _get(self, url: str, params: dict | None = None) -> httpx.Response:
-        async with self._lock:
-            wait = self._last + min_interval() - time.monotonic()
-            if wait > 0:
-                await asyncio.sleep(wait)
-            try:
-                return await self._http.get(url, params=params)
-            finally:
-                self._last = time.monotonic()
+        # Look min_interval up at call time so tests can patch it.
+        super().__init__(lambda: min_interval(), http=http, cache=cache)
 
     @staticmethod
     def _is_server_error_page(resp: httpx.Response) -> bool:
@@ -99,7 +62,7 @@ class CRZClient:
 
     async def get_bytes(self, url: str, *, cache_key: str | None = None) -> bytes:
         """Download a file; with cache_key the result is stored on disk and reused."""
-        cached = self._cache / cache_key if cache_key else None
+        cached = self._cached(cache_key)
         if cached and cached.exists():
             return cached.read_bytes()
         resp = await self._get(check_url(url))
@@ -109,10 +72,7 @@ class CRZClient:
             raise CRZUnavailable(f"crz.gov.sk returned HTTP {resp.status_code} for {url}; try again later.")
         resp.raise_for_status()
         if cached:
-            cached.parent.mkdir(parents=True, exist_ok=True)
-            tmp = cached.with_suffix(cached.suffix + ".part")
-            tmp.write_bytes(resp.content)
-            tmp.replace(cached)
+            self._store(cached, resp.content)
         return resp.content
 
     async def get_export(self, day: date) -> bytes:
@@ -120,4 +80,4 @@ class CRZClient:
         if day >= today:
             newest = today - timedelta(days=1)
             raise ValueError(f"The export for {day} does not exist yet; the newest is for {newest} (built around 02:00).")
-        return await self.get_bytes(f"/export/{day.isoformat()}.zip", cache_key=f"export/{day.isoformat()}.zip")
+        return await self.get_bytes(f"/export/{day.isoformat()}.zip", cache_key=f"crz/export/{day.isoformat()}.zip")
