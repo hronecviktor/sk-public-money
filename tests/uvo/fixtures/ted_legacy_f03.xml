@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Fictional contract award notice in the TED R2.0.9 schema (form F03), shaped like real notices
+     from 2022; every organisation, person, number and amount is invented. -->
+<TED_EXPORT xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://publications.europa.eu/resource/schema/ted/R2.0.9/publication" xmlns:n2021="http://publications.europa.eu/resource/schema/ted/2021/nuts" VERSION="R2.0.9.S05.E01" DOC_ID="000900-2022" EDITION="2022001">
+  <CODED_DATA_SECTION>
+    <REF_OJS><COLL_OJ>S</COLL_OJ><NO_OJ>1</NO_OJ><DATE_PUB>20220103</DATE_PUB></REF_OJS>
+    <NOTICE_DATA><NO_DOC_OJS>2022/S 001-000900</NO_DOC_OJS></NOTICE_DATA>
+    <CODIF_DATA><TD_DOCUMENT_TYPE CODE="7">Contract award notice</TD_DOCUMENT_TYPE></CODIF_DATA>
+  </CODED_DATA_SECTION>
+  <FORM_SECTION>
+    <F03_2014 CATEGORY="TRANSLATION" FORM="F03" LG="EN">
+      <OBJECT_CONTRACT><TITLE><P>English title</P></TITLE></OBJECT_CONTRACT>
+    </F03_2014>
+    <F03_2014 CATEGORY="ORIGINAL" FORM="F03" LG="SK">
+      <LEGAL_BASIS VALUE="32014L0024"/>
+      <CONTRACTING_BODY>
+        <ADDRESS_CONTRACTING_BODY>
+          <OFFICIALNAME>Fiktívna nemocnica Dolná Ves</OFFICIALNAME>
+          <NATIONALID>00999999</NATIONALID>
+          <ADDRESS>Nemocničná 5</ADDRESS>
+          <TOWN>Dolná Ves</TOWN>
+          <POSTAL_CODE>99902</POSTAL_CODE>
+          <COUNTRY VALUE="SK"/>
+          <CONTACT_POINT>Ing. Eva Ukážková</CONTACT_POINT>
+          <PHONE>+421 900 000 002</PHONE>
+          <E_MAIL>eva.ukazkova@fiktivna-nemocnica.sk</E_MAIL>
+          <URL_GENERAL>http://www.fiktivna-nemocnica.sk</URL_GENERAL>
+        </ADDRESS_CONTRACTING_BODY>
+      </CONTRACTING_BODY>
+      <OBJECT_CONTRACT>
+        <TITLE><P>Lieky skupiny X</P></TITLE>
+        <REFERENCE_NUMBER>18/2021/EU</REFERENCE_NUMBER>
+        <CPV_MAIN><CPV_CODE CODE="33610000"/></CPV_MAIN>
+        <TYPE_CONTRACT CTYPE="SUPPLIES"/>
+        <SHORT_DESCR><P>Lieky na tri roky.</P></SHORT_DESCR>
+        <VAL_TOTAL CURRENCY="EUR">400000.00</VAL_TOTAL>
+      </OBJECT_CONTRACT>
+      <PROCEDURE><PT_OPEN/><FRAMEWORK/></PROCEDURE>
+      <AWARD_CONTRACT ITEM="1">
+        <CONTRACT_NO>663/2021</CONTRACT_NO>
+        <TITLE><P>Rámcová dohoda č. 663/2021</P></TITLE>
+        <AWARDED_CONTRACT>
+          <DATE_CONCLUSION_CONTRACT>2021-12-28</DATE_CONCLUSION_CONTRACT>
+          <TENDERS>
+            <NB_TENDERS_RECEIVED>4</NB_TENDERS_RECEIVED>
+            <NB_TENDERS_RECEIVED_SME>0</NB_TENDERS_RECEIVED_SME>
+            <NB_TENDERS_RECEIVED_EMEANS>4</NB_TENDERS_RECEIVED_EMEANS>
+          </TENDERS>
+          <CONTRACTORS>
+            <CONTRACTOR>
+              <ADDRESS_CONTRACTOR>
+                <OFFICIALNAME>Farmácia Príklad, a.s.</OFFICIALNAME>
+                <NATIONALID>01234567</NATIONALID>
+                <TOWN>Bratislava</TOWN>
+                <COUNTRY VALUE="SK"/>
+              </ADDRESS_CONTRACTOR>
+              <NO_SME/>
+            </CONTRACTOR>
+          </CONTRACTORS>
+          <VALUES>
+            <VAL_ESTIMATED_TOTAL CURRENCY="EUR">415000.00</VAL_ESTIMATED_TOTAL>
+            <VAL_TOTAL CURRENCY="EUR">400000.00</VAL_TOTAL>
+          </VALUES>
+        </AWARDED_CONTRACT>
+      </AWARD_CONTRACT>
+      <AWARD_CONTRACT ITEM="2">
+        <LOT_NO>2</LOT_NO>
+        <TITLE><P>Časť 2</P></TITLE>
+        <NO_AWARDED_CONTRACT><PROCUREMENT_UNSUCCESSFUL/></NO_AWARDED_CONTRACT>
+      </AWARD_CONTRACT>
+    </F03_2014>
+  </FORM_SECTION>
+</TED_EXPORT>
