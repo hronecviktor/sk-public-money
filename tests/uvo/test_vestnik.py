@@ -148,7 +148,8 @@ def portal(monkeypatch, tmp_path):
     seen = []
     listing = sparql(
         (206, 2026, "2026-10-12T10:13:13Z", "https://data.slovensko.sk/download?id=206"),
-        (207, 2026, "2026-10-12T10:21:50Z", "https://data.slovensko.sk/download?id=207"),
+        (207, 2026, "2026-10-12T10:21:50Z", "http://data.slovensko.sk/download?id=207"),
+        (202, 2023, "2023-12-04T12:30:21Z", "http://2022023.json/"),
     )
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -167,7 +168,11 @@ def portal(monkeypatch, tmp_path):
 async def test_list_and_ingest(portal, tmp_path):
     catalogue, seen = portal
     listed = await catalogue.list_issues()
-    assert [(i["year"], i["number"]) for i in listed] == [(2026, 206), (2026, 207)]
+    assert [(i["year"], i["number"]) for i in listed] == [(2023, 202), (2026, 206), (2026, 207)]
+    assert listed[2]["url"] == "https://data.slovensko.sk/download?id=207"  # http upgraded
+    with pytest.raises(sync.BadLink):
+        await sync.ingest(catalogue, index_mod.VestnikIndex(tmp_path / "x.sqlite"), listed[0], keep_raw=True)
+    listed = listed[1:]
     index = index_mod.VestnikIndex(tmp_path / "v.sqlite")
     assert await sync.ingest(catalogue, index, listed[1], keep_raw=True) == 3
     assert gzip.decompress(sync.raw_path(2026, 207).read_bytes()) == ISSUE

@@ -56,6 +56,10 @@ def raw_path(year: int, number: int) -> Path:
     return cache_dir() / "uvo" / "vestnik" / str(year) / f"{number}.json.gz"
 
 
+class BadLink(ValueError):
+    """The catalogue's download link for an issue is not a data.slovensko.sk address."""
+
+
 class CatalogueClient(ThrottledClient):
     def __init__(self, http: httpx.AsyncClient | None = None, cache: Path | None = None, interval: float = INTERVAL):
         super().__init__(lambda: interval, http=http, cache=cache)
@@ -80,8 +84,10 @@ class CatalogueClient(ThrottledClient):
             if not m:
                 continue
             key = (int(m.group(2)), int(m.group(1)))
+            # Some datasets link over http, one (202/2023) to no real address at all.
+            url = re.sub(rf"^http://{re.escape(DOWNLOAD_HOST)}/", f"https://{DOWNLOAD_HOST}/", b["url"]["value"].strip())
             issue = {
-                "year": key[0], "number": key[1], "dataset": b["dataset"]["value"], "url": b["url"]["value"],
+                "year": key[0], "number": key[1], "dataset": b["dataset"]["value"], "url": url,
                 "issued": (b.get("issued") or {}).get("value"),
                 "modified": (b.get("modified") or b.get("issued") or {}).get("value"),
             }
@@ -93,7 +99,7 @@ class CatalogueClient(ThrottledClient):
     async def download_to(self, url: str, path: Path) -> None:
         """Stream an issue straight into a gzip file: no uncompressed copy is ever written."""
         if not url.startswith(f"https://{DOWNLOAD_HOST}/"):
-            raise ValueError(f"Unexpected download URL: {url}")
+            raise BadLink(f"the catalogue gives no usable download link ({url})")
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = path.with_suffix(".part")
         async with self._lock:  # one request at a time, spaced like every other
@@ -172,8 +178,8 @@ async def refresh(index: VestnikIndex, catalogue: CatalogueClient, *, limit: int
         todo = [i for i in pending(listed, state) if (i["year"], i["number"]) > max(state) or (i["year"], i["number"]) in state]
         for issue in todo[-limit:]:
             await ingest(catalogue, index, issue, keep_raw=index.get_meta("keep_raw") == "1")
-    except SourceUnavailable as exc:
-        return {"vestnik_update": f"Could not check for new Vestník issues: {exc}"}
+    except (SourceUnavailable, BadLink) as exc:
+        return {"vestnik_update": f"Could not update the Vestník index: {exc}"}
     index.set_meta("checked_at", str(time.time()))
     if len(todo) > limit:
         return {"vestnik_update": f"{len(todo) - limit} more new Vestník issues are not indexed yet; run sk-public-money-uvo-sync."}
@@ -194,7 +200,7 @@ async def backfill(since: str, keep_raw: bool, interval: float, *, reindex: bool
         for n, issue in enumerate(todo, 1):
             try:
                 records = await ingest(catalogue, index, issue, keep_raw=keep_raw)
-            except SourceUnavailable as exc:
+            except Exception as exc:  # noqa: BLE001  (log it and carry on with the next issue)
                 failed += 1
                 print(f"{_now()} [{n}/{len(todo)}] {issue['number']}/{issue['year']}: {exc}; run again to retry", file=out, flush=True)
                 continue
