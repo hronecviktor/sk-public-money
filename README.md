@@ -1,8 +1,8 @@
 # sk-public-money
 
 An [MCP](https://modelcontextprotocol.io) server for Slovak public-money registers. It lets an AI
-assistant follow money across registers: find a company's contracts with the state, read them, and see
-who runs and owns the company.
+assistant follow money across registers: find a company's contracts with the state, read them, see
+who runs and owns the company, and how much it earns.
 
 Companies are identified by **IČO** in every register, so one tool's result feeds the next. For
 example, a person turns up as a beneficial owner in RPVS (`rpvs_search_person`), and that company's
@@ -74,6 +74,30 @@ Things to know:
 - For foreign companies RPO stores no IČO ("Neuvedené") and a placeholder founding date of 1800-01-01; both come out as `null`.
 - Data lags the source registers by up to a day.
 
+### RÚZ: Register účtovných závierok ([registeruz.sk](https://www.registeruz.sk))
+
+Companies, sole traders with double-entry books, non-profits and public bodies file their financial
+statements (*účtovná závierka*) here. Each statement consists of reports (*výkazy*): balance sheet,
+profit and loss, notes, auditor's report.
+
+| Tool | What it does |
+| --- | --- |
+| `ruz_search_entity` | Finds accounting entities by name, IČO or DIČ. Returns at most 10 matches. |
+| `ruz_get_entity` | Takes an IČO or RÚZ ID and returns the entity (address, legal form, SK NACE, ŠÚSR employee band, ownership) with every statement it filed: period, individual or consolidated, filing and approval dates. |
+| `ruz_get_financials` | Reads key figures per year: `revenue` (tržby), `total_income` (all výnosy or príjmy), `net_profit`, `total_assets` and `equity`. Each figure names the report row and column it came from, and anything that can't be read is listed under `not_mapped` with the reason. Report documents (PDFs, attachments) are linked. |
+
+Things to know:
+
+- Templates differ in their columns: a company's balance sheet has Brutto, Korekcia and Netto for the current year, a sole trader's lists the previous year first, and a single-entry non-profit splits income into taxed and untaxed activity without a total. The current-year column is therefore picked from the header texts, never by position, and rows are found by their labels. Summed columns are labelled as such.
+- Mapped templates: double-entry businesses (Úč POD, also the 2009–2013 versions), micro entities (Úč MUJ), double-entry non-profits (Úč NUJ), single-entry non-profits (Úč NO), single-entry sole traders (Úč FO) and public administration (Úč ROPO SFOV, e.g. municipalities). Banks, insurers and funds have their own templates and come out as `not_mapped`.
+- In single-entry bookkeeping, `net_profit` is income minus expenses (cash), and `equity` is assets minus liabilities.
+- Companies reporting under **IFRS**, including most large and listed ones such as Slovnaft, file only PDFs. Their figures are `not_mapped` and the PDFs are linked.
+- Statements contain no employee count. `employees` is ŠÚSR's current size band on the entity, not a per-year figure.
+- Municipalities and groups also file consolidated statements; `ruz_get_financials` reads individual ones unless `consolidated` is set.
+- Name search uses the portal's suggestion list: it ignores case and diacritics and matches word starts ("szoke" finds Szőke and Szőkeová), but stops at 10 results.
+- One IČO can have several entity records; deleted duplicates are skipped.
+- Amounts are in EUR as filed, whole euros or with cents depending on the filer.
+
 ## Being a polite robot
 
 Each source has its own throttle:
@@ -81,6 +105,7 @@ Each source has its own throttle:
 - **CRZ** publishes [rules for machine access](https://www.crz.gov.sk/stahovanie-udajov-z-crz/): by day (06:00–20:00 Bratislava time) at most one request every 2 seconds, at night fewer than 3 per second. Clients that go faster are blocked for up to an hour. CRZ also has maintenance windows, often in the evening between 20:00 and 23:59. During a window it answers with a bare 404 page, and the tools report the portal as unavailable.
 - **RPVS** uses its [open-data OData API](https://rpvs.gov.sk/opendatav2/), which needs no key and publishes no limits. Requests are spaced 0.5 s apart anyway.
 - **RPO** uses the [REST API documented by MV SR](https://rpo.minv.sk/rpo-api-doc.html) at `api.statistics.sk/rpo/v1`, which needs no key and publishes no limits. Requests are spaced 0.5 s apart anyway. A detail takes about a second, while searches take 5–30 s.
+- **RÚZ** uses its [open API](https://www.registeruz.sk/cruz-public/home/api), which needs no key and publishes no limits; robots.txt only disallows the XLS exports. Requests are spaced 0.5 s apart. Every statement and report is a separate request, so the first look at a large filer takes 10–30 s. Statements and reports are then cached for 3 days, and report templates (which RÚZ never changes) for good. RÚZ data are licensed [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
 
 CRZ daily exports and attachments are cached in `~/.cache/sk-public-money`, or in
 `$SK_PUBLIC_MONEY_CACHE_DIR` when it's set. CRZ export data is licensed
@@ -136,3 +161,4 @@ The tests run offline:
 - **CRZ:** pages and an export saved from crz.gov.sk, in `tests/crz/fixtures`.
 - **RPVS:** a mocked OData API with fictional people.
 - **RPO:** a mocked REST API with fictional organizations and people.
+- **RÚZ:** real report templates in `tests/ruz/fixtures` with fictional entities and amounts, and a mocked API.

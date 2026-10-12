@@ -32,6 +32,11 @@ rada, prokurista), capital, predecessors and successors. RPO has no birth dates 
 owners. Data lags the source registers by up to a day. Searches ignore case and diacritics; the API
 is slow (searches 5-30 s). CC BY 4.0 by MV SR.
 
+RÚZ, Register účtovných závierok (ruz_* tools): financial statements of companies, sole traders,
+non-profits and public bodies. ruz_get_financials reads revenue, profit, assets and equity per year and
+names the report row and column of each figure; anything it could not map is listed as not_mapped, so
+do not fill gaps by guessing. Companies reporting under IFRS file only PDFs (linked). Data are CC0.
+
 People named in these registers are often private individuals; a matching name is not proof of the
 same person.
 """

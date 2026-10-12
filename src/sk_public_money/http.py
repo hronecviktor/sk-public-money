@@ -15,7 +15,8 @@ import httpx
 from . import __version__
 
 TZ = ZoneInfo("Europe/Bratislava")
-USER_AGENT = f"sk-public-money/{__version__} (MCP server; follows each portal's robot rate limits)"
+# No apostrophes: registeruz.sk's firewall answers 403 to a User-Agent that contains one.
+USER_AGENT = f"sk-public-money/{__version__} (MCP server; follows the robot rate limits of each portal)"
 
 
 class SourceUnavailable(Exception):
