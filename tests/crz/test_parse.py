@@ -145,6 +145,8 @@ def test_export_filters():
     records = export.parse_export_zip((FIXTURES / "2024-01-15.zip").read_bytes())
 
     assert [r["id"] for r in records if export.matches(r, text="slovnaft")] == [3070264]
+    assert [r["id"] for r in records if export.matches(r, text="sprava ciest")] == [3070264]
+    assert [r["id"] for r in records if export.matches(r, text="GENERALNA PROKURATURA")] == [4328425]
     assert [r["id"] for r in records if export.matches(r, ico="3328")] == [3070264]
     assert [r["id"] for r in records if export.matches(r, ico="50349287")] == [4328425]
     assert [r["id"] for r in records if export.matches(r, department_id=356772)] == [4328425]

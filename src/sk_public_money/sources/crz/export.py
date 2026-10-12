@@ -10,6 +10,7 @@ import io
 import xml.etree.ElementTree as ET
 import zipfile
 
+from ...text import fold
 from .parse import BASE_URL
 
 
@@ -93,13 +94,12 @@ def matches(record: dict, *, text: str | None = None, ico: str | None = None, de
         if wanted not in {(record["buyer"]["ico"] or "").lstrip("0"), (record["supplier"]["ico"] or "").lstrip("0")}:
             return False
     if text:
-        needle = text.casefold()
         haystack = " ".join(
             filter(None, [
                 record["number"], record["subject"], record["description"],
                 record["buyer"]["name"], record["supplier"]["name"],
             ])
-        ).casefold()
-        if needle not in haystack:
+        )
+        if fold(text) not in fold(haystack):
             return False
     return True

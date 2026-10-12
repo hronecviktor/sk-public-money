@@ -1,8 +1,4 @@
-"""Turn RPVS OData records into compact, readable dicts.
-
-Birth dates are reduced to the year: enough to tell namesakes apart without republishing full
-dates of birth of private individuals.
-"""
+"""Turn RPVS OData records into compact, readable dicts."""
 
 from __future__ import annotations
 
@@ -57,6 +53,8 @@ def partner_identity(rec: dict) -> dict:
         "valid_from": day(rec.get("PlatnostOd")),
         "valid_to": day(rec.get("PlatnostDo")),
     }
+    if rec.get("DatumNarodenia"):  # natural-person partners only
+        out["birth_date"] = day(rec["DatumNarodenia"])
     if rec.get("PravnaForma"):
         out["legal_form"] = rec["PravnaForma"].get("Meno")
     if "Adresa" in rec:
@@ -72,7 +70,7 @@ def latest(records: list[dict]) -> dict:
 def beneficial_owner(rec: dict) -> dict:
     out = {
         "name": person_name(rec),
-        "birth_year": int(rec["DatumNarodenia"][:4]) if rec.get("DatumNarodenia") else None,
+        "birth_date": day(rec.get("DatumNarodenia")),
         "public_official": bool(rec.get("JeVerejnyCinitel")),
         "valid_from": day(rec.get("PlatnostOd")),
         "valid_to": day(rec.get("PlatnostDo")),
@@ -86,6 +84,7 @@ def authorized_person(rec: dict) -> dict:
     return {
         "name": person_name(rec) if rec.get("FormaOsoby") != "PravnickaOsoba" else _clean(rec.get("ObchodneMeno")),
         "ico": _clean(rec.get("Ico")),
+        "birth_date": day(rec.get("DatumNarodenia")),
         "valid_from": day(rec.get("PlatnostOd")),
         "valid_to": day(rec.get("PlatnostDo")),
     }

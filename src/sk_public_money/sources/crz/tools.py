@@ -126,7 +126,7 @@ async def crz_read_attachment(
 @user_errors
 async def crz_daily_changes(
     day: Annotated[str, Field(description="A past day, YYYY-MM-DD. The export for a day is built the following night around 02:00.")],
-    text: Annotated[str | None, Field(description="Keep records whose number, title, description, buyer or supplier contains this text (case-insensitive).")] = None,
+    text: Annotated[str | None, Field(description="Keep records whose number, title, description, buyer or supplier contains this text (ignoring case and diacritics).")] = None,
     ico: Annotated[str | None, Field(description="Keep records where the buyer or supplier has this IČO.")] = None,
     department_id: Annotated[int | None, Field(description="Keep records of this department (rezort) ID.")] = None,
     limit: Annotated[int, Field(ge=1, le=500)] = 50,

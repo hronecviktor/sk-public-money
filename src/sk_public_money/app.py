@@ -22,8 +22,8 @@ by Úrad vlády SR.
 RPVS, Register partnerov verejného sektora (rpvs_* tools): companies and people that receive public
 money must register their beneficial owners (konečný užívateľ výhod, KUV). When the partner or its
 owner is a listed company or no person owns 25 %, RPVS lists top management as the beneficial owners,
-so they are not necessarily shareholders. Name filters are case-insensitive but diacritics must match
-(Horváth is not Horvath).
+so they are not necessarily shareholders. Person and name searches ignore case and diacritics
+(Siroky finds Široký).
 
 People named in these registers are often private individuals; a matching name is not proof of the
 same person.

@@ -6,6 +6,7 @@ import pytest
 
 from sk_public_money.sources.rpvs import client as client_mod
 from sk_public_money.sources.rpvs import parse, tools
+from sk_public_money.text import fold
 
 
 @pytest.fixture
@@ -26,7 +27,7 @@ def identity(rec_id, partner_id, name, ico, valid_from, valid_to=None, *, vlozka
 
 def kuv(rec_id, first, last, born, valid_from, valid_to=None, *, official=False, partner_id=500):
     return {
-        "Id": rec_id, "Meno": first + " ", "Priezvisko": last, "DatumNarodenia": f"{born}T00:00:00+01:00",
+        "Id": rec_id, "Meno": first + " ", "Priezvisko": last, "DatumNarodenia": f"{born}-03-15T00:00:00+01:00",
         "TitulPred": "Ing.", "TitulZa": "", "JeVerejnyCinitel": official, "ObchodneMeno": None, "Ico": None,
         "PlatnostOd": f"{valid_from}T00:00:00+01:00", "PlatnostDo": f"{valid_to}T00:00:00+01:00" if valid_to else None,
         "Partner": {"Id": partner_id, "CisloVlozky": 498},
@@ -78,10 +79,16 @@ def api(monkeypatch):
             return page(IDENTITIES if "'01234567'" in flt else [], 2)
         if path == "PartneriVerejnehoSektora" and flt.startswith("Partner/Id in"):
             return page(IDENTITIES, 2)
-        if path == "PartneriVerejnehoSektora" and flt.startswith("(contains("):
+        if path == "PartneriVerejnehoSektora" and "ObchodneMeno" in flt:
             return page(IDENTITIES[1:], 1)
         if path == "Partneri(500)":
             return httpx.Response(200, json=PARTNER)
+        if path == "KonecniUzivateliaVyhod" and "eq 19" in flt:
+            # Only the first letters were checked on the server, so it returns near-misses too.
+            return page([
+                kuv(20, "Anna", "Nováková-Horváthová", 1980, "2019-01-01"),
+                kuv(21, "Anna", "Nováková-Horváthovx", 1981, "2019-01-01"),
+            ], 2)
         if path == "KonecniUzivateliaVyhod":
             return page([kuv(10, "Ján", "Vzorový", 1970, "2018-01-01")], 1)
         if path in ("VerejniFunkcionari", "OpravneneOsoby"):
@@ -105,7 +112,7 @@ def test_partner_shape():
     assert p["legal_form"] == "Akciová spoločnosť"
     assert p["registered"] is True
     assert p["beneficial_owners"] == [{
-        "name": "Ing. Ján Vzorový", "birth_year": 1970, "public_official": False,
+        "name": "Ing. Ján Vzorový", "birth_date": "1970-03-15", "public_official": False,
         "valid_from": "2018-01-01", "valid_to": None,
     }]
     assert p["former_beneficial_owners"] == 1
@@ -125,10 +132,32 @@ def test_partner_history_and_deletion():
     assert [i["name"] for i in p["identity_history"]] == ["Fiktívna Rafinéria, a.s.", "FIKTÍVNA RAFINÉRIA, a.s."]
 
 
-def test_birth_date_is_reduced_to_year():
-    owner = parse.beneficial_owner(kuv(1, "Ján", "Vzorový", 1970, "2018-01-01"))
-    assert owner["birth_year"] == 1970
-    assert "1970-01-01" not in str(owner)
+def test_spelled_like_matches_every_diacritic_variant():
+    flt = client_mod.spelled_like("Priezvisko", "Široký")
+
+    e = "tolower(trim(Priezvisko))"
+    assert flt == (
+        "(length(trim(Priezvisko)) eq 6"
+        f" and substring({e},0,1) in ('s','š')"
+        f" and substring({e},1,1) in ('i','í')"
+        f" and substring({e},2,1) in ('r','ŕ','ř')"
+        f" and substring({e},3,1) in ('o','ó','ô','ö','ő')"
+        f" and substring({e},4,1) eq 'k'"
+        f" and substring({e},5,1) in ('y','ý'))"
+    )
+    # Typed without accents, the filter is the same.
+    assert client_mod.spelled_like("Priezvisko", "SIROKY") == flt
+
+
+def test_spelled_like_prefix_and_other_letters():
+    flt = client_mod.spelled_like("Meno", "Ço", prefix=True)
+    assert "length(" not in flt
+    assert "in ('c','č','ç')" in flt
+
+
+@pytest.mark.parametrize("text, folded", [("Široký", "siroky"), ("Ľudovít Štúr", "ludovit stur"), ("Győző Ő", "gyozo o"), ("Kůň", "kun")])
+def test_fold(text, folded):
+    assert fold(text) == folded
 
 
 @pytest.mark.parametrize("ico, expected", [
@@ -174,7 +203,10 @@ async def test_search_person(api):
     assert hit["partner"]["ico"] == "01234567"
     assert hit["partner"]["url"] == "https://rpvs.gov.sk/rpvs/Partner/Partner/Detail/498"
     kuv_filter = next(f for p, f in api if p == "KonecniUzivateliaVyhod")
-    assert kuv_filter == "tolower(Priezvisko) eq 'vzorový' and startswith(tolower(Meno),'ján') and PlatnostDo eq null"
+    assert kuv_filter == (
+        client_mod.spelled_like("Priezvisko", "Vzorový") + " and "
+        + client_mod.spelled_like("Meno", "Ján", prefix=True) + " and PlatnostDo eq null"
+    )
 
 
 @pytest.mark.anyio
@@ -183,5 +215,37 @@ async def test_search_partner(api):
 
     assert result["partners"][0]["partner_id"] == 500
     assert result["partners"][0]["registered"] is True
-    flt = next(f for p, f in api if f.startswith("(contains("))
-    assert flt == "(contains(tolower(ObchodneMeno),'rafinéria') or contains(tolower(Priezvisko),'rafinéria')) and PlatnostDo eq null"
+    flt = next(f for p, f in api if "ObchodneMeno" in f and p == "PartneriVerejnehoSektora")
+    assert flt == (
+        "(" + client_mod.spelled_like("ObchodneMeno", "Rafinéria", prefix=True, max_letters=7)
+        + " or " + client_mod.spelled_like("Priezvisko", "Rafinéria", prefix=True, max_letters=7)
+        + " or contains(tolower(ObchodneMeno),'rafineria') or contains(tolower(ObchodneMeno),'rafinéria'))"
+        + " and PlatnostDo eq null"
+    )
+
+
+@pytest.mark.anyio
+async def test_search_person_long_name_is_verified_locally(api):
+    result = await tools.rpvs_search_person(surname="novakova-horvathova", role="beneficial_owner")
+
+    assert [r["name"] for r in result["results"]] == ["Ing. Anna Nováková-Horváthová"]
+    assert result["matching"] == {"beneficial_owner": None}
+    kuv_filter = next(f for p, f in api if p == "KonecniUzivateliaVyhod")
+    assert kuv_filter.count("substring(") == client_mod.MAX_LETTERS
+
+
+@pytest.mark.anyio
+async def test_search_retries_with_fewer_letters_when_too_complex(api, monkeypatch):
+    original = client_mod.RPVSClient.get_json
+
+    async def picky_get_json(self, path_or_url, params=None):
+        if params and params.get("$filter", "").count("substring(") > 10:
+            raise client_mod.QueryTooComplex("The node count limit of '100' has been exceeded.")
+        return await original(self, path_or_url, params)
+
+    monkeypatch.setattr(client_mod.RPVSClient, "get_json", picky_get_json)
+    result = await tools.rpvs_search_person(surname="novakova-horvathova", role="beneficial_owner")
+
+    assert [r["name"] for r in result["results"]] == ["Ing. Anna Nováková-Horváthová"]
+    tried = [f.count("substring(") for p, f in api if p == "KonecniUzivateliaVyhod"]
+    assert tried == [8]  # 14 and 11 were rejected before reaching the API, 8 fits

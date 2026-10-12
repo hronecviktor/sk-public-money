@@ -20,7 +20,7 @@ take effect.
 | `crz_search_contracts` | Searches by supplier, buyer, IČO, title, contract number, department, amount range and publication date, or by full text. Returns 20 results per page, sorted by newest or by amount. |
 | `crz_get_contract` | Gets the full detail of a contract or amendment by CRZ ID: both parties with address and IČO, dates, amounts, attachments and amendments. |
 | `crz_read_attachment` | Extracts the text of a PDF attachment, page by page. About 1 in 5 recent attachments is a scan without a text layer; the result says so. |
-| `crz_daily_changes` | Lists every record published or changed on a past day, from the official daily export. |
+| `crz_daily_changes` | Lists every record published or changed on a past day, from the official daily export. Its text filter ignores case and diacritics. |
 | `crz_list_departments` | Lists the department (rezort) IDs that the search filter takes. |
 
 Things to know:
@@ -44,9 +44,12 @@ the owners.
 Things to know:
 
 - When a partner, or a company that owns it, is listed on a stock exchange, or when no person owns 25 %, RPVS lists **top management** as the beneficial owners. For example, Slovnaft's "owners" are its executives, not MOL's shareholders.
-- RPVS name filters are case-insensitive but **diacritics must match**: "Horváth" doesn't find "Horvath". (CRZ ignores diacritics.)
+- Name searches ignore case and **diacritics** in every Slovak, Czech and Hungarian spelling: "Siroky" finds Široký, Siroký and Široky, and "ZDUTOVA - STASTNA" finds Zdútová - Šťastná.
+  - RPVS itself compares strings exactly, so the server matches letter by letter (`s` or `š`, then `i` or `í`, …).
+  - RPVS limits query complexity, so for long names only the first ~14 letters are checked on the server and the rest are verified locally. The `matching` count is then `null`.
+  - `rpvs_search_partner` matches the *start* of a name with any diacritics. Anywhere else in the name it matches only as typed or without diacritics, because the API offers no accent-insensitive substring search.
 - Short Slovak IČOs are zero-padded to 8 digits automatically. Foreign partners keep their own IDs.
-- The RPVS API returns full birth dates; this server returns only the **birth year**.
+- Results include the full birth date where RPVS has one, which helps tell namesakes apart.
 
 ## Being a polite robot
 
