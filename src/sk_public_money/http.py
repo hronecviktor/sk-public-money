@@ -63,12 +63,18 @@ class ThrottledClient:
         await self._http.aclose()
 
     async def _get(self, url: str, params: dict | None = None) -> httpx.Response:
+        return await self._request("GET", url, params=params)
+
+    async def _post(self, url: str, json: dict) -> httpx.Response:
+        return await self._request("POST", url, json=json)
+
+    async def _request(self, method: str, url: str, **kwargs) -> httpx.Response:
         async with self._lock:
             wait = self._last + self._min_interval() - time.monotonic()
             if wait > 0:
                 await asyncio.sleep(wait)
             try:
-                return await self._http.get(url, params=params)
+                return await self._http.request(method, url, **kwargs)
             except httpx.TransportError as exc:
                 raise SourceUnavailable(f"Could not reach {urlparse(url).hostname}: {exc}") from exc
             finally:

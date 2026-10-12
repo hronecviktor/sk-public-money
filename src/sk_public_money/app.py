@@ -37,6 +37,13 @@ non-profits and public bodies. ruz_get_financials reads revenue, profit, assets 
 names the report row and column of each figure; anything it could not map is listed as not_mapped, so
 do not fill gaps by guessing. Companies reporting under IFRS file only PDFs (linked). Data are CC0.
 
+Public procurement, verejné obstarávanie (uvo_* tools): who bought what by which procedure, how many
+tenders came in, who won and for how much. Notices come from TED, where Slovak buyers publish
+procurements above the EU thresholds (from 2016). A notice's contracts carry CRZ IDs for
+crz_get_contract. Values of framework agreements (rámcová dohoda) are maximums, not spending; a value
+of 0 means undisclosed. Identifiers are labelled ico, dic (DIČ), ic_dph or foreign; ico is null when
+the notice gives no Slovak IČO. TED data may be reused with attribution.
+
 People named in these registers are often private individuals; a matching name is not proof of the
 same person.
 """
