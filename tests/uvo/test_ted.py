@@ -176,6 +176,7 @@ def test_ted_query():
                                published_to=None, awards_only=False)
     winner = "(winner-identifier IN (01234567 1234567) OR ((FT~(01234567) OR FT~(1234567)) AND publication-date<20231101))"
     assert f"(buyer-identifier IN (01234567 1234567) OR {winner})" in any_role
+    assert "tenderer" not in any_role and "subcontractor" not in any_role  # any = buyer or winner only
     role = lambda r: tools.ted_query(ico="01234567", role=r, text=None, cpv=None, published_from=None, published_to=None, awards_only=False)  # noqa: E731
     assert f"(organisation-identifier-tenderer IN (01234567 1234567) OR {winner})" in role("tenderer")
     assert "organisation-identifier-subcontractor IN (01234567 1234567)" in role("subcontractor")
