@@ -35,6 +35,8 @@ FIRST_ISSUE_DATE = "2023-10-01"
 # The tools check for new issues at most this often, and fetch at most this many inline.
 CHECK_EVERY = 6 * 3600
 INLINE_LIMIT = 5
+# The backfill gives up after this many unreachable downloads in a row.
+MAX_NETWORK_FAILURES = 5
 TITLE = re.compile(r"Vestník\s+(\d+)/(\d{4})\s*$")
 log = logging.getLogger(__name__)
 
@@ -186,31 +188,58 @@ async def refresh(index: VestnikIndex, catalogue: CatalogueClient, *, limit: int
     return None
 
 
-async def backfill(since: str, keep_raw: bool, interval: float, *, reindex: bool = False, out=sys.stderr) -> None:
-    index = VestnikIndex()
-    catalogue = CatalogueClient(interval=interval)
+class BackfillStopped(Exception):
+    """A failure that would hit every further issue too: the network, the disk."""
+
+
+async def backfill(
+    since: str, keep_raw: bool, interval: float, *, reindex: bool = False, out=sys.stderr,
+    index: VestnikIndex | None = None, catalogue: CatalogueClient | None = None,
+) -> list[str]:
+    """Fetch and index every missing issue since a date. A failing issue (bad link, HTTP error,
+    unparseable file) is logged and skipped; the run stops only on errors that would repeat for
+    every issue: a full disk, or MAX_NETWORK_FAILURES unreachable downloads in a row. Returns the
+    failed issues."""
+    index = index or VestnikIndex()
+    catalogue = catalogue or CatalogueClient(interval=interval)
     index.set_meta("keep_raw", "1" if keep_raw else "0")
+    failed: list[str] = []
+    say = lambda text: print(f"{_now()} {text}", file=out, flush=True)  # noqa: E731
     try:
         # A dataset is uploaded on its issue's day or (for the first issues) a few weeks later.
         listed = [i for i in await catalogue.list_issues() if (i["issued"] or i["modified"] or "9") >= since]
         todo = listed if reindex else pending(listed, index.issue_state())
-        print(f"{_now()} {len(listed)} issues since {since}; {len(todo)} to fetch into {index.path}", file=out, flush=True)
+        say(f"{len(listed)} issues since {since}; {len(todo)} to fetch into {index.path}")
         started = time.monotonic()
-        failed = 0
+        unreachable = 0
         for n, issue in enumerate(todo, 1):
+            name = f"{issue['number']}/{issue['year']}"
             try:
                 records = await ingest(catalogue, index, issue, keep_raw=keep_raw)
+            except OSError as exc:  # disk full, permissions: every further issue would fail too
+                raise BackfillStopped(f"{name}: {exc}") from exc
             except Exception as exc:  # noqa: BLE001  (log it and carry on with the next issue)
-                failed += 1
-                print(f"{_now()} [{n}/{len(todo)}] {issue['number']}/{issue['year']}: {exc}; run again to retry", file=out, flush=True)
+                failed.append(f"{name}: {exc}")
+                say(f"[{n}/{len(todo)}] {name} FAILED: {exc}")
+                unreachable = unreachable + 1 if isinstance(exc, SourceUnavailable) and "reach" in str(exc) else 0
+                if unreachable >= MAX_NETWORK_FAILURES:
+                    raise BackfillStopped(f"{unreachable} downloads in a row could not reach {DOWNLOAD_HOST}") from exc
                 continue
+            unreachable = 0
             left = (time.monotonic() - started) / n * (len(todo) - n)
-            print(f"{_now()} [{n}/{len(todo)}] {issue['number']}/{issue['year']}: {records} records, ~{left / 60:.0f} min left", file=out, flush=True)
+            say(f"[{n}/{len(todo)}] {name}: {records} records, ~{left / 60:.0f} min left")
         index.set_meta("checked_at", str(time.time()))
-        print(f"{_now()} done: {index.coverage()}" + (f"; {failed} issues failed, run again to retry them" if failed else ""), file=out, flush=True)
+        say(f"done: {index.coverage()}")
+    except (BackfillStopped, SourceUnavailable) as exc:
+        say(f"STOPPED: {exc}. Run again to continue; indexed issues are kept.")
     finally:
+        if failed:
+            say(f"{len(failed)} issues failed (run again to retry):")
+            for line in failed:
+                print(f"  {line}", file=out, flush=True)
         await catalogue.aclose()
         index.close()
+    return failed
 
 
 def main() -> None:

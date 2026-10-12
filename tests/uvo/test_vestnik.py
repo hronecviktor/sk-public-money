@@ -3,6 +3,7 @@ fixtures/vestnik_issue.json is fictional, built in the shape of real data.sloven
 (form trees whose panels carry their IDs only in their labels)."""
 
 import gzip
+import io
 import json
 import time
 from pathlib import Path
@@ -193,6 +194,49 @@ async def test_refresh_fetches_only_newer_issues(portal, tmp_path, parsed):
     seen.clear()
     assert await sync.refresh(index, catalogue) is None
     assert seen == []
+
+
+@pytest.mark.anyio
+async def test_backfill_skips_failing_issues(tmp_path, monkeypatch):
+    listing = sparql(
+        (202, 2023, "2023-12-04T12:30:21Z", "http://2022023.json/"),
+        (5, 2026, "2026-01-08T10:00:00Z", "https://data.slovensko.sk/download?id=5"),
+        (6, 2026, "2026-01-09T10:00:00Z", "https://data.slovensko.sk/download?id=6"),
+        (207, 2026, "2026-10-12T10:21:50Z", "https://data.slovensko.sk/download?id=207"),
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/sparql":
+            return httpx.Response(200, json=listing)
+        return {"5": httpx.Response(500), "6": httpx.Response(200, content=b'{"year": 2026, "number": "x"}'),
+                "207": httpx.Response(200, content=ISSUE)}[request.url.params["id"]]
+
+    monkeypatch.setenv("SK_PUBLIC_MONEY_CACHE_DIR", str(tmp_path))
+    log = io.StringIO()
+    index = index_mod.VestnikIndex(tmp_path / "v.sqlite")
+    catalogue = sync.CatalogueClient(http=httpx.AsyncClient(transport=httpx.MockTransport(handler)), interval=0)
+    failed = await sync.backfill("2023-10-01", True, 0, out=log, index=index, catalogue=catalogue)
+    # A bad link, an HTTP error and an unparseable file each cost one issue; the last one is indexed.
+    assert [f.split(":")[0] for f in failed] == ["202/2023", "5/2026", "6/2026"]
+    assert "done:" in log.getvalue() and "3 issues failed" in log.getvalue()
+    assert set(index_mod.VestnikIndex(tmp_path / "v.sqlite").issue_state()) == {(2026, 207)}
+
+
+@pytest.mark.anyio
+async def test_backfill_stops_when_the_portal_is_unreachable(tmp_path, monkeypatch):
+    listing = sparql(*[(n, 2026, "2026-01-08T10:00:00Z", f"https://data.slovensko.sk/download?id={n}") for n in range(1, 9)])
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/sparql":
+            return httpx.Response(200, json=listing)
+        raise httpx.ConnectError("down")
+
+    monkeypatch.setenv("SK_PUBLIC_MONEY_CACHE_DIR", str(tmp_path))
+    log = io.StringIO()
+    catalogue = sync.CatalogueClient(http=httpx.AsyncClient(transport=httpx.MockTransport(handler)), interval=0)
+    failed = await sync.backfill("2023-10-01", True, 0, out=log, index=index_mod.VestnikIndex(tmp_path / "v.sqlite"), catalogue=catalogue)
+    assert len(failed) == sync.MAX_NETWORK_FAILURES
+    assert "STOPPED" in log.getvalue()
 
 
 def test_pending():
