@@ -174,7 +174,8 @@ def test_ted_query():
     )
     any_role = tools.ted_query(ico="01234567", role="any", text=None, cpv="09000000", published_from=None,
                                published_to=None, awards_only=False)
-    assert "(buyer-identifier IN (01234567 1234567) OR (winner-identifier IN (01234567 1234567) OR ((FT~(01234567) OR FT~(1234567)) AND publication-date<20231101)))" in any_role
+    assert ("(buyer-identifier IN (01234567 1234567) OR organisation-identifier-tenderer IN (01234567 1234567) OR "
+            "(winner-identifier IN (01234567 1234567) OR ((FT~(01234567) OR FT~(1234567)) AND publication-date<20231101)))") in any_role
     assert "classification-cpv=09*" in any_role
     with pytest.raises(ValueError):
         tools.ted_query(ico="123456789", role="any", text=None, cpv=None, published_from=None, published_to=None, awards_only=True)
@@ -196,6 +197,9 @@ def ted(monkeypatch, tmp_path):
         return httpx.Response(404, text="<html>Not found</html>")
 
     http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    # No Vestník index: these tests search TED only.
+    monkeypatch.setenv("SK_PUBLIC_MONEY_CACHE_DIR", str(tmp_path))
+    monkeypatch.setattr(tools, "_index", None)
     monkeypatch.setattr(client_mod, "INTERVAL", 0)
     monkeypatch.setattr(tools, "_client", client_mod.TEDClient(http=http, cache=tmp_path))
     return seen
@@ -208,6 +212,7 @@ async def test_search_tool(ted):
     assert body["page"] == 2 and body["limit"] == 20
     assert "winner-identifier IN (01234567 1234567)" in body["query"]
     assert result["total"] == 41 and result["has_more"] is True
+    assert result["note"] == tools.NO_INDEX_NOTE
     # The second hit names the IČO nowhere in its indexed parties: it came from full text.
     assert "matched_by" not in result["results"][0]
     assert result["results"][1]["matched_by"] == tools.TEXT_MATCH_NOTE

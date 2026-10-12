@@ -100,22 +100,46 @@ Things to know:
 
 ### ÚVO: verejné obstarávanie (public procurement)
 
-Who bought what by which procedure, how many tenders came in, who won and for how much. Notices come
-from [TED](https://ted.europa.eu), the EU's procurement journal, where Slovak buyers publish every
-procurement above the EU thresholds through ÚVO's Vestník.
+Who bought what by which procedure, how many tenders came in, who won and for how much. Two sources:
+
+- The **Vestník verejného obstarávania**, ÚVO's journal, published as [open data](https://data.slovensko.sk)
+  one JSON file per issue. It has every notice since ÚVO moved to eForms in October 2023, also those
+  below the EU thresholds, and the buyers' half-year reports of low-value contracts (*súhrnná správa*),
+  each contract with supplier, value without VAT and CRZ link. It has no search API, so the issues
+  are downloaded into a local index (see below).
+- [TED](https://ted.europa.eu), the EU's procurement journal, where Slovak buyers publish the
+  procurements above the EU thresholds; searched live, back to 2016.
+
+A search reads the index for the dates it covers and TED for the years before, newest first. A TED
+notice that is also in the index (the same eForms notice ID) is left out. Each result names its source.
 
 | Tool | What it does |
 | --- | --- |
-| `uvo_search_procurements` | Searches by IČO as buyer or winner, by words, CPV code (with the codes below it) and publication date; result notices only by default. Returns 20 notices per page with buyer and winners (IČO), procedure type, estimated and final value, tenders received and contract numbers. |
-| `uvo_get_notice` | Gets one notice in full: buyers with contacts and buyer profile, and per lot the result: tenders received by type, lowest and highest bid, each tender with its tenderers (consortium members, subcontractors), amount and whether it won, and the signed contracts with their CRZ ID for `crz_get_contract`. |
+| `uvo_search_procurements` | Searches by IČO as buyer, winner, tenderer (won or lost) or any of these, by words, CPV code (with the codes below it) and publication date; results only by default. Returns 20 per page with buyer and winners (IČO), procedure type, estimated and final value, tenders received, contract numbers and CRZ IDs. |
+| `uvo_get_notice` | Gets one notice in full: buyers with contacts and buyer profile, and per lot the result: tenders received by type, lowest and highest bid, each tender with its tenderers (consortium members, subcontractors), amount and whether it won, and the signed contracts with their CRZ ID for `crz_get_contract`. A low-value report entry lists its contracts with suppliers and values. |
+
+Building the Vestník index:
+
+```sh
+sk-public-money-uvo-sync              # every issue since October 2023: ~770 downloads, ~7 GB, ~45 min
+sk-public-money-uvo-sync --since 2026-01-01
+sk-public-money-uvo-sync --reindex    # parse again from the kept files, e.g. after an update
+```
+
+The index takes about 300 MB in the cache directory; the downloaded issues are kept gzipped (about
+1 MB each, `--no-keep-raw` to skip). The command can be stopped and run again; it fetches only what is
+missing or was uploaded again. Once built, the tools top it up themselves: every 6 hours they check
+for new issues and fetch up to 5. Without an index, the tools search TED only and say so.
 
 Things to know:
 
 - Notices name organisations by whatever the buyer typed as registration number: an IČO, a DIČ, an IČ DPH, or for foreign firms their own numbers. Each ID is labelled `ico`, `dic`, `ic_dph`, `foreign` or `unknown`; `ico` is `null` with an `ico_note` when there is no Slovak IČO. IČOs typed without leading zeros are padded and found either way.
-- Values of framework agreements (*rámcová dohoda*) are the most the buyer may spend, not what was paid; such notices carry a note. A value of 0 means the buyer did not disclose it.
+- Values of framework agreements (*rámcová dohoda*) are the most the buyer may spend, not what was paid; such notices carry a note. A value of 0 means the buyer did not disclose it. Low-value reports give values without VAT.
+- Vestník results say how the searched IČO appears in them (`matched_as`: buyer, winner, tenderer, subcontractor).
 - TED's search results flatten every field into lists. The search pairs winner names with IDs in the order TED lists them and leaves IDs unpaired when that doesn't line up; `uvo_get_notice` reads the notice itself.
-- Notices published before November 2023 use TED's older format, which records winners only in the text. A winner search finds them by full text and marks them `matched_by`, since the IČO could also be there in another role. Their detail lists only the winners and no contract links.
-- Full-text search ignores case and diacritics.
+- TED notices published before November 2023 use the older format, which records winners only in the text. A winner search finds them by full text and marks them `matched_by`, since the IČO could also be there in another role. Their detail lists only the winners and no contract links.
+- Word search ignores case and diacritics. In the Vestník index, words of five or more letters also match other endings (*nafta* finds *nafty*); TED does its own matching.
+- ÚVO's supervision notices in the Vestník (reviews of procedures) are not indexed.
 
 ## Being a polite robot
 
@@ -124,6 +148,7 @@ Each source has its own throttle:
 - **CRZ** publishes [rules for machine access](https://www.crz.gov.sk/stahovanie-udajov-z-crz/): by day (06:00–20:00 Bratislava time) at most one request every 2 seconds, at night fewer than 3 per second. Clients that go faster are blocked for up to an hour. CRZ also has maintenance windows, often in the evening between 20:00 and 23:59. During a window it answers with a bare 404 page, and the tools report the portal as unavailable.
 - **RPVS** uses its [open-data OData API](https://rpvs.gov.sk/opendatav2/), which needs no key and publishes no limits. Requests are spaced 0.5 s apart anyway.
 - **RPO** uses the [REST API documented by MV SR](https://rpo.minv.sk/rpo-api-doc.html) at `api.statistics.sk/rpo/v1`, which needs no key and publishes no limits. Requests are spaced 0.5 s apart anyway. A detail takes about a second, while searches take 5–30 s.
+- **data.slovensko.sk** (Vestník issues) publishes no limits and its robots.txt allows everything. The sync fetches one issue at a time, 2 s apart. The data are licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) by ÚVO.
 - **TED** uses its [Search API](https://docs.ted.europa.eu/api/latest/index.html), which needs no key and publishes no rate limit; requests are spaced 0.5 s apart. Notice XML is cached for good, since published notices never change (a correction is a new notice). TED data may be reused free of charge with attribution (Commission Decision 2011/833/EU). ÚVO's own website disallows robots in its robots.txt and is not used.
 - **RÚZ** uses its [open API](https://www.registeruz.sk/cruz-public/home/api), which needs no key and publishes no limits; robots.txt only disallows the XLS exports. Requests are spaced 0.5 s apart. Every statement and report is a separate request, so the first look at a large filer takes 10–30 s. Statements and reports are then cached for 3 days, and report templates (which RÚZ never changes) for good. RÚZ data are licensed [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
 
@@ -181,5 +206,5 @@ The tests run offline:
 - **CRZ:** pages and an export saved from crz.gov.sk, in `tests/crz/fixtures`.
 - **RPVS:** a mocked OData API with fictional people.
 - **RPO:** a mocked REST API with fictional organizations and people.
-- **ÚVO:** fictional TED notices in both XML formats in `tests/uvo/fixtures`, and a mocked Search API.
+- **ÚVO:** fictional TED notices in both XML formats and a fictional Vestník issue in `tests/uvo/fixtures`, and mocked TED and data.slovensko.sk APIs.
 - **RÚZ:** real report templates in `tests/ruz/fixtures` with fictional entities and amounts, and a mocked API.
