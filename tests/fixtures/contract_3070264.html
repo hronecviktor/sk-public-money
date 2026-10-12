@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<!--[if lt IE 7 ]><html class="ie ie6 no-js" lang="sk"> <![endif]-->
+<!--[if IE 7 ]><html class="ie ie7 no-js" lang="sk"> <![endif]-->
+<!--[if IE 8 ]><html class="ie ie8 no-js" lang="sk"> <![endif]-->
+<!--[if IE 9 ]><html class="ie ie9 no-js" lang="sk"> <![endif]-->
+<!--[if (gte IE 10)|!(IE)]><!--><html class="no-js" lang="sk"> <!--<![endif]-->
+<head>
+<meta charset="utf-8" />
+<meta name="generator" content="SysCom Content Management System (www.syscom.sk)" />
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+<link href="/assets/default/css/bundle.min.css?v=1.0.2" type="text/css" rel="stylesheet" />
+<link href="/include/jquery/css/jquery-ui.min.css" type="text/css" rel="stylesheet" />
+<title>2134/6253/2017 | Centrálny register zmlúv</title>
+<style>
+        main img {
+            max-width: 100%;   
+        }
+        details {
+            margin-bottom:1rem;
+            border:1px solid silver;
+            border-radius: .5rem;
+        }
+        details summary:hover {
+            cursor:pointer;
+            background: #e9ecef;
+        }
+        details summary, details>div {
+            padding: 1rem;
+        }
+        
+    .support-home {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+        .support-home h2 {
+            margin:0 0 1rem 0;
+        }
+        .support-home-item {
+            box-sizing: border-box;
+            width:100%;
+            border: 8px solid #e9ecef;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            margin-bottom:2rem;
+        }
+        .support-home-item .list {
+            padding: 1rem;
+        }
+        .support-home-item .list ul {
+            line-height: 1.7;
+        }
+        .support-home-item .contact {
+            padding: .5rem 0.25rem 0;
+            background-color:#E9ECEF;
+            text-align: center;
+        }
+        .support-notice {
+            font-size:1rem;
+            color:#2A2E32;
+            background-color:#E9ECEF;
+            padding:1rem;
+            margin-top:2rem;
+            border-left:5px solid #A71D22;
+            box-sizing:border-box
+        }
+        .updated {
+            background-color:#E9ECEF;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+        .updated div {
+            box-sizing: border-box;
+            padding:.5rem;
+            width: 100%;
+        }
+
+        @media screen and (min-width: 900px) {
+            .support-home-item {
+                width: 49%;
+            }
+            .updated div {
+                width:50%;
+            }
+        }
+</style>
+<script defer data-domain="crz.gov.sk" src="https://stats.vlada.gov.sk/js/script.js"></script>
+<script>window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }</script>
+
+<script type="text/javascript" src="/assets/default/js/bundle.js"></script>
+<script type="text/javascript" src="/libs/js/jquery/jquery-3.6.1.min.js"></script>
+<script type="text/javascript" src="/include/jquery/jquery-ui.js"></script>
+<script type="text/javascript" src="/libs/js/cookieconsent/iframemanager.min.js"></script>
+<script type="text/javascript" src="/libs/js/cookieconsent/cookieconsent.min.js"></script>
+<script type="text/javascript" src="/libs/js/cookieconsent/cookieconsent-init.js"></script>
+<script type="text/javascript" src="/libs/js/bootstrap-datepicker/bootstrap-datepicker.min.js"></script>
+<script type="text/javascript" src="/libs/js/bootstrap-datepicker/bootstrap-datepicker.sk.min.js"></script>
+<script type="text/javascript" src="/libs/js/bootstrap-datepicker/bootstrap-datepicker.en-GB.min.js"></script>
+<script type="text/javascript" src="/libs/js/bootstrap-datepicker/bootstrap-datepicker-init.js"></script>
+<script type="text/javascript" src="/include/ord.js"></script>
+<script type="text/javascript" src="/assets/default/js/custom-scripts.js"></script>
+<script type="text/javascript" src="/libs/js/frm/date.js"></script>
+</head>
+<body class="is-sub artpro-3 art-3070264 lang-sk bg-gray-300">
+
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="offcanvas" aria-labelledby="offcanvasLabel">
+        <div class="offcanvas-header border-bottom">
+    
+            <a href="/" class="offcanvas__branding" id="offcanvasLabel">
+                <img src="/assets/default/img/logo.svg" width="100" height="40" alt="Centrálny register zmlúv">
+            </a>
+    
+            <button class="btn btn-outline-primary offcanvas__close" type="button"
+                aria-label="Skryť menu" aria-controls="offcanvas" aria-expanded="true" data-bs-dismiss="offcanvas">
+                <i class="fa fa-times" aria-hidden="true"></i>
+                <span class="visually-hidden">Zavrieť</span>
+            </button>
+        </div>
+        <div class="offcanvas-body">
+            <ul class="offnav"><li class="offnav__item"><a href="/domov-presmerovanie/" class="offnav__link -level-1">Domov</a></li><li class="offnav__item -has-sub"><a href="#offMnuItem-c-1_2" class="offnav__link collapsed -level-1" role="button" id="offMnuItem-2" data-bs-toggle="collapse" aria-expanded="false" aria-controls="offMnuItem-c-1_2">Zmluvy</a><div class="collapse" id="offMnuItem-c-1_2" aria-labelledby="offMnuItem-1_2"><ul class="offnav__sub"><li class=""><a href="/zmluvy/" class="-level-2">Zmluvy</a></li><li class=""><a href="/doplnene-zmluvy/" class="-level-2">Doplnené zmluvy</a></li><li class=""><a href="/zrusene-zmluvy/" class="-level-2">Zrušené zmluvy</a></li><li class=""><a href="/najsledovanejsie-zmluvy/" class="-level-2">Najsledovanejšie zmluvy</a></li><li class=""><a href="/zmluvy-do-31122010/" class="-level-2">Zmluvy do 31.12.2010</a></li></ul></div></li><li class="offnav__item -has-sub"><a href="#offMnuItem-c-1_3" class="offnav__link collapsed -level-1" role="button" id="offMnuItem-3" data-bs-toggle="collapse" aria-expanded="false" aria-controls="offMnuItem-c-1_3">O stránke</a><div class="collapse" id="offMnuItem-c-1_3" aria-labelledby="offMnuItem-1_3"><ul class="offnav__sub"><li class=""><a href="/o-stranke/" class="-level-2">O stránke</a></li><li class=""><a href="/legislativny-ramec/" class="-level-2">Legislatívny rámec</a></li><li class=""><a href="/prevadzkovatel/" class="-level-2">Prevádzkovateľ</a></li><li class=""><a href="/technicka-podpora/" class="-level-2">Technická podpora</a></li><li class=""><a href="/stahovanie-udajov-z-crz/" class="-level-2">Sťahovanie údajov z CRZ</a></li></ul></div></li><li class="offnav__item"><a href="/casto-kladene-otazky/" class="offnav__link -level-1">FAQ</a></li><li class="offnav__item"><a href="/kontakt-a-podpora/" class="offnav__link -level-1">Kontakt a podpora</a></li></ul>
+
+            <div class="mt-auto pt-3 border-top">
+                <ul class="toolnav list-unstyled d-flex mb-md-2">
+                    <li class="text-center">
+                        <a href="/mapa-stranky/">
+                            <i class="fa fa-fw fa fa-sitemap me-2" aria-hidden="true"></i><span>Mapa stránok</span>
+                        </a>
+                    </li>
+                    <li class="text-center">
+                        <a href="?pg=3">
+                            <i class="fa fa-fw fa fa-print me-2" aria-hidden="true"></i><span>Verzia pre tlač</span>
+                        </a>
+                    </li>
+                    <li class="text-center">
+                        <a href="/data/static/rss.xml" aria-label="RSS odber">
+                            <i class="fa fa-fw fa fa-rss me-2" aria-hidden="true"></i><span>RSS</span>
+                        </a>
+                    </li>
+                    <li class="text-center">
+                        <a href="/central-register-of-contracts/" hreflang="en" lang="en">
+                            <i class="fa fa-fw  me-2" aria-hidden="true"><img src="/assets/default/img/flags/en.svg" alt=""></i><span>English</span>
+                        </a>
+                    </li>
+                    <li class="text-center">
+                        <a href="/swa" aria-label="Prihlásenie">
+                            <i class="fa fa-fw fa fa-sign-in me-2" aria-hidden="true"></i><span>Prihlásenie</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div><!-- // .offcanvas -->
+
+    <div id="wrap" class="container px-0 shadow bg-white">
+
+        <header id="header" class="header">
+        
+            <nav class="navbar navbar-expand-lg">
+                <div class="d-flex align-items-center navbar-main">
+                    <a class="navbar-brand me-auto" href="/">
+                        <div class="holder">
+                        <img src="/assets/default/img/logo.svg" width="100" height="40" alt="Centrálny register zmlúv">
+                        </div>
+                    </a>
+
+                    <button aria-label="Prepnúť Fulltextové vyhľadávanie" title="Fulltextové vyhľadávanie" class="btn btn-lighta d-lg-none ms-auto me-2" type="button" data-bs-toggle="collapse" data-bs-target="#fTextSearch" aria-expanded="false" aria-controls="fTextSearch">
+                        <i class="fa fa-search" aria-hidden="true"></i>
+                    </button>
+                    
+                    <button aria-label="Prepnúť Rozšírené vyhľadávanie" title="Rozšírené vyhľadávanie" class="btn btn-lighta d-lg-none me-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFilter" aria-expanded="false" aria-controls="collapseFilter">
+                        <i class="fa fa-filter" aria-hidden="true"></i>
+                    </button>
+                    
+                    <button id="toggleNav" class="btn btn-lighta hamburger d-lg-none collapsed me-3" type="button"
+                        aria-label="Zobraziť navigáciu" data-bs-toggle="offcanvas" data-bs-target="#offcanvas" aria-controls="offcanvas">
+                        <svg height="32px" id="Layer_1" style="enable-background:new 0 0 32 32;" version="1.1" viewBox="0 0 32 32" width="32px" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M4,10h24c1.104,0,2-0.896,2-2s-0.896-2-2-2H4C2.896,6,2,6.896,2,8S2.896,10,4,10z M28,14H4c-1.104,0-2,0.896-2,2  s0.896,2,2,2h24c1.104,0,2-0.896,2-2S29.104,14,28,14z M28,22H4c-1.104,0-2,0.896-2,2s0.896,2,2,2h24c1.104,0,2-0.896,2-2  S29.104,22,28,22z"/></svg>
+                    </button>
+                </div>
+
+
+                <div class="collapse position-relative fulltext-search-collapse header__tr pt-lg-2" id="fTextSearch">
+                    <div class="d-none d-lg-block pe-3">
+                        <ul class="toolnav list-unstyled d-flex mb-md-2">
+                            <li class="text-center">
+                                <a href="/mapa-stranky/">
+                                    <i class="fa fa-fw fa fa-sitemap me-2" aria-hidden="true"></i><span>Mapa stránok</span>
+                                </a>
+                            </li>
+                            <li class="text-center">
+                                <a href="?pg=3">
+                                    <i class="fa fa-fw fa fa-print me-2" aria-hidden="true"></i><span>Verzia pre tlač</span>
+                                </a>
+                            </li>
+                            <li class="text-center">
+                                <a href="/data/static/rss.xml" aria-label="RSS odber">
+                                    <i class="fa fa-fw fa fa-rss me-2" aria-hidden="true"></i><span>RSS</span>
+                                </a>
+                            </li>
+                            <li class="text-center">
+                                <a href="/central-register-of-contracts/" hreflang="en" lang="en">
+                                    <i class="fa fa-fw  me-2" aria-hidden="true"><img src="/assets/default/img/flags/en.svg" alt=""></i><span>English</span>
+                                </a>
+                            </li>
+                            <li class="text-center">
+                                <a href="/swa" aria-label="Prihlásenie">
+                                    <i class="fa fa-fw fa fa-sign-in me-2" aria-hidden="true"></i><span>Prihlásenie</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="row g-0">
+                        <div class="col col-lg-auto d-flex align-items-end text-right justify-content-end p-3 header__count">
+                            <div>Celkovo zverejnených <strong>5933457</strong> zmlúv</div>
+                        </div>
+                        <div class="col-sm-auto bg-gray-200 py-3 header__col--ftext px-3">
+                            <form class="form-inline input-group form-fulltext" action="/2171273-sk/centralny-register-zmluv/" method="post">
+                                <div class="input-group">
+                                    <input class="form-control" type="text" value="" name="search" id="search-input" placeholder="Fulltextové vyhľadávanie" aria-label="Zadajte hľadaný výraz">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-primary" type="submit" name="fulltext_search" aria-label="Začať hľadať"><i class="fa fa-search" aria-hidden="true"></i></button>
+                                    </div>
+                                </div>
+                            </form>
+                            
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-none d-lg-block multi-collapse navbar-collapse w-100" id="topNav">
+                    <ul class="navbar-nav mr-auto mt-2 mt-lg-0"><li class="nav-item"><a href="/domov-presmerovanie/" class="nav-link">Domov</a></li><li class="nav-item dropdown"><a href="#" class="nav-link">Zmluvy</a><ul class="dropdown-menu"><li class=""><a href="/zmluvy/" class="nav-link">Zmluvy</a></li><li class=""><a href="/doplnene-zmluvy/" class="nav-link">Doplnené zmluvy</a></li><li class=""><a href="/zrusene-zmluvy/" class="nav-link">Zrušené zmluvy</a></li><li class=""><a href="/najsledovanejsie-zmluvy/" class="nav-link">Najsledovanejšie zmluvy</a></li><li class=""><a href="/zmluvy-do-31122010/" class="nav-link">Zmluvy do 31.12.2010</a></li></ul></li><li class="nav-item dropdown"><a href="#" class="nav-link">O stránke</a><ul class="dropdown-menu"><li class=""><a href="/o-stranke/" class="nav-link">O stránke</a></li><li class=""><a href="/legislativny-ramec/" class="nav-link">Legislatívny rámec</a></li><li class=""><a href="/prevadzkovatel/" class="nav-link">Prevádzkovateľ</a></li><li class=""><a href="/technicka-podpora/" class="nav-link">Technická podpora</a></li><li class=""><a href="/stahovanie-udajov-z-crz/" class="nav-link">Sťahovanie údajov z CRZ</a></li></ul></li><li class="nav-item"><a href="/casto-kladene-otazky/" class="nav-link">FAQ</a></li><li class="nav-item"><a href="/kontakt-a-podpora/" class="nav-link">Kontakt a podpora</a></li></ul>
+                    <button class="d-none d-lg-inline-block btn btn-toggle-search btn-sm btn-white-red collapsed ms-auto me-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFilter" aria-expanded="false" aria-controls="collapseFilter">
+                        <i class="fa fa-filter me-2" aria-hidden="true"></i>Rozšírené vyhľadávanie
+                    </button>
+                </div>
+
+            </nav>
+
+        </header>
+
+
+        <div id="collapseFilter" class="collapse search-collapse">
+            <div class="px-3 px-md-4 pt-4 pb-2 hide-frmbutbg border-bottom bg-light hide-frmbutbg">
+                <form id="frm_filter_3" action="/2171273-sk/centralny-register-zmluv/" method="get" class="sc_frm form-horizontal sc_frm_basic" data-bsc="12" data-bsc-label="3" data-bsc-control="9"><div class="row js-autocomplete-off">
+    <div class="col-lg-6 col--1">
+        <div class="row mb-3">
+            <div class="col-sm-4 control-label">
+                <label for="frm_filter_3_art_zs2">Dodávateľ:</label>
+            </div>
+            <div class="col-sm-8">
+                <input class="form-control fld width1" type="text" name="art_zs2" value="" maxlength="255" id="frm_filter_3_art_zs2" />
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-sm-4 control-label">
+                <label for="frm_filter_3_art_predmet">Názov zmluvy:</label>
+            </div>
+            <div class="col-sm-8">
+                <input class="form-control fld width1" type="text" name="art_predmet" value="" maxlength="255" id="frm_filter_3_art_predmet" />
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-sm-4 control-label">
+                <label for="frm_filter_3_art_ico">IČO dodávateľa:</label>
+            </div>
+            <div class="col-sm-8">
+                <input class="form-control fld width4" type="text" name="art_ico" value="" maxlength="8" id="frm_filter_3_art_ico" />
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-sm-4 control-label">
+                <label for="frm_filter_3_art_suma_spolu_od">Cena v € s DPH:</label>
+            </div>
+            <div class="col-sm-8">
+                <div class="row">
+                    <div class="col">
+                        <div class="input-group flex-nowrap">
+                            <label for="frm_filter_3_art_suma_spolu_od" class="input-group-text">od</label>
+                            <input class="form-control fld width5" type="text" name="art_suma_spolu_od" value="" maxlength="15" id="frm_filter_3_art_suma_spolu_od" />
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="input-group flex-nowrap">
+                            <label for="frm_filter_3_art_suma_spolu_do" class="input-group-text">do</label>
+                            <input class="form-control fld width5" type="text" name="art_suma_spolu_do" value="" maxlength="15" id="frm_filter_3_art_suma_spolu_do" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-sm-4 control-label">
+                <label for="frm_filter_3_art_datum_zverejnene_od">Zverejnené:</label>
+            </div>
+            <div class="col-sm-8">
+                <div class="row input-daterange">
+                    <div class="col">
+                        <div class="input-group flex-nowrap">
+                            <label for="frm_filter_3_art_datum_zverejnene_od" class="input-group-text" aria-label="od"><i class="fa fa-calendar" aria-hidden="true"></i></label>
+                            <input class="form-control fld width5 scd_date" type="text" name="art_datum_zverejnene_od" value="" maxlength="15" id="frm_filter_3_art_datum_zverejnene_od" />
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="input-group flex-nowrap">
+                            <label for="frm_filter_3_art_datum_zverejnene_do" class="input-group-text" aria-label="do"><i class="fa fa-calendar" aria-hidden="true"></i></label>
+                            <input class="form-control fld width5 scd_date" type="text" name="art_datum_zverejnene_do" value="" maxlength="15" id="frm_filter_3_art_datum_zverejnene_do" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6 col--2">
+        <div class="row mb-3">
+            <div class="col-sm-4 control-label">
+                <label for="frm_filter_3_art_rezort">Rezort:</label>
+            </div>
+            <div class="col-sm-8">
+                <select id="frm_filter_3_art_rezort" class="form-control fld width1" name="art_rezort"><option value="0" selected="selected"> </option><option value="118974">agrokomplex NÁRODNÉ VÝSTAVISKO, štátny podnik</option><option value="127698">Akadémia umení v Banskej Bystrici</option><option value="119593">Audiovizuálny fond</option><option value="121236">Ekonomická univerzita v Bratislave</option><option value="1552144">Elektronický kontraktačný systém</option><option value="3065787">Fond na podporu kultúry národnostných menšín</option><option value="2249797">Fond na podporu umenia</option><option value="779485">Fond na podporu vzdelávania</option><option value="408599">Fond národného majetku SR</option><option value="748131">Fond výtvarných umení</option><option value="356772">Generálna prokuratúra Slovenskej republiky </option><option value="131444">Hudobný fond</option><option value="7524853">Jadrová energetická spoločnosť Slovenska</option><option value="5870791">Kancelária Najvyššieho správneho súdu Slovenskej republiky</option><option value="2782449">Kancelária Najvyššieho súdu Slovenskej republiky</option><option value="356965">Kancelária Národnej rady Slovenskej republiky</option><option value="381892">Kancelária prezidenta Slovenskej republiky</option><option value="659697">Kancelária Rady pre rozpočtovú zodpovednosť</option><option value="2263690">Kancelária Súdnej rady SR</option><option value="390844">Kancelária Ústavného súdu Slovenskej republiky</option><option value="473568">Kancelária verejného ochrancu práv</option><option value="119840">Katolícka univerzita v Ružomberku</option><option value="1476896">Literárny fond</option><option value="773800">Matica slovenská</option><option value="406837">MH Teplárenský holding, a.s.</option><option value="8898224">Ministerstvo cestovného ruchu a športu SR</option><option value="114573">Ministerstvo dopravy a výstavby SR</option><option value="114725">Ministerstvo financií SR</option><option value="114499">Ministerstvo hospodárstva SR </option><option value="2473554">Ministerstvo investícií, regionálneho rozvoja a informatizácie</option><option value="114692">Ministerstvo kultúry SR</option><option value="114495">Ministerstvo obrany SR</option><option value="114727">Ministerstvo pôdohospodárstva a rozvoja vidieka SR</option><option value="114533">Ministerstvo práce, sociálnych vecí a rodiny SR</option><option value="114497">Ministerstvo školstva, výskumu, vývoja a mládeže Slovenskej republiky</option><option value="114565">Ministerstvo spravodlivosti SR</option><option value="114723">Ministerstvo vnútra SR</option><option value="114654">Ministerstvo zahraničných vecí SR</option><option value="114571">Ministerstvo zdravotníctva SR</option><option value="114535">Ministerstvo životného prostredia SR</option><option value="356929">Najvyšší kontrolný úrad Slovenskej republiky</option><option value="358680">Najvyšší súd SR</option><option value="114652">Národný bezpečnostný úrad</option><option value="518667">Národný inšpektorát práce</option><option value="1455994">Ostatné</option><option value="316407">Pôžičkový fond pre začínajúcich pedagógov</option><option value="119589">Prešovská univerzita v Prešove</option><option value="114490">Protimonopolný úrad SR</option><option value="779519">Rada pre vysielanie a retransmisiu</option><option value="402088">Recyklačný fond v likvidácii</option><option value="114752">Rozhlas a televizia Slovenska</option><option value="363849">Slovenská akadémia vied</option><option value="358672">Slovenská elektrizačná prenosová sústava, a.s. </option><option value="4055741">Slovenská informačná služba</option><option value="2572185">Slovenská obchodná a priemyselná komora</option><option value="115447">Slovenská poľnohospodárska univerzita v Nitre</option><option value="119006">Slovenská technická univerzita v Bratislave</option><option value="526459">Slovenské národné stredisko pre ľudské práva</option><option value="358675">Slovenský pozemkový fond</option><option value="114493">Sociálna poisťovňa</option><option value="114690">Správa štátnych hmotných rezerv SR</option><option value="114733">Štatistický úrad SR</option><option value="307882">Študentský pôžičkový fond</option><option value="6215909">Subjekty verejnej správy</option><option value="117199">Technická univerzita v Košiciach</option><option value="117205">Technická univerzita vo Zvolene</option><option value="117113">Tlačová agentúra Slovenskej republiky</option><option value="118692">Trenčianska univerzita Alexandra Dubčeka v Trenčíne</option><option value="117729">Trnavská univerzita so sídlom v Trnave</option><option value="116991">Univerzita J. Selyeho v Komárne</option><option value="116293">Univerzita Komenského v Bratislave</option><option value="115013">Univerzita Konštantína Filozofa v Nitre</option><option value="119217">Univerzita Mateja Bela v Banskej Bystrici</option><option value="116277">Univerzita Pavla Jozefa Šafárika v Košiciach </option><option value="115434">Univerzita sv. Cyrila a Metoda v Trnave</option><option value="117166">Univerzita veterinárskeho lekárstva a farmácie v Košiciach</option><option value="114731">Úrad geodézie, kartografie a katastra SR</option><option value="114501">Úrad jadrového dozoru SR</option><option value="2862619">Úrad komisára pre deti</option><option value="3956955">Úrad komisára pre osoby so zdravotným postihnutím</option><option value="561884">Úrad na ochranu osobných údajov Slovenskej republiky</option><option value="5742083">Úrad na ochranu oznamovateľov protispoločenskej činnosti</option><option value="10269138">Úrad podpredsedu vlády SR vlády pre Plán obnovy a znalostnú ekonomiku</option><option value="6706801">Úrad podpredsedu vlády, ktorý neriadi ministerstvo</option><option value="115005">Úrad pre dohľad nad výkonom auditu</option><option value="360085">Úrad pre dohľad nad zdravotnou starostlivosťou</option><option value="114735">Úrad pre normalizáciu, metrológiu a skúšobníctvo SR</option><option value="356704">Úrad pre reguláciu sieťových odvetví</option><option value="114729">Úrad pre verejné obstarávanie</option><option value="114489">Úrad priemyselného vlastníctva SR</option><option value="114688">Úrad vlády SR</option><option value="3805640">Ústav pamäti národa</option><option value="3953379">Ústredie ekumenickej pastoračnej služby v OS SR a OZ SR</option><option value="114503">Všeobecná zdravotná poisťovňa a.s.</option><option value="131437">Vysoká škola múzických umení</option><option value="117084">Vysoká škola výtvarných umení v Bratislave</option><option value="115836">Žilinská univerzita v Žiline</option></select>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-sm-4 control-label">
+                <label for="frm_filter_3_art_zs1">Objednávateľ:</label>
+            </div>
+            <div class="col-sm-8">
+                <input class="form-control fld width1" type="text" name="art_zs1" value="" maxlength="255" id="frm_filter_3_art_zs1" />
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-sm-4 control-label">
+                <label for="frm_filter_3_nazov">Číslo zmluvy:</label>
+            </div>
+            <div class="col-sm-8">
+                <input class="form-control fld width4" type="text" name="nazov" value="" maxlength="255" id="frm_filter_3_nazov" />
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-sm-4 control-label">
+                <label for="frm_filter_3_art_ico1">IČO objednávateľa:</label>
+            </div>
+            <div class="col-sm-8">
+                <input class="form-control fld width4" type="text" name="art_ico1" value="" maxlength="255" id="frm_filter_3_art_ico1" />
+            </div>
+        </div>
+        <div class="form-group text-end">
+            <button type="submit" name="odoslat" class="btn btn-primary">Vyhľadať</button>
+        </div>
+    </div>
+</div><input id="frm_filter_3_ID" type="hidden" name="ID" value="2171273" /><div class="row form-group frmbutbg"><div class="col-sm-12"><button id="frm_filter_3_odoslat" class="btn btn-custom button0" type="submit" name="odoslat" value="Vyhľadať"  >Vyhľadať</button></div></div><input id="frm_filter_3_frm_id_frm_filter_3" type="hidden" name="frm_id_frm_filter_3" value="6acd4ea183875" /></form>
+            </div>
+        </div>
+
+
+        <main id="page" class="py-4 py-lg-5 px-3 px-lg-4">
+            <header class="page__heading">
+    <h1 class="page__title">Zmluva o zriadení vecného bremena MPV - 11995/6253/2017</h1>
+</header>
+
+<div class="row gutters-small">
+    <div class="col-md-7 col-lg-8 order-md-2 mb-3">
+        <div class="card h-100">
+            <h2 class="card-header">Identifikácia zmluvy</h2>
+            <div class="card-body bg-gray-200">
+                <ul class="list-unstyled mb-0">
+                    <li class="py-2">
+                        <div class="row gx-3">
+                            <strong class="col-sm-3 text-sm-end">Typ:</strong>
+                            <span class="col-sm-9">Zmluva</span>
+                        </div>
+                    </li>
+                    <li class="py-2 border-top">
+    <div class="row gx-3">
+        <strong class="col-sm-3 text-sm-end">Č. zmluvy:</strong>
+        <span class="col-sm-9">2134/6253/2017</span>
+    </div>
+</li><!-- typ -->
+                    <li class="py-2 border-top">
+                        <div class="row gx-3">
+                            <strong class="col-sm-3 text-sm-end">Rezort:</strong>
+                            <span class="col-sm-9">Ministerstvo dopravy a výstavby SR</span>
+                        </div>
+                    </li>
+                    <li class="py-2 border-top">
+                        <div class="row gx-3">
+                            <strong class="col-sm-3 text-sm-end">Objednávateľ:</strong>
+                            <span class="col-sm-9">Slovenská správa ciest, Bratislava<br />Miletičova 19 , P.O.BOX 19, 826 19 Bratislava</span>
+                        </div>
+                    </li>
+                    <li class="py-2 border-top">
+    <div class="row gx-3">
+        <strong class="col-sm-3 text-sm-end">IČO:</strong>
+        <span class="col-sm-9">003328</span>
+    </div>
+</li><!-- ico1 -->
+                    <li class="py-2 border-top">
+                        <div class="row gx-3">
+                            <strong class="col-sm-3 text-sm-end">Dodávateľ:</strong>
+                            <span class="col-sm-9">SLOVNAFT a.s.<br />Vlčie hrdlo 1, Bratislava</span>
+                        </div>
+                    </li>
+                    <!-- ico -->
+                    <li class="py-2 border-top">
+                        <div class="row gx-3">
+                            <strong class="col-sm-3 text-sm-end">Názov zmluvy:</strong>
+                            <span class="col-sm-9">Zmluva o zriadení vecného bremena MPV - 11995/6253/2017</span>
+                        </div>
+                    </li>
+                    <!-- popis -->
+                    <li class="py-2 border-top">
+                        <div class="row gx-3">
+                            <strong class="col-sm-3 text-sm-end">ID zmluvy:</strong>
+                            <span class="col-sm-9">3070264</span>
+                        </div>
+                    </li>
+                    <!-- uvo -->
+                    <!-- poznamka -->
+                    <!-- stav 4 -->
+                    <li class="py-2 border-top">
+    <div class="row gx-3">
+        <strong class="col-sm-3 text-sm-end">Stav:</strong>
+        <span class="col-sm-9 text-success"></span>
+    </div>
+</li><!-- stav 3 -->
+                    <li class="py-2 border-top">
+                        <div class="row gx-3">
+                            <strong class="col-sm-3 text-sm-end">Zverejnil:</strong>
+                            <span class="col-sm-9"><a href="/115027-sk/slovenska-sprava-ciest/">Slovenská správa ciest</a></span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-5 col-lg-4 order-md-1">
+        <div class="card mb-3">
+            <h2 class="card-header">Dátum</h2>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="py-2">
+                        <div class="row gx-3">
+                            <strong class="col">Dátum zverejnenia:</strong>
+                            <span class="col-auto">22.08.2017</span>
+                        </div>
+                    </li>
+                    <li class="py-2 border-top">
+                        <div class="row gx-3">
+                            <strong class="col">Dátum uzavretia:</strong>
+                            <span class="col-auto">15.08.2017</span>
+                        </div>
+                    </li>
+                    <li class="py-2 border-top">
+                        <div class="row gx-3">
+                            <strong class="col">Dátum účinnosti:</strong>
+                            <span class="col-auto">23.08.2017</span>
+                        </div>
+                    </li>
+                    <li class="py-2 border-top">
+                        <div class="row gx-3">
+                            <strong class="col">Dátum platnosti do:</strong>
+                            <span class="col-auto">neuvedený</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card mb-3">
+    <h2 class="card-header">Príloha</h2>
+    <div class="card-body">
+        <ul class="list-unstyled mb-0">
+<li class="row gx-2 py-2">
+    <div class="col-auto text-nowrap" style="width: 3.5em;" aria-hidden="true">
+        <i class="fa fa-file-pdf-o me-1" aria-hidden="true"></i><span class="fs-9 text-uppercase">sken</span>
+    </div>
+    <div class="col">
+        <a href="/data/att/3070266_dokument." target="_blank" aria-label="PDF súbor - Skenovaná verzia: 2134_1729_6253_2017_Slovnaft_Mesto_ZV_SSC_gp_41_14_z" aria-describedby="fileSize_scan_3070266">2134_1729_6253_2017_Slovnaft_Mesto_ZV_SSC_gp_41_14_z</a>
+        <small class="text-muted fs-7" id="fileSize_scan_3070266">(.nt., )</small>
+    </div>
+</li>
+</ul>
+
+    </div>
+</div><!-- prilohy -->
+    </div>
+</div>
+
+<div class="card mb-5">
+    <h2 class="card-header">Cenové plnenie</h2>
+    <div class="card-body p-0">
+        <div class="row g-0 align-items-center">
+            <div class="col-md-9 p-3">
+                <span class="me-3">Zmluvne dohodnutá čiastka:</span> <span class="text-danger text-nowrap">2 148,04 €</span>
+            </div>
+            <div class="col-md-3 p-3 bg-gray-200">
+                <strong class="me-3">Celková čiastka:</strong> <strong class="text-danger fs-5 text-nowrap">2 148,04 €</strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h2 class="mb-4">Dodatky:</h2>
+<div class="table-responsive">
+    <table class="table table-bordered table-sm fs-7 table_list">
+        <thead class="table-light">
+            <tr>
+                <th class="cell2">Dátum</th>  
+                <th class="cell2">Názov dodatku / Číslo dodatku</th>
+                <th class="cell3">Cena s DPH</th>
+                <th class="cell2">Dodávateľ</th>
+                <th class="cell2">Objednávateľ</th>
+            </tr>
+        </thead>
+        <tbody>
+<tr>
+    <td class="cell1"><div class="text-center"><span class="d-block fs-6 lh-sm mt-1">15.</span><span class="d-block">Január</span><span class="d-block">2024</span></div></td>
+    <td class="cell2"><a href="/8818627-sk/dodatok-c1/">Dodatok č.1 k Zmluve o zriadení vecného bremena v prospech tretej osoby č. 2134/6253/2017</a><br /><span>Dodatok č.1</span></td>
+    <td class="cell3 text-nowrap text-end">0,00 &euro;</td>
+    <td class="cell4">SLOVNAFT a.s.</td>
+    <td class="cell5">Slovenská správa ciest, Bratislava</td>
+</tr>
+        </tbody>
+    </table>
+</div>
+<!-- dodatky -->
+
+<!--zmeny-->
+
+<a href="javascript:history.go(-1)" class="btn btn-outline-primary btn-sm"><i class="fa fa-angle-left me-2" aria-hidden="true"></i>Návrat späť</a>
+
+<div class="bg-gray-200 py-2 px-3 mt-5 text-center fs-7">
+    <strong>Vystavil:</strong> Slovenská správa ciest
+</div>
+
+
+        </main>
+
+        <footer id="footer" class="px-3 px-lg-4 fs-7">
+            <div class="row border-top g-0 py-3">
+                <div class="col-md-6 footer__col--1">
+                    &copy; <a href="https://vlada.gov.sk">Úrad vlády SR</a> - Všetky práva vyhradené
+                    <ul class="list-inline mb-0">
+                        <li class="list-inline-item"><a class="mr-4" href="#">Prehlásenie o prístupnosti</a></li>
+                        <li class="list-inline-item"><a href="https://www.zmluvy.gov.sk" target="_blank">Zmluvy do 31.12.2010</a></li>
+                        <li class="list-inline-item"><a href="#" role="button" data-cc="c-settings" data-cc-email="crz-support@vlada.gov.sk" data-cc-gdpr="#">Nastavenia cookies</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-6 footer__col-2 mt-3 mt-md-0 text-md-end">
+                    <a href="https://www.aglo.sk" target="_blank" title="Aglo Solutions [otvára sa v novom okne]">Tvorba stránok</a>: Aglo Solutions
+                    <br>
+                    <a href="https://www.syscom.sk" target="_blank" title="SysCom [otvára sa v novom okne]">Redakčný systém</a>: SysCom
+                </div>
+            </div>
+        </footer>
+
+    </div><!-- // #wrap -->
+</body>
+</html>

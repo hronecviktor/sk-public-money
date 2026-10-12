@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "crz-mcp"
+dynamic = ["version"]
+description = "MCP server for the Slovak Central Register of Contracts (crz.gov.sk)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "mcp>=2.3,<3",
+    "httpx>=0.27",
+    "beautifulsoup4>=4.12",
+    "lxml>=5",
+    "pypdf>=5",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "respx>=0.21"]
+
+[project.scripts]
+crz-mcp = "crz_mcp.server:main"
+
+[tool.hatch.version]
+path = "src/crz_mcp/__init__.py"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
