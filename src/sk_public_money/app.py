@@ -25,6 +25,13 @@ owner is a listed company or no person owns 25 %, RPVS lists top management as t
 so they are not necessarily shareholders. Person and name searches ignore case and diacritics
 (Siroky finds Široký).
 
+RPO, Register právnických osôb (rpo_* tools): the official identity of every Slovak company, sole
+trader, public body and association by IČO: names over time, seat, legal form, founding and
+dissolution, statutory body (konateľ, predstavenstvo), stakeholders (spoločník, akcionár, dozorná
+rada, prokurista), capital, predecessors and successors. RPO has no birth dates and no beneficial
+owners. Data lags the source registers by up to a day. Searches ignore case and diacritics; the API
+is slow (searches 5-30 s). CC BY 4.0 by MV SR.
+
 People named in these registers are often private individuals; a matching name is not proof of the
 same person.
 """

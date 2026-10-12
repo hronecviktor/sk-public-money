@@ -2,7 +2,7 @@
 
 An [MCP](https://modelcontextprotocol.io) server for Slovak public-money registers. It lets an AI
 assistant follow money across registers: find a company's contracts with the state, read them, and see
-who owns the company.
+who runs and owns the company.
 
 Companies are identified by **IČO** in every register, so one tool's result feeds the next. For
 example, a person turns up as a beneficial owner in RPVS (`rpvs_search_person`), and that company's
@@ -51,16 +51,41 @@ Things to know:
 - Short Slovak IČOs are zero-padded to 8 digits automatically. Foreign partners keep their own IDs.
 - Results include the full birth date where RPVS has one, which helps tell namesakes apart.
 
+### RPO: Register právnických osôb ([rpo.minv.sk](https://rpo.minv.sk))
+
+The official register of every Slovak legal entity: companies, sole traders, public bodies,
+associations, foundations. It merges the source registers (Obchodný register, Živnostenský register,
+registers of associations and others) under one record per IČO. The Ministry of Interior runs it; the
+API is still served from the Statistical Office's host.
+
+| Tool | What it does |
+| --- | --- |
+| `rpo_get_organization` | Takes an IČO or RPO ID and returns names over time, seat, legal form and status, founding and dissolution dates, source register with court and file number, statutory body, stakeholders (partners, sole shareholder, supervisory board, procurists), capital and contributions, predecessors and successors. Optionally includes their full history. |
+| `rpo_search_organization` | Finds organizations by a word of their current or former name, optionally in one town. |
+| `rpo_search_person` | Finds organizations where a person is in the statutory body or a stakeholder, with each organization's IČO. |
+
+Things to know:
+
+- RPO publishes **no birth dates** and, since the law changed, no beneficial owners. Use RPVS for owners and birth dates.
+- Searches ignore case and diacritics on the server (Oracle Text): "siroky" finds Široký. They match anywhere in the name, current or former; a hit found only by a former name says so in `matched_former_name`.
+- `/search` returns at most 500 records and has no paging; `capped` says when that limit was hit.
+- The API matches a person's first name and surname anywhere in the organization, possibly on two different people. `rpo_search_person` therefore checks each candidate's full record and keeps only real matches, which costs about a second per organization.
+- A dissolved organization is shown as it was on the day before its dissolution (`shown_as_of`), since RPO ends its people and capital then.
+- For foreign companies RPO stores no IČO ("Neuvedené") and a placeholder founding date of 1800-01-01; both come out as `null`.
+- Data lags the source registers by up to a day.
+
 ## Being a polite robot
 
 Each source has its own throttle:
 
 - **CRZ** publishes [rules for machine access](https://www.crz.gov.sk/stahovanie-udajov-z-crz/): by day (06:00–20:00 Bratislava time) at most one request every 2 seconds, at night fewer than 3 per second. Clients that go faster are blocked for up to an hour. CRZ also has maintenance windows, often in the evening between 20:00 and 23:59. During a window it answers with a bare 404 page, and the tools report the portal as unavailable.
 - **RPVS** uses its [open-data OData API](https://rpvs.gov.sk/opendatav2/), which needs no key and publishes no limits. Requests are spaced 0.5 s apart anyway.
+- **RPO** uses the [REST API documented by MV SR](https://rpo.minv.sk/rpo-api-doc.html) at `api.statistics.sk/rpo/v1`, which needs no key and publishes no limits. Requests are spaced 0.5 s apart anyway. A detail takes about a second, while searches take 5–30 s.
 
 CRZ daily exports and attachments are cached in `~/.cache/sk-public-money`, or in
 `$SK_PUBLIC_MONEY_CACHE_DIR` when it's set. CRZ export data is licensed
-[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) by Úrad vlády SR.
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) by Úrad vlády SR, and RPO data under
+CC BY 4.0 by MV SR.
 
 People in these registers are often private individuals, and a matching name isn't proof that two
 records are the same person.
@@ -110,3 +135,4 @@ The tests run offline:
 
 - **CRZ:** pages and an export saved from crz.gov.sk, in `tests/crz/fixtures`.
 - **RPVS:** a mocked OData API with fictional people.
+- **RPO:** a mocked REST API with fictional organizations and people.
