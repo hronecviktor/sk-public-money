@@ -140,6 +140,8 @@ Things to know:
 - TED notices published before November 2023 use the older format, which records winners only in the text. A winner search finds them by full text and marks them `matched_by`, since the IČO could also be there in another role. Their detail lists only the winners and no contract links.
 - Word search ignores case and diacritics. In the Vestník index, words of five or more letters also match other endings (*nafta* finds *nafty*); TED does its own matching.
 - ÚVO's supervision notices in the Vestník (reviews of procedures) are not indexed.
+- Corrected notices and reports ("Oprava: …") are indexed as their own records next to the original, labelled in `kind`; they are not merged into it.
+- Three issues are missing from the index because data.slovensko.sk lacks them: 202/2023 has no usable download link, and the datasets titled 144/2024 and 145/2025 are byte-identical copies of 145/2024 and 144/2025. The sync reports them on every run. All other issues since 201/2023 (17 October 2023) are indexed.
 
 ## Being a polite robot
 

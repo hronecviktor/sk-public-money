@@ -155,24 +155,34 @@ class VestnikIndex:
         y, n = issue["year"], issue["number"]
         with self.db:
             old = [r[0] for r in self.db.execute("SELECT id FROM notices WHERE year=? AND number=?", (y, n))]
-            for table, column in (("parties", "notice_id"), ("cpv", "notice_id"), ("search_text", "id"), ("notices", "id")):
-                self.db.executemany(f"DELETE FROM {table} WHERE {column}=?", [(i,) for i in old])
+            old += [nt["id"] for nt in notices]  # the same notice stored under another issue
+            self._delete(old)
             for notice in notices:
-                award = notice.get("form_type") in AWARD_FORMS or notice.get("kind") == "Súhrnná správa"
-                self.db.execute(
-                    "INSERT OR REPLACE INTO notices VALUES (?,?,?,?,?,?,?,?,?,?)",
+                award = notice.get("form_type") in AWARD_FORMS or (notice.get("kind") or "").endswith("Súhrnná správa")
+                rowid = self.db.execute(
+                    "INSERT INTO notices VALUES (?,?,?,?,?,?,?,?,?,?)",
                     (notice["id"], y, n, notice.get("published"), notice.get("kind"), notice.get("form_type"),
                      notice.get("notice_uuid"), int(award), _pack(summary(notice)), _pack(notice)),
-                )
+                ).lastrowid
                 rows = {(role, p["ico"]) for role, p in roles(notice) if p.get("ico")}
                 self.db.executemany("INSERT INTO parties VALUES (?,?,?)", [(notice["id"], r, i) for r, i in rows])
                 codes = set(notice.get("cpv", [])) | {c for lot in notice.get("lots", []) for c in lot.get("cpv", [])}
                 self.db.executemany("INSERT INTO cpv VALUES (?,?)", [(notice["id"], c) for c in codes])
-                self.db.execute("INSERT INTO search_text VALUES (?,?)", (notice["id"], _search_text(notice)))
+                # The text row shares the notice's rowid, so it can be deleted without scanning the table.
+                self.db.execute("INSERT INTO search_text (rowid, id, text) VALUES (?,?,?)", (rowid, notice["id"], _search_text(notice)))
             self.db.execute(
                 "INSERT OR REPLACE INTO issues VALUES (?,?,?,?,?,?,datetime('now'))",
                 (y, n, issue.get("published"), dataset, modified, len(notices)),
             )
+
+    def _delete(self, ids: list[str]) -> None:
+        for nid in dict.fromkeys(ids):
+            row = self.db.execute("SELECT rowid FROM notices WHERE id=?", (nid,)).fetchone()
+            if row:
+                self.db.execute("DELETE FROM search_text WHERE rowid=?", row)
+                self.db.execute("DELETE FROM notices WHERE rowid=?", row)
+            self.db.execute("DELETE FROM parties WHERE notice_id=?", (nid,))
+            self.db.execute("DELETE FROM cpv WHERE notice_id=?", (nid,))
 
     def get_meta(self, key: str) -> str | None:
         row = self.db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()

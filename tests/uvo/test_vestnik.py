@@ -44,6 +44,15 @@ def test_broken_item_is_skipped_not_fatal():
     assert meta["skipped"][0].startswith("item 1: KeyError")
 
 
+def test_corrected_summary_report():
+    issue = json.loads(ISSUE)
+    item = issue["bulletinItemList"][1]
+    item["itemData"] = item["itemData"].replace('"name": "Súhrnná správa"', '"name": "Oprava: Súhrnná správa"')
+    _, notices = vestnik.parse_issue(json.dumps(issue))
+    assert notices[1]["kind"] == "Oprava: Súhrnná správa"
+    assert notices[1]["lots"][0]["results"][0]["contracts"][0]["crz_id"] == 99000003
+
+
 def test_eforms_notice(parsed):
     notice = parsed[1][0]
     assert notice["notice_uuid"] == "bbbbbbbb-0000-4000-8000-000000000001"
@@ -237,6 +246,20 @@ async def test_backfill_stops_when_the_portal_is_unreachable(tmp_path, monkeypat
     failed = await sync.backfill("2023-10-01", True, 0, out=log, index=index_mod.VestnikIndex(tmp_path / "v.sqlite"), catalogue=catalogue)
     assert len(failed) == sync.MAX_NETWORK_FAILURES
     assert "STOPPED" in log.getvalue()
+
+
+@pytest.mark.anyio
+async def test_duplicate_upload_under_another_title(portal, tmp_path):
+    catalogue, _ = portal
+    index = index_mod.VestnikIndex(tmp_path / "v.sqlite")
+    listed = {i["number"]: i for i in await catalogue.list_issues()}
+    await sync.ingest(catalogue, index, listed[207], keep_raw=True)
+    # Issue 206's dataset serves issue 207's file again.
+    copy = {**listed[206], "url": listed[207]["url"]}
+    with pytest.raises(sync.DuplicateUpload, match="titled 206/2026 holds issue 207/2026"):
+        await sync.ingest(catalogue, index, copy, keep_raw=True)
+    assert not sync.raw_path(2026, 206).exists()
+    assert set(index.issue_state()) == {(2026, 207)}
 
 
 def test_pending():
