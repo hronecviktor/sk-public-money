@@ -76,7 +76,11 @@ class ThrottledClient:
             try:
                 return await self._http.request(method, url, **kwargs)
             except httpx.TransportError as exc:
-                raise SourceUnavailable(f"Could not reach {urlparse(url).hostname}: {exc}") from exc
+                # Timeouts carry no message, so name the error kind instead of printing nothing.
+                reason = "timed out" if isinstance(exc, httpx.TimeoutException) else (str(exc) or type(exc).__name__)
+                raise SourceUnavailable(
+                    f"Could not reach {urlparse(url).hostname} ({reason}). The portal may be down; try again later."
+                ) from exc
             finally:
                 self._last = time.monotonic()
 
