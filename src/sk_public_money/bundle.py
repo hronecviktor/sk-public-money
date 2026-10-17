@@ -46,8 +46,17 @@ def _uvo() -> Bundled:
                    set_meta={"keep_raw": "0"})
 
 
+def _eu() -> Bundled:
+    from .sources.eu import index
+
+    # Lists reload on every run anyway; procurement details and suppliers in the snapshot are kept and
+    # only new or changed ones are fetched.
+    return Bundled(index.default_path, index.SCHEMA_VERSION, "licence not published, ITMS21+ open data API, MIRRI SR",
+                   drop_meta=("synced_at",))
+
+
 # Source name -> its bundle description. Imported lazily so the sync command stays light.
-BUNDLED = {"uvo": _uvo}
+BUNDLED = {"uvo": _uvo, "eu": _eu}
 
 
 def bundle_url() -> str:

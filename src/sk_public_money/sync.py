@@ -23,6 +23,7 @@ SOURCES = {
     "fs": "sk_public_money.sources.fs.sync",
     "court": "sk_public_money.sources.court.sync",
     "uvo": "sk_public_money.sources.uvo.sync",
+    "eu": "sk_public_money.sources.eu.sync",
 }
 
 

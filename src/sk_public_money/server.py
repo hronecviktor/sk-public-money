@@ -5,8 +5,9 @@ from __future__ import annotations
 import logging
 
 from .app import mcp
-from .sources.crz import tools as _crz_tools  # noqa: F401  (registers crz_* tools)
 from .sources.court import tools as _court_tools  # noqa: F401  (registers court_* tools)
+from .sources.crz import tools as _crz_tools  # noqa: F401  (registers crz_* tools)
+from .sources.eu import tools as _eu_tools  # noqa: F401  (registers eu_* tools)
 from .sources.fs import tools as _fs_tools  # noqa: F401  (registers fs_* tools)
 from .sources.party import tools as _party_tools  # noqa: F401  (registers party_* tools)
 from .sources.ppa import tools as _ppa_tools  # noqa: F401  (registers ppa_* tools)

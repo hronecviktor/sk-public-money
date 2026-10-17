@@ -47,10 +47,11 @@ The tests run offline:
 - **RÚZ:** real report templates in `tests/ruz/fixtures` with fictional entities and amounts, and a mocked API.
 - **PPA:** workbooks built in the tests in both published layouts with fictional beneficiaries, the real download section of the PPA page in `tests/ppa/fixtures`, and a mocked RPO.
 - **Party financing:** a mocked Slovenská sporiteľňa API with fictional accounts and payments, minv.sk listing pages with fictional parties, and report PDFs generated in the tests (text pages, a scanned page and a page with an invisible scanner OCR layer).
+- **ITMS21+ (EU funds):** a mocked API with fictional organisations and projects in the shape of real records.
 
 ## Prebuilt index snapshots
 
-Slow indexes whose data may be redistributed (`BUNDLED` in `bundle.py`: the Vestník, CC BY 4.0) are
+Slow indexes whose data may be redistributed (`BUNDLED` in `bundle.py`: the Vestník, CC BY 4.0, and ITMS21+, whose licence is not published) are
 published as xz-compressed SQLite snapshots in the GitHub release tagged `indexes`. A sync of such a
 source whose index doesn't exist yet downloads the snapshot first, checks its SHA-256 and schema
 version, and then fetches only what's newer; any problem falls back to a full build.

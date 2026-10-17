@@ -286,6 +286,62 @@ Transparent accounts:
 - Small negative movements described as *Transakčná daň* are the bank's transaction tax on a payment.
 - Only Slovenská sporiteľňa is covered. Parties also hold transparent accounts at ČSOB, VÚB, Tatra banka and Fio, which are not.
 
+### EU funds 2021–2027: ITMS21+ ([itms21.sk](https://www.itms21.sk))
+
+ITMS21+ is the monitoring system of EU funds in Slovakia for the 2021–2027 period. Its
+[open-data API](https://api.itms21.sk/public/v1/openapi.json) covers seven programmes: Program
+Slovensko (PSK, ERDF/CF/JTF/ESF+), fisheries (PRH), Interreg VI-A Slovakia–Austria and
+Slovakia–Czechia, and the home-affairs funds AMIF, ISF and BMVI. It has projects, grant applications
+(*žiadosť o NFP*, ŽoNFP), payment claims (*žiadosť o platbu*, ŽoP), the procurements recipients ran for
+their projects with the signed contracts, and the invoices and other documents claimed in projects.
+
+Not covered: projects of 2014–2020 (ITMS2014+, whose open-data API at opendata.itms2014.sk refuses
+this client with HTTP 403) and the Recovery and Resilience Plan (*Plán obnovy*), which has its own
+system.
+
+The API filters projects and claims only by its own subject IDs and has no supplier filter for
+procurements, so its lists are kept in a local index:
+
+| Tool | What it does |
+| --- | --- |
+| `eu_search_projects` | Searches projects (or grant applications, or both) by IČO as recipient (for applications the applicant) or partner, by words in code, name or organisation names, and by programme. Returns 20 per page with recipient and partners (IČO), status, contracted total, dates, the CRZ link of the funding contract, and the payment claims filed with the amounts claimed. |
+| `eu_get_project` | Reads one project live: recipient, partners and provider (IČO), programme, call, amounts contracted, paid to the recipient and by funding source, dates, description, indicators, amendments, the project's suppliers (IČO), its invoices summed by supplier, and from the index its procurements with contracts and main suppliers and its payment claims. |
+| `eu_search_procurements` | Searches procurements by IČO as buyer or as main supplier of a contract, by words (including buyer and supplier names) or by project, newest first: buyer, status, estimated value, procedure, CPV, tenders received, Vestník reference, projects, contracts with number, date, amount and main supplier. With a supplier IČO, it also sums the invoices that supplier billed to EU projects, by recipient. |
+
+Building the index:
+
+```sh
+sk-public-money-sync eu                    # lists (~5 min), then procurement details and suppliers
+sk-public-money-sync eu --no-details       # only reload the lists
+sk-public-money-sync eu --max-details 2000 # spread the first detail pass over several runs
+```
+
+Every run reloads the lists in full (about 150 requests): the API documents a `modifiedSince` filter
+but ignores it. Procurement details then come one request each, since only the detail links a
+procurement to its projects and contracts: about 13,000 on the first run (some 4 hours), then those
+that are new or changed, plus at most 300 re-checks per run of details older than 30 days (open
+procurements) or 180 days (finished ones), since a contract can be added without the procurement's
+change date moving. A weekly run thus makes a few hundred detail requests. Suppliers and some
+buyers are records of a separate register with no list (`dodavatelobstaravatel`), so each new one is
+fetched once and cached: about 4,000 on the first run. The index takes about 60 MB. A first run starts
+from the prebuilt snapshot (see DEVELOPMENT.md) when one is published, and then fetches only the lists and
+what the snapshot lacks; `--no-bootstrap` builds from the source. The tools do not
+top it up themselves; they say how old it is.
+
+Things to know:
+
+- Organisations are matched by IČO. Suppliers are matched by the main supplier of each contract only
+  (*hlavný dodávateľ*); other members of a consortium are not indexed.
+- Payment claims show the amount the recipient claimed (*nárokovaná suma*) and whether the claim was
+  paid; how much was approved is not in the list. `eu_get_project` gives the total paid to the
+  recipient (*poskytnuté prostriedky*).
+- Invoices: about 75,000, each with its owner (the recipient), supplier and amount. The list does not
+  say which project an invoice belongs to; `eu_get_project` reads a project's invoices live. Internal
+  documents (flat rates, payroll) name the recipient itself as the supplier and are left out of the
+  supplier sums.
+- Natural persons (sole traders, individual recipients) are returned as the register publishes them.
+- No licence or rate limit is published for the API. Requests are spaced 1 s apart.
+
 ## Being a polite robot
 
 Each source has its own throttle:
@@ -301,6 +357,7 @@ Each source has its own throttle:
 - **PPA** lists are XLSX files on www.apa.sk, which has no robots.txt and publishes no limits or licence. The sync fetches the page and the changed files only, 2 s apart.
 - **Slovenská sporiteľňa** transparent accounts use the unauthenticated JSON API behind its web page (`api.slsp.sk/ta-accounts`, `api.slsp.sk/ta-turnovers`). It serves no robots.txt and no terms of use or licence were found, so requests are spaced at least 1 s apart and pages kept small (50 movements by default).
 - **minv.sk** (party annual reports): robots.txt disallows only `/?poslat-stranku`, and no limits are published. Listing pages and PDFs are fetched 1.5 s apart, PDFs one at a time and only when a report is read.
+- **ITMS21+** uses its [open-data API](https://api.itms21.sk/public/v1/openapi.json), which needs no key and publishes no limits or licence. Requests are spaced 1 s apart, one at a time. Lists are read in pages of 1000 records.
 
 CRZ daily exports and attachments are cached in `~/.cache/sk-public-money`, or in
 `$SK_PUBLIC_MONEY_CACHE_DIR` when it's set. CRZ export data is licensed
