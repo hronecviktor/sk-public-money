@@ -47,6 +47,14 @@ spending; a value of 0 means undisclosed. Identifiers are labelled ico, dic (DI�
 ico is null when the notice gives no Slovak IČO. Vestník data CC BY 4.0 by ÚVO; TED data may be reused
 with attribution.
 
+EU funds 2021-2027, ITMS21+ (eu_* tools): projects co-financed by the EU (Program Slovensko, fisheries,
+Interreg SK-AT and SK-CZ, home-affairs funds AMIF, ISF, BMVI), grant applications (ŽoNFP), payment
+claims (ŽoP, amounts the recipient claimed, not necessarily paid), the procurements recipients ran for
+their projects with contracts and main suppliers, and invoices billed to projects. Amount paid to the
+recipient is in eu_get_project only. Searches read a local index (sk-public-money-sync eu); recently
+changed records may be missing. 2014-2020 projects (ITMS2014+) and the Recovery Plan are not covered.
+No licence is published for the data.
+
 People named in these registers are often private individuals; a matching name is not proof of the
 same person.
 """
