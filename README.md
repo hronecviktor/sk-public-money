@@ -18,7 +18,7 @@ obstarávania, firmy, ich skutočných vlastníkov a účtovné závierky. Asist
 | **RPVS**: Register partnerov verejného sektora | Koneční užívatelia výhod (skutoční vlastníci) firiem, ktoré dostávajú verejné peniaze, s dátumom narodenia; oprávnené osoby a verejní funkcionári | Otvorené API [rpvs.gov.sk](https://rpvs.gov.sk/rpvs) | `rpvs_*` |
 | **RPO**: Register právnických osôb | Totožnosť každej firmy, živnostníka, inštitúcie a združenia podľa IČO: názvy v čase, sídlo, štatutári, spoločníci, kapitál, vznik a zánik, právni predchodcovia a nástupcovia | API Ministerstva vnútra SR ([rpo.minv.sk](https://rpo.minv.sk)) | `rpo_*` |
 | **REPLIK**: register insolvenčných konaní | Konkurzy, reštrukturalizácie, oddlženia a likvidácie súdom: dlžník, správca, súd, stav a verejné oznamy súdu a správcu (od októbra 2025 nahradil Register úpadcov aj s jeho históriou) | Verejné SOAP API Ministerstva spravodlivosti SR (replik-ws.justice.sk) | `insolvency_*` |
-| **Obchodný vestník** | Oznámenia o firmách od polovice 2016: likvidácie a výzvy veriteľom, zlúčenia, rozdelenia a zmeny právnej formy, zníženia základného imania, podania do obchodného registra, konkurzy (do septembra 2025) | Datahub [Slovensko.Digital](https://ekosystem.slovensko.digital) (týždenný dump a sync API), v lokálnom indexe | `ov_*` |
+| **Obchodný vestník** | Oznámenia o firmách od júla 2011: likvidácie a výzvy veriteľom, zlúčenia, rozdelenia a zmeny právnej formy, zníženia základného imania, podania do obchodného registra, konkurzy (do septembra 2025) | Datahub [Slovensko.Digital](https://ekosystem.slovensko.digital) (týždenný dump a sync API), v lokálnom indexe | `ov_*` |
 | **RÚZ**: Register účtovných závierok | Účtovné závierky: tržby, výsledok hospodárenia, aktíva a vlastné imanie po rokoch | Otvorené API [registeruz.sk](https://www.registeruz.sk) | `ruz_*` |
 | **Finančná správa SR** | Registrácia pre DPH, index daňovej spoľahlivosti, platitelia DPH s dôvodom na zrušenie registrácie a vymazaní, vyrubená daň z príjmov právnických osôb a daňová strata po rokoch, nadmerné odpočty DPH, daňoví dlžníci | Otvorené dáta [opendata.financnasprava.sk](https://opendata.financnasprava.sk) (zoznamy v lokálnom indexe) | `fs_*` |
 | **Súdy**: rozhodnutia a sudcovia | Rozhodnutia všeobecných súdov (asi 4,7 milióna, s textom z PDF), v ktorých vystupuje firma s daným IČO; sudcovia a ich majetkové priznania | Pilotné API Ministerstva spravodlivosti SR ([obcan.justice.sk](https://obcan.justice.sk)) a [Súdna rada SR](https://www.sudnarada.gov.sk) | `court_*` |
@@ -148,7 +148,9 @@ uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-s
 
 Príkaz ide od najrýchlejších zdrojov po najpomalšie. Dá sa prerušiť a spustiť znova (stiahne len to,
 čo chýba) a jeden zlyhaný zdroj nezastaví ostatné. Jeden index postavíte cez
-`sk-public-money-sync <zdroj>`, niektoré vynecháte cez `sk-public-money-sync all --skip uvo`.
+`sk-public-money-sync <zdroj>`, niektoré vynecháte cez `sk-public-money-sync all --skip ov`. Obchodný
+vestník (`ov`) je najpomalší, asi 70 minút, a nemá hotový index; ak ho nepotrebujete, vynechajte ho
+a postavte neskôr samostatne cez `sk-public-money-sync ov`.
 
 | Zdroj | Pre nástroje | Prvé spustenie | Miesto na disku | Ako sa aktualizuje |
 | --- | --- | --- | --- | --- |
@@ -157,7 +159,7 @@ Príkaz ide od najrýchlejších zdrojov po najpomalšie. Dá sa prerušiť a sp
 | `fs` | `fs_*` (bez indexu nefungujú) | asi 15 minút, sťahuje asi 0,7 GB (história dane z príjmov a DPH od júna 2018, odkedy ju Finančná správa archivuje) | asi 0,75 GB | spúšťať denne; malé denné zoznamy si nástroje doplnia samy |
 | `court` | `court_disqualified` a kontrola štatutárov v RPO (fungujú aj bez neho) | asi 20 minút | menej ako 1 MB | zoznam si nástroje obnovia samy raz denne |
 | `uvo` | `uvo_*` pod limitmi EÚ (bez indexu len TED) | asi minúta (hotový index, 155 MB); zo zdroja asi 45 minút a 7 GB | asi 330 MB | nové čísla si nástroje doplnia samy každých 6 hodín |
-| `ov` | `ov_search_notices` (bez indexu nefunguje) | OV_BUILD_SK | OV_DISK_SK | zmeny si nástroje doplnia samy každých 6 hodín (najviac 5 strán), väčší odstup dobehne `sk-public-money-sync ov` |
+| `ov` | `ov_search_notices` (bez indexu nefunguje) | asi 70 minút; streamuje 4,2 GB dump z Datahubu (neukladá ho) a z jeho 4,2 milióna oznámení si nechá 2,8 milióna | asi 0,9 GB | zmeny si nástroje doplnia samy každých 6 hodín (najviac 5 strán), väčší odstup dobehne `sk-public-money-sync ov` |
 
 Pomalé zdroje sa pri prvom spustení nestavajú od nuly: príkaz stiahne hotový index z
 [GitHub release `indexes`](https://github.com/hronecviktor/sk-public-money/releases/tag/indexes),
@@ -216,7 +218,7 @@ can search and read them, and combine data from several registers in one answer.
 | **RPVS**: Register of Public Sector Partners | Beneficial owners of companies that receive public money, with birth dates; authorized persons and public officials | The open API of [rpvs.gov.sk](https://rpvs.gov.sk/rpvs) | `rpvs_*` |
 | **RPO**: Register of Legal Entities | The identity of every company, sole trader, public body and association by IČO: names over time, seat, directors, partners, capital, founding and dissolution, predecessors and successors | The Ministry of Interior's API ([rpo.minv.sk](https://rpo.minv.sk)) | `rpo_*` |
 | **REPLIK**: Insolvency register | Bankruptcies, restructurings, personal debt relief and court-ordered liquidations: debtor, trustee, court, status, and the public notices of court and trustee (replaced Register úpadcov in October 2025, with its history) | The Ministry of Justice's public SOAP API (replik-ws.justice.sk) | `insolvency_*` |
-| **Obchodný vestník**: Commercial Bulletin | Notices about companies since mid-2016: liquidations and calls to creditors, mergers, splits and conversions, capital reductions, commercial register entries, bankruptcies (until September 2025) | [Slovensko.Digital](https://ekosystem.slovensko.digital)'s Datahub (weekly dump and sync API), in a local index | `ov_*` |
+| **Obchodný vestník**: Commercial Bulletin | Notices about companies since July 2011: liquidations and calls to creditors, mergers, splits and conversions, capital reductions, commercial register entries, bankruptcies (until September 2025) | [Slovensko.Digital](https://ekosystem.slovensko.digital)'s Datahub (weekly dump and sync API), in a local index | `ov_*` |
 | **RÚZ**: Register of Financial Statements | Financial statements: revenue, profit, assets and equity by year | The open API of [registeruz.sk](https://www.registeruz.sk) | `ruz_*` |
 | **Finančná správa SR**: the tax authority | VAT registration, tax reliability index, VAT payers facing cancellation and struck off, corporate income tax assessed and tax loss by year, VAT excess deductions, tax debtors | Open data at [opendata.financnasprava.sk](https://opendata.financnasprava.sk) (lists kept in a local index) | `fs_*` |
 | **Courts**: decisions and judges | Decisions of the general courts (about 4.7 million, with text from the PDF) that mention a company's IČO; judges and their asset declarations | The Ministry of Justice's pilot API ([obcan.justice.sk](https://obcan.justice.sk)) and the [Judicial Council](https://www.sudnarada.gov.sk) | `court_*` |
@@ -346,7 +348,9 @@ uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-s
 
 It goes from the quickest source to the slowest. It can be stopped and run again (it fetches only
 what's missing), and one failing source doesn't stop the others. `sk-public-money-sync <source>`
-builds a single index, and `sk-public-money-sync all --skip uvo` leaves some out.
+builds a single index, and `sk-public-money-sync all --skip ov` leaves some out. The Obchodný vestník
+(`ov`) is the slowest first build, about 70 minutes, with no prebuilt index; if you don't need it, skip
+it and build it later on its own with `sk-public-money-sync ov`.
 
 | Source | For the tools | First run | Disk space | How it stays current |
 | --- | --- | --- | --- | --- |
@@ -355,7 +359,7 @@ builds a single index, and `sk-public-money-sync all --skip uvo` leaves some out
 | `fs` | `fs_*` (they don't work without it) | about 15 minutes, downloads about 0.7 GB (corporate tax and VAT history since June 2018, where the tax authority's archive starts) | about 0.75 GB | run daily; the tools update the small daily lists themselves |
 | `court` | `court_disqualified` and the director check in RPO (both work without it too) | about 20 minutes | under 1 MB | the tools refresh the list themselves once a day |
 | `uvo` | `uvo_*` below the EU thresholds (without it, TED only) | about a minute (prebuilt index, 155 MB); from the source about 45 minutes and 7 GB | about 330 MB | the tools fetch new issues themselves every 6 hours |
-| `ov` | `ov_search_notices` (it doesn't work without it) | OV_BUILD_EN | OV_DISK_EN | the tools fetch changes themselves every 6 hours (at most 5 pages); `sk-public-money-sync ov` catches up a longer gap |
+| `ov` | `ov_search_notices` (it doesn't work without it) | about 70 minutes; streams a 4.2 GB dump from Datahub (without storing it) and keeps 2.8 million of its 4.2 million notices | about 0.9 GB | the tools fetch changes themselves every 6 hours (at most 5 pages); `sk-public-money-sync ov` catches up a longer gap |
 
 The slow sources aren't built from scratch on the first run: the command downloads a prebuilt index
 from the [GitHub release `indexes`](https://github.com/hronecviktor/sk-public-money/releases/tag/indexes),

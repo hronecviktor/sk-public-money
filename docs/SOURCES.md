@@ -310,7 +310,7 @@ Things to know:
 ### Obchodný vestník: Commercial Bulletin ([Datahub](https://ekosystem.slovensko.digital/sluzby/datahub))
 
 The Ministry of Justice's Obchodný vestník publishes what companies and courts must announce. The
-server reads it from Slovensko.Digital's Datahub, which keeps every notice since June 2016 as the
+server reads it from Slovensko.Digital's Datahub, which keeps every notice since July 2011 as the
 portal's original XML, and keeps a local index of the notices that concern a company by IČO.
 
 | Tool | What it does |
@@ -321,7 +321,7 @@ Things to know:
 
 - **Build:** `sk-public-money-sync ov` streams Datahub's weekly Postgres dump (`ov.sql.gz`, about 4.2 GB) and reads its COPY blocks on the fly; the dump is never stored. The same rows would take about 42,000 requests to the sync API (60 per minute, about 12 hours). Later runs, and the tool every 6 hours (at most 5 pages inline), fetch changes from the `raw_issues` sync API by its since/last_id cursor.
 - Datahub's parsed OV tables are not used: `likvidator_issues` stops in 2017 and `or_podanie_issues` in 2019. The server parses the raw XML of every form itself, so all years are read the same way.
-- A notice's subject companies are the IČO fields outside role blocks (trustee, petitioner, liquidator, partner, creditor). IČOs written with spaces are normalised. Other companies named in a merger, capital or liquidation text are indexed too, but as `mentioned_only`. Old register filings (2016–2018) are plain text; IČO and name are read from it.
+- A notice's subject companies are the IČO fields outside role blocks (trustee, petitioner, liquidator, partner, creditor). IČOs written with spaces are normalised. Other companies named in a merger, capital or liquidation text are indexed too, but as `mentioned_only`. Old register filings (until early 2019) are plain text; IČO and name are read from it.
 - Notices about people without an IČO (personal bankruptcy, trustees' notices about individuals) are not kept. Insolvency notices are kept only up to 30 September 2025, when REPLIK took over; use `insolvency_*` for those.
 - Texts are cut (2,000 characters; insolvency 1,000). Register filings are about 90 % of the notices (about 2.5 million since 2011) and repeat the whole register entry, so only what says what happened is kept: the type (new entry, change, deletion, deeds filed), the company, the deletion sentence and reason, and the list of deeds filed (e.g. *Zmluva o prevode obchodného podielu*). What changed on a date is in `rpo_get_organization` with history. Bulk lists of companies that filed deeds (`*_ZBL_ZOZNAM`, ~200 companies each, no content) are not kept. Each notice links its Datahub source record.
 - Licence: Datahub's [dataset terms](https://ekosystem.slovensko.digital/podmienky) (from 1 March 2024) allow extraction and reuse. They require that changes be stated with their date, and they say the data are *informative only and not legally binding* (*informatívny charakter*). Every result says so, with the index build date.

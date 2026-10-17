@@ -1,6 +1,6 @@
 """Build and top up the Obchodný vestník index from Slovensko.Digital's Datahub.
 
-Datahub keeps every OV notice since June 2016 as the portal's original XML (table ov.raw_issues).
+Datahub keeps every OV notice since July 2011 as the portal's original XML (table ov.raw_issues).
 Its parsed tables are not used: likvidator_issues stops in 2017 and or_podanie_issues in 2019.
 
 - Build: the weekly Postgres dump (ov.sql.gz, about 4.2 GB) is streamed over HTTP, decompressed and

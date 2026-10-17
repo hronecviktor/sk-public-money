@@ -33,7 +33,7 @@ def index() -> index_mod.OVIndex:
         if not index_mod.exists():
             raise FileNotFoundError(
                 f"The Obchodný vestník index has not been built. Build it once with {localdb.sync_command('ov')} "
-                "(streams a 4.2 GB dump from Slovensko.Digital's Datahub; the index takes about 1 GB)."
+                "(streams a 4.2 GB dump from Slovensko.Digital's Datahub; about 70 minutes; the index takes about 0.9 GB)."
             )
         _index = index_mod.OVIndex()
     return _index
@@ -85,7 +85,7 @@ async def ov_search_notices(
     offset: Annotated[int, Field(ge=0)] = 0,
 ) -> dict:
     """Notices about a company in the Obchodný vestník (the Ministry of Justice's Commercial Bulletin)
-    since mid-2016, newest first: liquidation and calls to creditors (with liquidators), mergers,
+    since July 2011, newest first: liquidation and calls to creditors (with liquidators), mergers,
     splits and conversions, capital reductions, commercial register entries, and konkurz notices.
     Each gives date, issue, type, the companies concerned and the text (shortened). Data from
     Slovensko.Digital's Datahub, kept in a local index."""

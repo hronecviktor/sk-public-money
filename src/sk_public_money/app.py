@@ -96,7 +96,7 @@ the court's and trustee's public notices (newest first; full text on request). P
 cases name private people with birth dates. A case moved between courts in 2023 keeps its REPLIK ID
 under a new file number. Live from the public API; no licence is published.
 
-Obchodný vestník (ov_* tools): the Ministry of Justice's Commercial Bulletin since mid-2016, from a
+Obchodný vestník (ov_* tools): the Ministry of Justice's Commercial Bulletin since July 2011, from a
 local index of Slovensko.Digital's Datahub. ov_search_notices by IČO: liquidation and calls to
 creditors, mergers/splits/conversions, capital reductions, commercial register entries, and konkurz
 notices up to September 2025 (later ones: insolvency_* tools). Texts are shortened; a company only
