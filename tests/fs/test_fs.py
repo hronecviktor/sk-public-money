@@ -312,3 +312,13 @@ def test_old_index_is_migrated(tmp_path):
     assert set(ix.lists()) == {"ds_dphs"}  # the VAT returns list is fetched again by the next sync
     assert ix.get_meta("ds_dppos_archive") == '["2023-06-30"]' and ix.get_meta("dppos_archive") is None
     ix.close()
+
+
+def test_coverage_is_cached_until_a_quarterly_list_is_indexed(ix, tmp_path):
+    assert ix.coverage()["vat_returns"] == {"lists": ["2026-06-15", "2026-09-15"]}
+    assert ix.get_meta("coverage") is not None
+    ix.load("ds_dsdd", write_zip(tmp_path, "ds_dsdd"))
+    assert ix.get_meta("coverage") is not None  # a list without history leaves it alone
+    ix.load("ds_dppos", write_zip(tmp_path, "ds_dppos_20230630"), archive=True)
+    assert ix.get_meta("coverage") is None
+    assert ix.coverage()["cit"]["oldest_list"] == "2023-06-15"

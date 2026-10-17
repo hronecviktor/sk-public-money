@@ -128,6 +128,7 @@ async def run(lists: list[str], since: str, *, force: bool = False, archive: boo
                 failed.append(f"{name}: {exc}")
                 say(f"{name} FAILED: {exc}")
         localdb.mark_done(index.db, "inline_checked_at")
+        index.coverage(refresh=True)
         # Replacing whole lists leaves a write-ahead log as large as the lists; give the space back.
         index.db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         size = index.path.stat().st_size / 2**20

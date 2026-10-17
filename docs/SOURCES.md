@@ -69,6 +69,7 @@ Things to know:
 - A dissolved organization is shown as it was on the day before its dissolution (`shown_as_of`), since RPO ends its people and capital then.
 - For foreign companies RPO stores no IČO ("Neuvedené") and a placeholder founding date of 1800-01-01; both come out as `null`.
 - Data lags the source registers by up to a day.
+- Current directors and procurists (`rpo_get_organization`) and every role found by `rpo_search_person` are checked against the register of disqualified persons from the court source. A match adds a `disqualified` flag, matched by name and strengthened by address where it matches; see the courts section below.
 
 ### RÚZ: Register účtovných závierok ([registeruz.sk](https://www.registeruz.sk))
 
@@ -172,9 +173,9 @@ sk-public-money-sync fs --since 2024-01-01    # a first build with less history
 sk-public-money-sync fs --lists ds_dphs,ds_iz_ran --force
 ```
 
-The first run downloads about FS_DL (the two archives are about 33 files each: 7 MB of corporate tax,
-15–18 MB of VAT returns) and takes FS_TIME_EN; the index is about FS_SIZE, most of it the VAT returns
-(FS_VATROWS rows). Each further run asks each file's Last-Modified and downloads only changed lists. The tools check the
+The first run downloads about 0.7 GB (the two archives have 33 files each: up to 7 MB of corporate
+tax, 14–18 MB of VAT returns) and takes about 15 minutes; the index is about 0.75 GB, most of it the
+VAT returns (19.6 million rows; corporate tax 2.7 million). Each further run asks each file's Last-Modified and downloads only changed lists. The tools check the
 two small daily VAT flag lists every 6 hours and update them inline; they name any other list that is
 older than usual and suggest the sync command.
 
@@ -200,6 +201,7 @@ yearly asset declarations (*majetkové priznania*, 2013 onwards, about 13,000 PD
 | `court_search_decisions` | Finds decisions by IČO or words, court, judge, legal area (*oblasť* or *podoblasť*) and date, newest first. Each hit has court, judge, case number, form and text snippets with the match marked «like this», plus counts by area, form and court type. |
 | `court_get_decision` | A decision by guid or ECLI: nature (*povaha*: confirmed, overturned, …), legal area, cited laws with Slov-Lex links and the PDF link. With `text=true` it downloads the PDF and returns its text page by page. |
 | `court_judge` | Finds judges by name (court, function, status, `judge_id` for the decision search) and lists their asset declarations from Súdna rada. With `declaration_url` it reads one declaration: real estate, movables, income from the office, debts and declared conflicts. |
+| `court_disqualified` | Searches the register of disqualified persons (*register diskvalifikácií*) by name, or shows one record by ID: address, decision date, court or tax office, case number, note, ban period and whether it is in force today. |
 
 Things to know:
 
@@ -208,7 +210,13 @@ Things to know:
 - An IČO search is a full-text search, run twice: for `31322832` and for the phrase `"31 322 832"` (leading zeros dropped, so `"604 381"` also finds `00 604 381`). The results are merged, and `matching` gives the count for each spelling. The number may belong to another party, or be an amount, so the result says `matched_by` and each hit carries its snippet. Merged IČO results can be paged through the newest 500 only.
 - Text search stems words and requires all of them; quotes make a phrase. Operators like `OR` are not supported (the backend fails on them, reported as a bad query).
 - Judges' asset declarations are listed on Súdna rada's website, which matches a single surname without diacritics. The tool searches by the last word of the name first, then the others, and keeps declarations whose name contains every word given. They are matched to judges **by name only** (`asset_declarations_matched_by`), and list the court where the judge served that year.
-- Not used: court hearings (*pojednávania*, no parties), and the register of disqualified persons (*diskvalifikácia*, people banned from company boards), which the API also offers.
+- Not used: court hearings (*pojednávania*, no parties).
+
+The register of disqualified persons and the automatic check:
+
+- The register lists people a court (in criminal cases) or a tax office (through the Commercial Register court, *CbVyl*) has banned from being a company's statutory body or procurist. It is small (about 1,000 records), so a local SQLite copy is kept in the cache (`court/disqualified.sqlite`, about 0.7 MB). The list (name, address, decision date, sometimes the court) takes two requests and is re-read when the copy is a day old; records the register drops are dropped from the copy. The ban period, case number and note are only in each record's detail, which is fetched when a record is shown or matched and kept for 30 days. `sk-public-money-sync court` fetches all details in advance (about 17 minutes at one request per second).
+- The register has no IČO, birth date or IFO in practice (the IFO field is empty), so people are matched **by name**: all words of both names, ignoring case, diacritics, titles and word order (`name_match: exact`), or one name with an extra word such as a second given name (`partial`).
+- `rpo_get_organization` checks its current statutory body members and procurists; `rpo_search_person` checks every role it returns. A match adds a `disqualified` list to that person with the record ID (for `court_disqualified`), the register's name and address, `address_comparison` (same address, same town, different) and `matched_by` (`name`, `name and town` or `name and address`), the ban period and `ban_active`. When the register can't be reached the check uses the old copy and says so in `disqualification_check`; without any copy it is skipped with a note.
 
 ### PPA: Pôdohospodárska platobná agentúra (farm subsidies)
 

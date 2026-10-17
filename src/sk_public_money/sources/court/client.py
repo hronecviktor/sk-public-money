@@ -48,6 +48,19 @@ class CourtClient(ThrottledClient):
         resp.raise_for_status()
         return resp.json()
 
+    async def disqualification_list(self) -> list[dict]:
+        """Every record of the register of disqualified persons (about a thousand): name, address,
+        decision date and sometimes the court. The ban period is only in each record's detail."""
+        rows: list[dict] = []
+        page = 1
+        while True:
+            data = await self.api("diskvalifikacia", {"size": 500, "page": page})
+            batch = data.get("diskvalifikaciaList") or []
+            rows += batch
+            if not batch or len(rows) >= (data.get("numFound") or 0) or page >= 20:
+                return rows
+            page += 1
+
     async def pdf(self, url: str) -> bytes:
         """A decision PDF from obcan.justice.sk/content/public/item/ or an asset declaration from
         www.sudnarada.gov.sk/data/att/; other URLs are refused."""

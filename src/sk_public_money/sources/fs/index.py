@@ -10,6 +10,7 @@ file's rows are kept, by list date); every other list is replaced whole when a n
 
 from __future__ import annotations
 
+import json
 import re
 import sqlite3
 import time
@@ -218,6 +219,8 @@ class FSIndex:
                         self.db.execute("INSERT INTO debtors_text (rowid, text) VALUES (?,?)", (rowid, fold(row[0])))
             else:
                 raise ValueError(f"Unknown list {name}")
+            if name in ("ds_dppos", "ds_dphno"):
+                self.db.execute("DELETE FROM meta WHERE key = 'coverage'")
             if not archive:
                 self.db.execute(
                     "INSERT OR REPLACE INTO lists VALUES (?,?,?,?,?,?)",
@@ -252,9 +255,26 @@ class FSIndex:
     def as_of(self) -> dict[str, str | None]:
         return {name: info["as_of"] for name, info in sorted(self.lists().items())}
 
+    def coverage(self, *, refresh: bool = False) -> dict:
+        """What the history tables span. Scanning millions of rows takes a second or two, so the
+        result is kept in meta and computed again only after a quarterly list was indexed."""
+        cached = self.get_meta("coverage")
+        if cached and not refresh:
+            return json.loads(cached)
+        # Some published periods are nonsense (01.01.1000); the span counts plausible dates only.
+        cit = self.db.execute(
+            "SELECT min(period_to), max(period_to), min(release) FROM cit WHERE period_to BETWEEN 19930101 AND 21000101"
+        ).fetchone()
+        vat = self.db.execute("SELECT min(release), max(release) FROM vat_returns").fetchone()
+        out = {
+            "cit": {"periods_to": [_iso(cit[0]), _iso(cit[1])], "oldest_list": _iso(cit[2])} if cit[0] else None,
+            "vat_returns": {"lists": [_iso(vat[0]), _iso(vat[1])]} if vat[0] else None,
+        }
+        self.set_meta("coverage", json.dumps(out))
+        return out
+
     def cit_coverage(self) -> dict | None:
-        row = self.db.execute("SELECT min(period_to), max(period_to), min(release) FROM cit").fetchone()
-        return {"periods_to": [_iso(row[0]), _iso(row[1])], "oldest_list": _iso(row[2])} if row[0] else None
+        return self.coverage()["cit"]
 
     def dics_for_ico(self, ico: str) -> list[str]:
         dics = [r[0] for r in self.db.execute("SELECT dic FROM subjects WHERE ico = ? ORDER BY dic", (ico,))]
@@ -295,8 +315,7 @@ class FSIndex:
                  "excess": r["excess"], "own": r["own"]} for r in rows]
 
     def vat_returns_coverage(self) -> dict | None:
-        row = self.db.execute("SELECT min(release), max(release) FROM vat_returns").fetchone()
-        return {"lists": [_iso(row[0]), _iso(row[1])]} if row[0] else None
+        return self.coverage()["vat_returns"]
 
     def vat_groups_led_by(self, names: list[str]) -> list[dict]:
         """VAT groups (named 'Skupina DPH zastupovaná: <representative>') whose representative has one

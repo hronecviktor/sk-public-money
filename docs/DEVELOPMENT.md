@@ -32,7 +32,9 @@ A source that needs a local index keeps it in the cache directory and uses `loca
 `db_path()`, `connect()` with a meta table, `is_due()`/`mark_done()` for refresh intervals, and
 `ensure_free_space()` before a large download. `ThrottledClient._download()` streams a large file to
 disk. Its `sync.py` has `main(argv)` and a line in the `SOURCES` table of `sync.py` at the package
-root, so `sk-public-money-sync <source>` builds or tops up its index. Delete raw downloads once they
+root, so `sk-public-money-sync <source>` builds or tops up its index. `sk-public-money-sync all` runs
+them in the order of that table, so keep quick sources first and add a row to the README's first-run
+table. Delete raw downloads once they
 are indexed unless the source needs them to re-index.
 
 The tests run offline:
@@ -41,6 +43,6 @@ The tests run offline:
 - **RPVS:** a mocked OData API with fictional people.
 - **RPO:** a mocked REST API with fictional organizations and people.
 - **ÚVO:** fictional TED notices in both XML formats and a fictional Vestník issue in `tests/uvo/fixtures`, and mocked TED and data.slovensko.sk APIs.
-- **Courts:** a mocked ISU API and Súdna rada list with fictional judges and companies, and generated PDFs.
+- **Courts:** a mocked ISU API and Súdna rada list with fictional judges, companies and disqualified persons, and generated PDFs. The RPO tests mock the register of disqualified persons too, with the index in a temporary cache.
 - **RÚZ:** real report templates in `tests/ruz/fixtures` with fictional entities and amounts, and a mocked API.
 - **PPA:** workbooks built in the tests in both published layouts with fictional beneficiaries, the real download section of the PPA page in `tests/ppa/fixtures`, and a mocked RPO.

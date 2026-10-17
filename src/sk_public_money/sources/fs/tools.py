@@ -19,7 +19,7 @@ from .index import LISTS, FSIndex, default_path
 PAGE_SIZE = 20
 VAT_RETURNS = 12
 NO_INDEX = ("The Finančná správa index has not been built yet. Build it with: sk-public-money-sync fs "
-            "(downloads about 170 MB in 2-3 minutes; the index takes about 220 MB).")
+            "(downloads about 0.7 GB in about 15 minutes; the index takes about 0.75 GB).")
 LICENCE = "Zdroj údajov: Finančná správa SR - https://opendata.financnasprava.sk/ (CC BY 4.0)"
 # What a DRUH_REG_DPH means (zákon o DPH 222/2004 Z. z.).
 VAT_KINDS = {
