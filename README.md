@@ -6,8 +6,10 @@
 
 **sk-public-money** je [MCP](https://modelcontextprotocol.io) server, ktorý AI asistentovi (napríklad
 Claude) sprístupní slovenské verejné registre o tom, kam idú verejné peniaze: zmluvy štátu, verejné
-obstarávania, firmy, ich skutočných vlastníkov a účtovné závierky. Asistent v nich vie vyhľadávať,
-čítať ich a prepájať údaje z viacerých registrov v jednej odpovedi.
+obstarávania, firmy, ich skutočných vlastníkov a účtovné závierky, dane, súdne rozhodnutia,
+konkurzy a oznámenia v Obchodnom vestníku, poľnohospodárske dotácie, eurofondy a financovanie
+politických strán. Asistent v nich vie vyhľadávať, čítať ich a prepájať údaje z viacerých registrov
+v jednej odpovedi.
 
 ### Ukážka
 
@@ -57,6 +59,9 @@ Príklady otázok pre asistenta:
 - „Ktoré zmluvy včera zverejnilo ministerstvo zdravotníctva?“
 - „S kým sa táto firma súdila a ako súd rozhodol?“
 - „Koľko poľnohospodárskych dotácií dostali firmy zo skupiny Agrofert a na aké opatrenia?“
+- „Je táto firma v konkurze alebo likvidácii, platí dane a je spoľahlivý platiteľ DPH?“
+- „Aké projekty z eurofondov má táto obec a komu z nich platila faktúry?“
+- „Komu platila strana SMER v roku 2025 viac ako 25 000 eur a kto sú tie firmy?“
 
 | Nástroj | Čo robí |
 | --- | --- |
@@ -73,6 +78,9 @@ Príklady otázok pre asistenta:
 | `rpo_get_organization` | Firma alebo inštitúcia podľa IČO: názvy, sídlo, štatutári, spoločníci, kapitál, vznik a zánik |
 | `rpo_search_organization` | Hľadá organizácie podľa súčasného alebo bývalého názvu |
 | `rpo_search_person` | Kde je osoba štatutárom alebo spoločníkom |
+| `insolvency_search` | Hľadá konkurzy, reštrukturalizácie, oddlženia a likvidácie podľa IČO alebo fulltextom (mená, spisové značky) |
+| `insolvency_get` | Konanie v plnom znení: dlžník, navrhovatelia, sudca, správca, stav a verejné oznamy súdu a správcu, na požiadanie s textom |
+| `ov_search_notices` | Oznámenia firmy v Obchodnom vestníku podľa IČO od júla 2011: likvidácie, zlúčenia, zníženia imania, podania do obchodného registra, konkurzy do septembra 2025 |
 | `ruz_search_entity` | Hľadá účtovné jednotky podľa názvu, IČO alebo DIČ |
 | `ruz_get_entity` | Účtovná jednotka so zoznamom všetkých jej závierok |
 | `ruz_get_financials` | Tržby, výnosy, výsledok hospodárenia, aktíva a vlastné imanie po rokoch, s uvedením riadku výkazu, z ktorého pochádzajú |
@@ -86,8 +94,8 @@ Príklady otázok pre asistenta:
 | `ppa_search_beneficiary` | Poľnohospodárske dotácie prijímateľa podľa mena alebo IČO (cez názov v RPO): sumy po fondoch a opatreniach, obec, materská spoločnosť |
 | `ppa_top` | Najväčší prijímatelia za finančný rok, podľa opatrenia, obce alebo druhu prijímateľa |
 | `party_account_transactions` | Pohyby na transparentnom účte v Slovenskej sporiteľni podľa IBAN alebo názvu účtu, s filtrom protistrany, dátumu, sumy a smeru |
-| `party_annual_reports` | Výročné správy strany alebo roka: odkaz na PDF, opravená verzia, nedostatky, ktoré strany sú naskenované |
-| `party_read_report` | Strany výročnej správy: textové strany ako text, naskenované ako obrázky, bez zadaných strán náhľady na nájdenie evidencií |
+| `party_annual_reports` | Výročné správy strany alebo roka: odkaz na PDF, opravená verzia, nedostatky, ktoré stránky sú naskenované |
+| `party_read_report` | Stránky výročnej správy: textové stránky ako text, naskenované ako obrázky, bez zadaných stránok náhľady na nájdenie evidencií |
 | `eu_search_projects` | Hľadá projekty a žiadosti o NFP z EÚ fondov 2021–2027 podľa IČO prijímateľa alebo partnera, slov a programu; so zazmluvnenou a nárokovanou sumou |
 | `eu_get_project` | Celý projekt: prijímateľ, partneri, sumy (aj vyplatená), zmluva v CRZ, ukazovatele, dodávatelia, faktúry, obstarávania so zmluvami a žiadosti o platbu |
 | `eu_search_procurements` | Hľadá obstarávania prijímateľov EÚ fondov podľa IČO obstarávateľa alebo hlavného dodávateľa a slov; pri dodávateľovi aj faktúry, ktoré fakturoval do projektov |
@@ -111,6 +119,12 @@ Na čo si dať pozor:
   pomalé (vyhľadávanie v RPO 5–30 s, prvé načítanie veľkej firmy v RÚZ až 30 s). CRZ má večer
   pravidelnú údržbu, počas ktorej nie je dostupný.
 - **Zoznam daňových dlžníkov nemá IČO,** dlžníci sa hľadajú len podľa mena; porovnajte adresu.
+- **Výročné správy strán sú väčšinou skeny,** ktoré asistent číta z obrázkov: mená a sumy si overte
+  v PDF. Ak sa v správe nenájdu žiadne dary, ešte to neznamená, že žiadni darcovia neboli.
+- **Žiadosti o platbu v eurofondoch uvádzajú nárokovanú sumu,** nie nevyhnutne vyplatenú; vyplatenú
+  sumu za celý projekt uvádza `eu_get_project`.
+- **Obchodný vestník má len informatívny charakter** a pri podaniach do obchodného registra neuvádza,
+  čo sa zmenilo; zmeny štatutárov a spoločníkov ukáže história v RPO.
 - **Vyhľadávanie mien nerozlišuje veľké a malé písmená ani diakritiku:** „Siroky“ nájde Široký,
   Siroký aj Široky.
 
@@ -177,7 +191,7 @@ minút, a nemá hotový index; ak ho nepotrebujete, vynechajte ho a postavte nes
 | `court` | `court_disqualified` a kontrola štatutárov v RPO (fungujú aj bez neho) | asi 20 minút | menej ako 1 MB | zoznam si nástroje obnovia samy raz denne |
 | `uvo` | `uvo_*` pod limitmi EÚ (bez indexu len TED) | asi minúta (hotový index, 155 MB); zo zdroja asi 45 minút a 7 GB | asi 330 MB | nové čísla si nástroje doplnia samy každých 6 hodín |
 | `ov` | `ov_search_notices` (bez indexu nefunguje) | asi 70 minút; streamuje 4,2 GB dump z Datahubu (neukladá ho) a z jeho 4,2 milióna oznámení si nechá 2,8 milióna | asi 0,9 GB | zmeny si nástroje doplnia samy každých 6 hodín (najviac 5 strán), väčší odstup dobehne `sk-public-money-sync ov` |
-| `eu` | `eu_*` (bez indexu funguje len `eu_get_project`, bez obstarávaní a žiadostí o platbu) | niekoľko minút (hotový index); zo zdroja okolo 5 hodín, dá sa prerušiť a pokračovať | asi 60 MB | spúšťať raz týždenne: znova načíta zoznamy a stiahne len nové a zmenené detaily (asi 10 minút) |
+| `eu` | `eu_*` (bez indexu funguje len `eu_get_project`, bez obstarávaní a žiadostí o platbu) | niekoľko minút (hotový index); zo zdroja okolo 5 hodín, dá sa prerušiť a pokračovať | asi 50 MB | spúšťať raz týždenne: znova načíta zoznamy a stiahne len nové a zmenené detaily (asi 10 minút) |
 
 Pomalé zdroje sa pri prvom spustení nestavajú od nuly: príkaz stiahne hotový index z
 [GitHub release `indexes`](https://github.com/hronecviktor/sk-public-money/releases/tag/indexes),
@@ -225,8 +239,10 @@ v [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) (oboje v angličtine).
 
 **sk-public-money** is an [MCP](https://modelcontextprotocol.io) server that gives an AI assistant
 (such as Claude) access to Slovak public registers about where public money goes: state contracts,
-public procurement, companies, their beneficial owners and their financial statements. The assistant
-can search and read them, and combine data from several registers in one answer.
+public procurement, companies, their beneficial owners and financial statements, taxes, court
+decisions, bankruptcies and Commercial Bulletin notices, farm subsidies, EU funds and political-party
+financing. The assistant can search and read them, and combine data from several registers in one
+answer.
 
 ### Example
 
@@ -278,6 +294,9 @@ Example questions for the assistant:
 - "Which contracts did the Ministry of Health publish yesterday?"
 - "Who has this company been in court with, and how did the court decide?"
 - "How much farm subsidy did the Agrofert group's companies get, and under which measures?"
+- "Is this company bankrupt or in liquidation, does it pay taxes, and is it a reliable VAT payer?"
+- "What EU-funded projects does this municipality have, and which suppliers did it pay from them?"
+- "Whom did the SMER party pay more than €25,000 in 2025, and who are those companies?"
 
 | Tool | What it does |
 | --- | --- |
@@ -294,6 +313,9 @@ Example questions for the assistant:
 | `rpo_get_organization` | A company or public body by IČO: names, seat, directors, partners, capital, founding and dissolution |
 | `rpo_search_organization` | Finds organizations by current or former name |
 | `rpo_search_person` | Where a person is a director or partner |
+| `insolvency_search` | Searches bankruptcies, restructurings, personal debt relief and liquidations by IČO or full text (names, file numbers) |
+| `insolvency_get` | A proceeding in full: debtor, petitioners, judge, trustee, status, and the public notices of court and trustee, with their text on request |
+| `ov_search_notices` | A company's Commercial Bulletin notices by IČO since July 2011: liquidations, mergers, capital reductions, commercial register filings, bankruptcies until September 2025 |
 | `ruz_search_entity` | Finds accounting entities by name, IČO or DIČ |
 | `ruz_get_entity` | An accounting entity with the list of all its statements |
 | `ruz_get_financials` | Revenue, income, profit, assets and equity by year, each with the report row it came from |
@@ -332,6 +354,12 @@ Things to watch out for:
   (RPO searches 5–30 s, the first look at a large company in RÚZ up to 30 s). CRZ has regular evening
   maintenance, during which it's unavailable.
 - **The tax debtor list has no IČO,** so debtors are matched by name only; compare the address.
+- **Parties' annual reports are mostly scans** that the assistant reads from images: check names and
+  amounts in the PDF. A report in which no gifts were found doesn't prove there were no donors.
+- **EU-fund payment claims show the amount claimed,** not necessarily paid; `eu_get_project` gives
+  the amount paid for the whole project.
+- **The Commercial Bulletin is informative only,** and its commercial register filings don't say what
+  changed; RPO's history shows changes of directors and partners.
 - **Name searches ignore case and diacritics:** "Siroky" finds Široký, Siroký and Široky.
 
 ### Installation
@@ -397,7 +425,7 @@ its own with `sk-public-money-sync ov`.
 | `court` | `court_disqualified` and the director check in RPO (both work without it too) | about 20 minutes | under 1 MB | the tools refresh the list themselves once a day |
 | `uvo` | `uvo_*` below the EU thresholds (without it, TED only) | about a minute (prebuilt index, 155 MB); from the source about 45 minutes and 7 GB | about 330 MB | the tools fetch new issues themselves every 6 hours |
 | `ov` | `ov_search_notices` (it doesn't work without it) | about 70 minutes; streams a 4.2 GB dump from Datahub (without storing it) and keeps 2.8 million of its 4.2 million notices | about 0.9 GB | the tools fetch changes themselves every 6 hours (at most 5 pages); `sk-public-money-sync ov` catches up a longer gap |
-| `eu` | `eu_*` (without it only `eu_get_project` works, without procurements and payment claims) | a few minutes (prebuilt index); from the source around 5 hours, can be stopped and resumed | about 60 MB | run weekly: reloads the lists and fetches only new and changed details (about 10 minutes) |
+| `eu` | `eu_*` (without it only `eu_get_project` works, without procurements and payment claims) | a few minutes (prebuilt index); from the source around 5 hours, can be stopped and resumed | about 50 MB | run weekly: reloads the lists and fetches only new and changed details (about 10 minutes) |
 
 The slow sources aren't built from scratch on the first run: the command downloads a prebuilt index
 from the [GitHub release `indexes`](https://github.com/hronecviktor/sk-public-money/releases/tag/indexes),
