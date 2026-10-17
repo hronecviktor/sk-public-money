@@ -95,7 +95,9 @@ async def ruz_get_entity(
     for rec in await _entities(ico, ruz_id):
         statements, truncated = await _statements(rec)
         item = parse.entity(rec, codebooks)
-        item["statements"] = [parse.statement(s) for s in statements]
+        _, _, superseded_by = parse.latest_filings(statements)
+        item["statements"] = [{**parse.statement(s), **({"superseded_by": superseded_by[s["id"]]} if s["id"] in superseded_by else {})}
+                              for s in statements]
         if truncated:
             item["statements_note"] = f"Only the {MAX_STATEMENTS} most recently filed statements are listed."
         item["annual_reports"] = len(rec.get("idVyrocnychSprav", []))
@@ -117,12 +119,14 @@ async def ruz_get_financials(
     equity, in EUR. Each figure names the report row and column it came from; figures that could not be
     read are listed under not_mapped with the reason. Companies reporting under IFRS (most large and
     listed ones) file only PDFs: their documents are linked instead. Employees come only as the ŠÚSR band
-    on the entity. Amounts are as filed: whole euros or with cents depending on the filer."""
+    on the entity. Amounts are as filed: whole euros or with cents depending on the filer. A statement
+    filed more than once is shown from its newest filing; earlier_filings names the others."""
     codebooks = await _codebooks()
     out = []
     for rec in await _entities(ico, ruz_id):
         statements, _ = await _statements(rec)
         wanted = [s for s in statements if (parse.statement_kind(s) != "individual") == consolidated]
+        wanted, earlier, _ = parse.latest_filings(wanted)
         if years:
             wanted = [s for s in wanted if parse.statement(s).get("year") in set(years)]
         else:
@@ -140,6 +144,8 @@ async def ruz_get_financials(
                     pairs.append((report, template))
             figures, not_mapped = parse.key_figures(pairs)
             result = {**parse.statement(st), "figures": figures}
+            if st["id"] in earlier:
+                result["earlier_filings"] = earlier[st["id"]]
             if not_mapped:
                 result["not_mapped"] = not_mapped
             units = {r.get("mena") for r, _ in pairs if r.get("mena")}

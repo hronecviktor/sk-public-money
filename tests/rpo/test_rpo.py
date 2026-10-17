@@ -198,13 +198,16 @@ def test_organization_current_state():
 def test_organization_history():
     org = parse.organization(ENTITY, include_history=True, on="2026-10-12")
 
-    former = org["statutory_bodies"][1]
+    # Former entries are listed apart, so a former director never looks current.
+    assert [b["name"] for b in org["statutory_bodies"]] == ["Ján Vzorový"]
+    former = org["former_statutory_bodies"][0]
     assert former["name"] == "Eva Ukážková"
     assert former["birth_surname"] == "Príkladná"
     assert former["address"] == "Fő utca, 54, 2900, Komárom, Maďarská republika"
-    assert [s["name"] for s in org["stakeholders"]] == ["Fiktív Holding Nyrt.", "Peter Široký"]
+    assert [s["name"] for s in org["stakeholders"]] == ["Fiktív Holding Nyrt."]
+    assert [s["name"] for s in org["former_stakeholders"]] == ["Peter Široký"]
     assert [a["address"] for a in org["address_history"]] == ["Stará 7, 82412 Bratislava", "Vymyslená 1, 82412 Bratislava"]
-    assert len(org["equity"]) == 2
+    assert len(org["equity"]) == 1 and len(org["former_equity"]) == 1
 
 
 def test_dissolved_organization_is_shown_on_its_last_day():
@@ -389,3 +392,20 @@ async def test_get_organization_flags_disqualified_director(api):
         "ban_from": "2024-02-01", "ban_to": "2099-02-01", "ban_active": True, "decision_date": "2024-02-01", "court": None,
     }]
     assert all("disqualified" not in p for p in org["statutory_bodies"][1:] + org["stakeholders"])
+
+
+def test_entries_the_register_recorded_twice_are_shown_once():
+    from sk_public_money import history
+
+    director = {"role": "Konateľ", "name": "JUDr. Fiktívny Advokát", "valid_from": "2019-03-19"}
+    items = [
+        {**director, "valid_to": "2023-11-13"},
+        {**director, "valid_to": "2023-11-09"},  # the same ending, recorded twice
+        {"role": "Konateľ", "name": "JUDr. Nová Konateľka", "valid_from": "2022-03-29", "valid_to": None},
+        {"role": "Konateľ", "name": "JUDr. Nová Konateľka", "valid_from": "2022-03-29", "valid_to": None},
+    ]
+    ended = [True, True, False, False]
+    current, former = history.split(items, ended, include_history=True)
+    assert [c["name"] for c in current] == ["JUDr. Nová Konateľka"]
+    assert former == [{**director, "valid_to": "2023-11-13"}]
+    assert history.split(items, ended, include_history=False) == (current, 1)

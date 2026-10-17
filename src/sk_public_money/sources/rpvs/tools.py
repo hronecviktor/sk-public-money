@@ -84,7 +84,7 @@ def _partner_summary(partner_id: int, identities: list[dict]) -> dict:
 async def rpvs_get_partner(
     ico: Annotated[str | None, Field(description="IČO of the company or sole trader (8 digits; shorter Slovak IČOs are zero-padded automatically).")] = None,
     partner_id: Annotated[int | None, Field(description="RPVS partner ID, as returned by rpvs_search_partner or rpvs_search_person.")] = None,
-    include_history: Annotated[bool, Field(description="Also list former beneficial owners, authorized persons and officials, and past names/addresses.")] = False,
+    include_history: Annotated[bool, Field(description="Also list former beneficial owners, authorized persons and officials (in separate former_* lists, newest end first), and past names/addresses.")] = False,
 ) -> dict:
     """A public-sector partner in RPVS: its name, IČO and address, its current beneficial owners
     (konečný užívateľ výhod, KUV, with birth date and whether they are public officials), its authorized

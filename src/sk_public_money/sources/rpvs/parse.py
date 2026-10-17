@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from ... import history
 from .client import WEB_URL
 
 DELETION_REASONS = {"Dobrovolny": "voluntary", "ExOffo": "ex officio"}
@@ -98,10 +99,8 @@ def public_official(rec: dict) -> dict:
     }
 
 
-def _split(items: list[dict], include_history: bool) -> tuple[list[dict], int]:
-    current = [i for i in items if i["valid_to"] is None]
-    former = [i for i in items if i["valid_to"] is not None]
-    return (current + former if include_history else current), len(former)
+def _split(items: list[dict], include_history: bool) -> tuple[list[dict], list[dict] | int]:
+    return history.split(items, [i["valid_to"] is not None for i in items], include_history)
 
 
 def partner(identities: list[dict], entity: dict, *, include_history: bool = False) -> dict:

@@ -344,3 +344,16 @@ async def test_blocked_portal_is_reported_as_unavailable(monkeypatch, tmp_path):
 def test_user_agent_has_no_apostrophe():
     # registeruz.sk's firewall rejects one on its web paths.
     assert "'" not in client_mod.RUZClient()._http.headers["User-Agent"]
+
+
+def test_a_statement_filed_twice_is_shown_once():
+    from sk_public_money.sources.ruz import parse as ruz_parse
+
+    base = {"obdobieOd": "2024-01", "obdobieDo": "2024-12", "typ": "Riadna", "konsolidovana": False}
+    first = {**base, "id": 1, "datumPodania": "2025-03-18"}
+    again = {**base, "id": 2, "datumPodania": "2025-03-27"}  # the same statement, filed again with the approval notice
+    older_year = {**base, "id": 3, "obdobieOd": "2023-01", "obdobieDo": "2023-12", "datumPodania": "2024-03-20"}
+    kept, earlier, superseded_by = ruz_parse.latest_filings([again, first, older_year])
+    assert [s["id"] for s in kept] == [2, 3]
+    assert earlier == {2: [{"statement_id": 1, "filed": "2025-03-18"}]}
+    assert superseded_by == {1: 2}

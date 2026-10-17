@@ -106,6 +106,26 @@ def statement(rec: dict) -> dict:
     return {k: v for k, v in out.items() if v is not None}
 
 
+def latest_filings(statements: list[dict]) -> tuple[list[dict], dict[int, list[dict]], dict[int, int]]:
+    """Some entities file the same statement twice (same period, kind, type and fund), e.g. again a
+    week later with the approval notice. Keep the newest filing of each, in the given order.
+    Returns (kept statements, kept id -> earlier filings it replaces, earlier id -> kept id)."""
+    groups: dict[tuple, list[dict]] = {}
+    for rec in statements:
+        key = (rec.get("obdobieOd"), rec.get("obdobieDo"), statement_kind(rec), rec.get("typ"), rec.get("nazovFondu"))
+        groups.setdefault(key, []).append(rec)
+    newest = {id(g[0]): max(g, key=lambda r: (r.get("datumPodania") or "", r["id"])) for g in groups.values()}
+    kept, earlier, superseded_by = [], {}, {}
+    for group in groups.values():
+        best = newest[id(group[0])]
+        others = [r for r in group if r is not best]
+        if others:
+            earlier[best["id"]] = [{"statement_id": r["id"], "filed": r.get("datumPodania")} for r in others]
+            superseded_by.update({r["id"]: best["id"] for r in others})
+    kept = [r for r in statements if r["id"] not in superseded_by]
+    return kept, earlier, superseded_by
+
+
 def document(report: dict, template: dict | None) -> dict:
     """A report as a document: its template name, availability and downloadable files."""
     out = {

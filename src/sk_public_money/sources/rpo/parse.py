@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timedelta
 
+from ... import history
 from ...http import TZ
 
 # Placeholders RPO uses for unknown values, mostly on foreign companies.
@@ -154,10 +155,8 @@ def related(rec: dict) -> dict:
     return {"name": _clean(rec.get("fullName")), "ico": ico(rec.get("identifier")), "address": address(rec.get("address")), **_timed(rec)}
 
 
-def _split(items: list[dict], records: list[dict], on: str, include_history: bool) -> tuple[list[dict], int]:
-    current = [i for i, r in zip(items, records) if is_current(r, on)]
-    former = [i for i, r in zip(items, records) if not is_current(r, on)]
-    return (current + former if include_history else current), len(former)
+def _split(items: list[dict], records: list[dict], on: str, include_history: bool) -> tuple[list[dict], list[dict] | int]:
+    return history.split(items, [not is_current(r, on) for r in records], include_history)
 
 
 def source_register(rec: dict | None, on: str) -> dict | None:
@@ -218,9 +217,11 @@ def organization(rec: dict, *, include_history: bool = False, on: str | None = N
 
     for key, fn in (("equity", equity), ("deposits", deposit), ("shares", share)):
         recs = rec.get({"equity": "equities"}.get(key, key)) or []
-        items, _ = _split([fn(r) for r in recs], recs, on, include_history)
+        items, former = _split([fn(r) for r in recs], recs, on, include_history)
         if items:
             out[key] = items
+        if include_history and former:
+            out[f"former_{key}"] = former
 
     for key in ("predecessors", "successors"):
         if rec.get(key):

@@ -127,8 +127,9 @@ def test_partner_history_and_deletion():
 
     assert p["registered"] is False
     assert p["deletion"] == {"date": "2020-01-31", "reason": "ex officio", "note": "Hromadný výmaz"}
-    assert [o["name"] for o in p["beneficial_owners"]] == ["Ing. Ján Vzorový", "Ing. Eva Ukážková"]
-    assert p["beneficial_owners"][1]["public_official"] is True
+    assert [o["name"] for o in p["beneficial_owners"]] == ["Ing. Ján Vzorový"]
+    assert [o["name"] for o in p["former_beneficial_owners"]] == ["Ing. Eva Ukážková"]
+    assert p["former_beneficial_owners"][0]["public_official"] is True
     assert [i["name"] for i in p["identity_history"]] == ["Fiktívna Rafinéria, a.s.", "FIKTÍVNA RAFINÉRIA, a.s."]
 
 

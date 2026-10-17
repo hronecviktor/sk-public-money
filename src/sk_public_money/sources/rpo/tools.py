@@ -45,7 +45,7 @@ def _active_first(results: list[dict]) -> list[dict]:
 async def rpo_get_organization(
     ico: Annotated[str | None, Field(description="IČO (up to 8 digits; shorter ones are zero-padded).")] = None,
     rpo_id: Annotated[int | None, Field(description="RPO record ID, as returned by the rpo_search_* tools.")] = None,
-    include_history: Annotated[bool, Field(description="Also list former statutory bodies, stakeholders, capital, addresses and other legal facts.")] = False,
+    include_history: Annotated[bool, Field(description="Also list former statutory bodies, stakeholders, capital, addresses and other legal facts, in separate former_* lists (newest end first).")] = False,
 ) -> dict:
     """A company, sole trader, public body or other legal entity from RPO, the official register of
     all of them: name and former names, IČO, seat, legal form and status, founding and dissolution
