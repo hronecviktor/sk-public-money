@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ZoznamPlatitelovDPHsDovodomNaZrusenieRegistracie>
+  <DatumAktualizacieZoznamu>17102026</DatumAktualizacieZoznamu>
+  <DS_DPHZ>
+    <ITEM>
+      <IC_DPH>SK2020999001</IC_DPH>
+      <NAZOV> ALFA TEST s.r.o.</NAZOV>
+      <OBEC>Žilina</OBEC>
+      <PSC>01001</PSC>
+      <ADRESA>Fiktívna 1/A</ADRESA>
+      <ROK_PORUSENIA>2026</ROK_PORUSENIA>
+      <DAT_ZVEREJNENIA>09.10.2026</DAT_ZVEREJNENIA>
+      <ICO>01234567</ICO>
+    </ITEM>
+  </DS_DPHZ>
+</ZoznamPlatitelovDPHsDovodomNaZrusenieRegistracie>
