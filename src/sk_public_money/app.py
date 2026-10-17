@@ -47,6 +47,14 @@ spending; a value of 0 means undisclosed. Identifiers are labelled ico, dic (DI�
 ico is null when the notice gives no Slovak IČO. Vestník data CC BY 4.0 by ÚVO; TED data may be reused
 with attribution.
 
+Insolvency, REPLIK (insolvency_* tools): the Ministry of Justice register of bankruptcy (konkurz),
+restructuring, personal debt relief (oddlženie), court-ordered liquidation and preventive
+restructuring proceedings; since October 2025 it replaced Register úpadcov and holds its history.
+insolvency_search by IČO or full text (names, file numbers), insolvency_get for parties, trustee and
+the court's and trustee's public notices (newest first; full text on request). Personal debt relief
+cases name private people with birth dates. A case moved between courts in 2023 keeps its REPLIK ID
+under a new file number. Live from the public API; no licence is published.
+
 People named in these registers are often private individuals; a matching name is not proof of the
 same person.
 """

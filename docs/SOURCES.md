@@ -143,6 +143,27 @@ Things to know:
 - Corrected notices and reports ("Oprava: …") are indexed as their own records next to the original, labelled in `kind`; they are not merged into it.
 - Three issues are missing from the index because data.slovensko.sk lacks them: 202/2023 has no usable download link, and the datasets titled 144/2024 and 145/2025 are byte-identical copies of 145/2024 and 144/2025. The sync reports them on every run. All other issues since 201/2023 (17 October 2023) are indexed.
 
+### REPLIK: insolvency register ([replik-ws.justice.sk](https://replik-ws.justice.sk/ru-verejnost-ws/konanieService.wsdl))
+
+The Ministry of Justice's *Register predinsolvenčných, likvidačných a insolvenčných konaní* records
+bankruptcy (*konkurz*, *malý konkurz*), restructuring, personal debt relief (*oddlženie*),
+court-ordered liquidation and public preventive restructuring proceedings. On 1 October 2025 it
+replaced the Register úpadcov and took over its history (proceedings from 2012 and later were seen in tests).
+
+| Tool | What it does |
+| --- | --- |
+| `insolvency_search` | Finds proceedings by the debtor's IČO or by full text (names in any case and diacritics, file numbers, IČO). Each hit: REPLIK ID, court and file number, type, status, debtor with IČO or birth date, dates and trustee. |
+| `insolvency_get` | A proceeding by REPLIK ID: debtor and petitioners with addresses, court, judge, trustee (*správca*) with IČO and trustee mark, status and dates, and its public notices (court decisions and trustee announcements) newest first, with their texts on request. Or one notice's full text by notice ID. |
+
+Things to know:
+
+- Personal debt relief cases are about private people: REPLIK publishes their name, address and birth date, and so do the tools. Name searches return `matched_by: "text"`; a matching name is not proof of the same person.
+- When the courts were reorganised in 2023, cases moved to new courts with new file numbers (27K/14/2021 at Okresný súd Bratislava I became B1-27K/14/2021 at Mestský súd Bratislava III). The REPLIK ID stays. Notices listed by IČO keep the old court and file number; listed by file number, they carry the current ones. `insolvency_get` lists them by the current file number.
+- REPLIK lists notices oldest first; the tool reads the last pages so it can return the newest.
+- The proceedings service spells types `ODDLZENIE_KONKURZ`, the notices service `ODDLZENIE-KONKURZ`, and the manual differs from the WSDL; the tools use the proceedings spelling everywhere.
+- Trustees' notices are HTML and are returned as plain text. Each notice's text is cut at 6,000 characters when several are read and at 60,000 for a single notice; cut texts are marked `truncated`. Attachments are listed by name only.
+- A proceeding's detail has no status; the tool takes it from the search results. Voluntary liquidations of companies are not in REPLIK: they are announced in the Obchodný vestník.
+
 ## Being a polite robot
 
 Each source has its own throttle:
@@ -152,6 +173,7 @@ Each source has its own throttle:
 - **RPO** uses the [REST API documented by MV SR](https://rpo.minv.sk/rpo-api-doc.html) at `api.statistics.sk/rpo/v1`, which needs no key and publishes no limits. Requests are spaced 0.5 s apart anyway. A detail takes about a second, while searches take 5–30 s.
 - **data.slovensko.sk** (Vestník issues) publishes no limits and its robots.txt allows everything. The sync fetches one issue at a time, 2 s apart. The data are licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) by ÚVO.
 - **TED** uses its [Search API](https://docs.ted.europa.eu/api/latest/index.html), which needs no key and publishes no rate limit; requests are spaced 0.5 s apart. Notice XML is cached for good, since published notices never change (a correction is a new notice). TED data may be reused free of charge with attribution (Commission Decision 2011/833/EU). ÚVO's own website disallows robots in its robots.txt and is not used.
+- **REPLIK** uses its public SOAP API (integration manual *Integračná príručka – endpoint pre verejnosť*, v1.0.12), which needs no registration in production and publishes no limits or licence. Requests are spaced 1 s apart; pages hold at most 100 results; notice lists take 2–8 s.
 - **RÚZ** uses its [open API](https://www.registeruz.sk/cruz-public/home/api), which needs no key and publishes no limits; robots.txt only disallows the XLS exports. Requests are spaced 0.5 s apart. Every statement and report is a separate request, so the first look at a large filer takes 10–30 s. Statements and reports are then cached for 3 days, and report templates (which RÚZ never changes) for good. RÚZ data are licensed [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
 
 CRZ daily exports and attachments are cached in `~/.cache/sk-public-money`, or in
