@@ -143,6 +143,43 @@ Things to know:
 - Corrected notices and reports ("Oprava: …") are indexed as their own records next to the original, labelled in `kind`; they are not merged into it.
 - Three issues are missing from the index because data.slovensko.sk lacks them: 202/2023 has no usable download link, and the datasets titled 144/2024 and 145/2025 are byte-identical copies of 145/2024 and 144/2025. The sync reports them on every run. All other issues since 201/2023 (17 October 2023) are indexed.
 
+### PPA: Pôdohospodárska platobná agentúra (farm subsidies)
+
+Who received money from the Common Agricultural Policy: the EAGF (*EPZF*: direct payments, market
+measures) and the EAFRD (*EPFRV*: rural development) with its national co-financing. PPA publishes
+one list per EU financial year (16 October to 15 October; FY2025 = payments from 16 October 2024 to
+15 October 2025) as XLSX on
+[its website](https://www.apa.sk/o-nas/zverejnovane-udaje/prehlad-prijimatelia-pomoci-z-epzf-epfrv),
+under Article 98 of Regulation (EU) 2021/2116, which keeps each list public for two years. The lists
+have no search and change their download link with every upload, so they are kept in a local index.
+
+| Tool | What it does |
+| --- | --- |
+| `ppa_search_beneficiary` | Finds beneficiaries by name (also by the name of a parent company), or by IČO: the company's current and former names are looked up in RPO and beneficiaries with exactly such a name are returned, with `seat_obec_matches` comparing the obec to the seat in RPO. Each result is one beneficiary in one financial year: total, EPZF, EPFRV and co-financing, the obce, the parent company, and the amounts by measure code with the CAP specific objectives. |
+| `ppa_top` | Ranks beneficiaries of a financial year (default the newest) by what they received, overall or only under a measure code (`I.6`, or a group such as `V`), in an obec, or of one kind (natural person, entity, anonymised), with the number of beneficiaries and their sum. |
+
+Building the index:
+
+```sh
+sk-public-money-sync ppa                  # both listed years: ~16 MB download, ~20 s, ~20 MB index
+sk-public-money-sync ppa --reindex        # download and index every listed year again
+sk-public-money-sync ppa --keep-delisted  # keep years PPA no longer publishes
+```
+
+A year is downloaded again only when its link changes, and each XLSX is deleted once indexed. Years
+PPA stops publishing are dropped from the index, so it holds what PPA publishes. The tools say when
+the index was last checked more than 45 days ago.
+
+Things to know:
+
+- **No IČO.** The lists give a name, for people a first name and surname, the obec, and for members of a group the parent company with its VAT or tax number as typed. `ico` is filled only when you search by IČO, and then only because the name matches (`matched_by: name`). Many sole traders appear under their own name without a surname column (`kind: entity`).
+- **Anonymised recipients.** Recipients of EUR 1,250 or less a year are published as a numeric code (`kind: anonymised`). Where a small obec would identify a person, PPA gives the okres (FY2024: "Okres Komárno"); the `obec` filters match both.
+- **Per operation rows.** Each beneficiary's operations are followed by a subtotal row; the index sums the operations and checks them against the subtotal (both years match to the cent: FY2025 16,589 beneficiaries, EUR 1,105,157,155.72; FY2024 16,037, EUR 708,644,192.44). Recoveries are negative amounts.
+- **Measure codes** follow Annex IX of Implementing Regulation (EU) 2022/128: I.x direct payments under the CAP Strategic Plan, II.x direct payments under the old rules, III.x sectoral interventions, IV.x market measures, V.x rural development 2023–2027, VI.x the 2014–2022 Rural Development Programme. Some operations have no code ("(prázdne)"; FY2025: 266 operations, EUR 64.1 million), and FY2024 uses II.11 (6,584 operations, net EUR −2.7 million, mostly recoveries), which the 2024 version of Annex IX does not list; both are shown without a label.
+- **Layouts differ by year.** FY2024 has (always empty) start and end date columns and repeats the name on the subtotal row; FY2025's sheet is titled "FY 2024" and joins a person's name on the subtotal row. Columns are found by their header and the year by the title row. A beneficiary whose name is spelt differently across its operations is shown under the subtotal's spelling with the others in `also_named`.
+- PPA's older search for FY2021–2022 (archiv.apa.sk) is not used.
+- No licence is stated for the lists. www.apa.sk has no robots.txt and publishes no limits; the sync makes three requests, 2 s apart.
+
 ## Being a polite robot
 
 Each source has its own throttle:
@@ -153,6 +190,7 @@ Each source has its own throttle:
 - **data.slovensko.sk** (Vestník issues) publishes no limits and its robots.txt allows everything. The sync fetches one issue at a time, 2 s apart. The data are licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) by ÚVO.
 - **TED** uses its [Search API](https://docs.ted.europa.eu/api/latest/index.html), which needs no key and publishes no rate limit; requests are spaced 0.5 s apart. Notice XML is cached for good, since published notices never change (a correction is a new notice). TED data may be reused free of charge with attribution (Commission Decision 2011/833/EU). ÚVO's own website disallows robots in its robots.txt and is not used.
 - **RÚZ** uses its [open API](https://www.registeruz.sk/cruz-public/home/api), which needs no key and publishes no limits; robots.txt only disallows the XLS exports. Requests are spaced 0.5 s apart. Every statement and report is a separate request, so the first look at a large filer takes 10–30 s. Statements and reports are then cached for 3 days, and report templates (which RÚZ never changes) for good. RÚZ data are licensed [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
+- **PPA** lists are XLSX files on www.apa.sk, which has no robots.txt and publishes no limits or licence. The sync fetches the page and the changed files only, 2 s apart.
 
 CRZ daily exports and attachments are cached in `~/.cache/sk-public-money`, or in
 `$SK_PUBLIC_MONEY_CACHE_DIR` when it's set. CRZ export data is licensed

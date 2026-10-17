@@ -47,6 +47,13 @@ spending; a value of 0 means undisclosed. Identifiers are labelled ico, dic (DI�
 ico is null when the notice gives no Slovak IČO. Vestník data CC BY 4.0 by ÚVO; TED data may be reused
 with attribution.
 
+PPA, Pôdohospodárska platobná agentúra (ppa_* tools): farm and rural-development subsidies of the
+Common Agricultural Policy per beneficiary and EU financial year (FY2025 = 16 Oct 2024 to 15 Oct
+2025; the last two years), split into EPZF (EAGF), EPFRV (EAFRD) and national co-financing, by
+measure code (Annex IX of Reg. 2022/128) and obec, from a local index. The lists carry no IČO: a
+company is found by name, and results say matched_by name. Recipients of EUR 1,250 or less are only a
+numeric code. No licence is stated; published under Article 98 of Reg. 2021/2116.
+
 People named in these registers are often private individuals; a matching name is not proof of the
 same person.
 """

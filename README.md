@@ -18,6 +18,7 @@ obstarávania, firmy, ich skutočných vlastníkov a účtovné závierky. Asist
 | **RPVS**: Register partnerov verejného sektora | Koneční užívatelia výhod (skutoční vlastníci) firiem, ktoré dostávajú verejné peniaze, s dátumom narodenia; oprávnené osoby a verejní funkcionári | Otvorené API [rpvs.gov.sk](https://rpvs.gov.sk/rpvs) | `rpvs_*` |
 | **RPO**: Register právnických osôb | Totožnosť každej firmy, živnostníka, inštitúcie a združenia podľa IČO: názvy v čase, sídlo, štatutári, spoločníci, kapitál, vznik a zánik, právni predchodcovia a nástupcovia | API Ministerstva vnútra SR ([rpo.minv.sk](https://rpo.minv.sk)) | `rpo_*` |
 | **RÚZ**: Register účtovných závierok | Účtovné závierky: tržby, výsledok hospodárenia, aktíva a vlastné imanie po rokoch | Otvorené API [registeruz.sk](https://www.registeruz.sk) | `ruz_*` |
+| **PPA**: poľnohospodárske dotácie | Kto dostal peniaze zo spoločnej poľnohospodárskej politiky (EPZF a EPFRV) a z národného spolufinancovania, koľko, na aké opatrenie a v ktorej obci; za posledné dva finančné roky | Zoznamy prijímateľov, ktoré zverejňuje [Pôdohospodárska platobná agentúra](https://www.apa.sk/o-nas/zverejnovane-udaje/prehlad-prijimatelia-pomoci-z-epzf-epfrv) (XLSX, v lokálnom indexe) | `ppa_*` |
 
 Ako sú registre prepojené:
 
@@ -39,6 +40,7 @@ Príklady otázok pre asistenta:
 - „Firma vyhrala zákazku za 5 miliónov eur. Kedy vznikla a aké mala tržby v posledných rokoch?“
 - „Čo presne je v prílohe tejto zmluvy?“
 - „Ktoré zmluvy včera zverejnilo ministerstvo zdravotníctva?“
+- „Koľko poľnohospodárskych dotácií dostali firmy zo skupiny Agrofert a na aké opatrenia?“
 
 | Nástroj | Čo robí |
 | --- | --- |
@@ -58,6 +60,8 @@ Príklady otázok pre asistenta:
 | `ruz_search_entity` | Hľadá účtovné jednotky podľa názvu, IČO alebo DIČ |
 | `ruz_get_entity` | Účtovná jednotka so zoznamom všetkých jej závierok |
 | `ruz_get_financials` | Tržby, výnosy, výsledok hospodárenia, aktíva a vlastné imanie po rokoch, s uvedením riadku výkazu, z ktorého pochádzajú |
+| `ppa_search_beneficiary` | Poľnohospodárske dotácie prijímateľa podľa mena alebo IČO (cez názov v RPO): sumy po fondoch a opatreniach, obec, materská spoločnosť |
+| `ppa_top` | Najväčší prijímatelia za finančný rok, podľa opatrenia, obce alebo druhu prijímateľa |
 
 Na čo si dať pozor:
 
@@ -118,6 +122,15 @@ Prvé spustenie stiahne všetky čísla Vestníka od októbra 2023: asi 770 súb
 0,75 GB. Príkaz sa dá prerušiť a spustiť znova; stiahne len to, čo chýba. Ďalej sa index dopĺňa sám:
 nástroje každých 6 hodín skontrolujú nové čísla a stiahnu ich.
 
+**Index poľnohospodárskych dotácií** (potrebný pre nástroje `ppa_*`):
+
+```sh
+uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync ppa
+```
+
+Stiahne zoznamy prijímateľov za oba zverejnené finančné roky (asi 16 MB) a trvá menej ako minútu;
+index zaberá asi 20 MB. Keď PPA zverejní nový rok, spustite príkaz znova.
+
 Index a ďalšie údaje sa ukladajú do `~/.cache/sk-public-money`, alebo do priečinka v premennej
 prostredia `SK_PUBLIC_MONEY_CACHE_DIR`.
 
@@ -133,6 +146,8 @@ licencie:
 - RÚZ: [CC0](https://creativecommons.org/publicdomain/zero/1.0/)
 - TED: bezplatné opätovné použitie s uvedením zdroja (Úrad pre publikácie EÚ)
 - RPVS: otvorené údaje Ministerstva spravodlivosti SR
+- PPA: licencia nie je uvedená; zoznamy zverejňuje Pôdohospodárska platobná agentúra podľa čl. 98
+  nariadenia (EÚ) 2021/2116
 
 Server dodržiava pravidlá jednotlivých portálov pre automatizovaný prístup a požiadavky na ne posiela
 s odstupom. Podrobnosti o každom zdroji sú v [docs/SOURCES.md](docs/SOURCES.md) a o vývoji
@@ -154,6 +169,7 @@ can search and read them, and combine data from several registers in one answer.
 | **RPVS**: Register of Public Sector Partners | Beneficial owners of companies that receive public money, with birth dates; authorized persons and public officials | The open API of [rpvs.gov.sk](https://rpvs.gov.sk/rpvs) | `rpvs_*` |
 | **RPO**: Register of Legal Entities | The identity of every company, sole trader, public body and association by IČO: names over time, seat, directors, partners, capital, founding and dissolution, predecessors and successors | The Ministry of Interior's API ([rpo.minv.sk](https://rpo.minv.sk)) | `rpo_*` |
 | **RÚZ**: Register of Financial Statements | Financial statements: revenue, profit, assets and equity by year | The open API of [registeruz.sk](https://www.registeruz.sk) | `ruz_*` |
+| **PPA**: farm subsidies | Who got money from the Common Agricultural Policy (EAGF and EAFRD) and national co-financing, how much, under which measure and in which municipality; the last two financial years | The beneficiary lists published by the [Agricultural Paying Agency](https://www.apa.sk/o-nas/zverejnovane-udaje/prehlad-prijimatelia-pomoci-z-epzf-epfrv) (XLSX, in a local index) | `ppa_*` |
 
 How the registers connect:
 
@@ -176,6 +192,7 @@ Example questions for the assistant:
   years?"
 - "What exactly is in this contract's attachment?"
 - "Which contracts did the Ministry of Health publish yesterday?"
+- "How much farm subsidy did the Agrofert group's companies get, and under which measures?"
 
 | Tool | What it does |
 | --- | --- |
@@ -195,6 +212,8 @@ Example questions for the assistant:
 | `ruz_search_entity` | Finds accounting entities by name, IČO or DIČ |
 | `ruz_get_entity` | An accounting entity with the list of all its statements |
 | `ruz_get_financials` | Revenue, income, profit, assets and equity by year, each with the report row it came from |
+| `ppa_search_beneficiary` | A beneficiary's farm subsidies by name or IČO (via its name in RPO): amounts by fund and measure, municipality, parent company |
+| `ppa_top` | The largest beneficiaries in a financial year, by measure, municipality or kind of beneficiary |
 
 Things to watch out for:
 
@@ -255,6 +274,15 @@ kept compressed, another 0.75 GB. The command can be stopped and run again; it f
 missing. After that the index tops itself up: every 6 hours the tools check for new issues and fetch
 them.
 
+**The farm subsidy index** (needed by the `ppa_*` tools):
+
+```sh
+uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync ppa
+```
+
+It downloads the beneficiary lists of both published financial years (about 16 MB) in under a
+minute; the index takes about 20 MB. Run it again when PPA publishes a new year.
+
 The index and other data are stored in `~/.cache/sk-public-money`, or in the folder set in the
 `SK_PUBLIC_MONEY_CACHE_DIR` environment variable.
 
@@ -270,6 +298,8 @@ licences:
 - RÚZ: [CC0](https://creativecommons.org/publicdomain/zero/1.0/)
 - TED: free reuse with attribution (Publications Office of the EU)
 - RPVS: open data of the Ministry of Justice of the Slovak Republic
+- PPA: no licence stated; the lists are published by the Agricultural Paying Agency under Article 98
+  of Regulation (EU) 2021/2116
 
 The server follows each portal's rules for automated access and spaces out its requests. Details on
 each source are in [docs/SOURCES.md](docs/SOURCES.md), and on development in
