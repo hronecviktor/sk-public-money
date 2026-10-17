@@ -19,6 +19,8 @@ obstarávania, firmy, ich skutočných vlastníkov a účtovné závierky. Asist
 | **RPO**: Register právnických osôb | Totožnosť každej firmy, živnostníka, inštitúcie a združenia podľa IČO: názvy v čase, sídlo, štatutári, spoločníci, kapitál, vznik a zánik, právni predchodcovia a nástupcovia | API Ministerstva vnútra SR ([rpo.minv.sk](https://rpo.minv.sk)) | `rpo_*` |
 | **RÚZ**: Register účtovných závierok | Účtovné závierky: tržby, výsledok hospodárenia, aktíva a vlastné imanie po rokoch | Otvorené API [registeruz.sk](https://www.registeruz.sk) | `ruz_*` |
 | **Finančná správa SR** | Registrácia pre DPH, index daňovej spoľahlivosti, platitelia DPH s dôvodom na zrušenie registrácie a vymazaní, vyrubená daň z príjmov právnických osôb a daňová strata po rokoch, nadmerné odpočty DPH, daňoví dlžníci | Otvorené dáta [opendata.financnasprava.sk](https://opendata.financnasprava.sk) (zoznamy v lokálnom indexe) | `fs_*` |
+| **Súdy**: rozhodnutia a sudcovia | Rozhodnutia všeobecných súdov (asi 4,7 milióna, s textom z PDF), v ktorých vystupuje firma s daným IČO; sudcovia a ich majetkové priznania | Pilotné API Ministerstva spravodlivosti SR ([obcan.justice.sk](https://obcan.justice.sk)) a [Súdna rada SR](https://www.sudnarada.gov.sk) | `court_*` |
+| **PPA**: poľnohospodárske dotácie | Kto dostal peniaze zo spoločnej poľnohospodárskej politiky (EPZF a EPFRV) a z národného spolufinancovania, koľko, na aké opatrenie a v ktorej obci; za posledné dva finančné roky | Zoznamy prijímateľov, ktoré zverejňuje [Pôdohospodárska platobná agentúra](https://www.apa.sk/o-nas/zverejnovane-udaje/prehlad-prijimatelia-pomoci-z-epzf-epfrv) (XLSX, v lokálnom indexe) | `ppa_*` |
 
 Ako sú registre prepojené:
 
@@ -40,6 +42,8 @@ Príklady otázok pre asistenta:
 - „Firma vyhrala zákazku za 5 miliónov eur. Kedy vznikla a aké mala tržby v posledných rokoch?“
 - „Čo presne je v prílohe tejto zmluvy?“
 - „Ktoré zmluvy včera zverejnilo ministerstvo zdravotníctva?“
+- „S kým sa táto firma súdila a ako súd rozhodol?“
+- „Koľko poľnohospodárskych dotácií dostali firmy zo skupiny Agrofert a na aké opatrenia?“
 
 | Nástroj | Čo robí |
 | --- | --- |
@@ -62,10 +66,17 @@ Príklady otázok pre asistenta:
 | `fs_get_taxpayer` | Daňový subjekt podľa IČO: registrácia pre DPH, index daňovej spoľahlivosti, zoznamy na zrušenie registrácie a vymazaných platiteľov, daň z príjmov a daňová strata po rokoch, posledné nadmerné odpočty DPH |
 | `fs_search_debtors` | Hľadá v zozname daňových dlžníkov podľa mena (zoznam nemá IČO) |
 | `fs_list_flagged` | Vymazaní platitelia DPH, platitelia s dôvodom na zrušenie registrácie alebo menej spoľahliví podľa dátumu a miesta |
+| `court_search_decisions` | Hľadá súdne rozhodnutia podľa IČO alebo slov, súdu, sudcu, právnej oblasti a dátumu |
+| `court_get_decision` | Rozhodnutie podľa ID alebo ECLI: súd, sudca, spisová značka, povaha, citované predpisy a text z PDF |
+| `court_judge` | Sudca: súd, funkcia, stav a jeho majetkové priznania od roku 2013, ktoré vie aj prečítať |
+| `ppa_search_beneficiary` | Poľnohospodárske dotácie prijímateľa podľa mena alebo IČO (cez názov v RPO): sumy po fondoch a opatreniach, obec, materská spoločnosť |
+| `ppa_top` | Najväčší prijímatelia za finančný rok, podľa opatrenia, obce alebo druhu prijímateľa |
 
 Na čo si dať pozor:
 
 - **Rovnaké meno ešte neznamená tú istú osobu.** Porovnajte dátum narodenia (RPVS) alebo adresu (RPO).
+- **Súdne rozhodnutia sa hľadajú podľa IČO fulltextom:** IČO môže patriť inej strane sporu alebo byť
+  náhodné číslo, preto si pozrite úryvok. Fyzické osoby sú v rozhodnutiach anonymizované.
 - **Hodnota rámcovej dohody je maximum,** nie suma, ktorá sa naozaj zaplatila. Hodnota 0 znamená, že
   obstarávateľ ju nezverejnil.
 - **TED obsahuje len zákazky nad limitmi EÚ.** Podlimitné zákazky a zákazky s nízkymi hodnotami sú
@@ -129,10 +140,18 @@ nástroje každých 6 hodín skontrolujú nové čísla a stiahnu ich.
 uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync fs
 ```
 
-Stiahne asi FS_DOWNLOAD MB za FS_TIME minút; index zaberá asi FS_SIZE MB. Daň z príjmov právnických osôb
+Stiahne asi 170 MB za 2–3 minúty; index zaberá asi 220 MB. Daň z príjmov právnických osôb
 sa skladá zo štvrťročných zoznamov od roku 2023 (staršie od roku 2018 pridá `--since 2018-01-01`).
 Príkaz stiahne len zoznamy, ktoré sa zmenili; spúšťajte ho napríklad raz denne. Malé denné zoznamy
 platiteľov DPH na zrušenie registrácie a vymazaných si nástroje aktualizujú samy.
+**Index poľnohospodárskych dotácií** (potrebný pre nástroje `ppa_*`):
+
+```sh
+uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync ppa
+```
+
+Stiahne zoznamy prijímateľov za oba zverejnené finančné roky (asi 16 MB) a trvá menej ako minútu;
+index zaberá asi 20 MB. Keď PPA zverejní nový rok, spustite príkaz znova.
 
 Index a ďalšie údaje sa ukladajú do `~/.cache/sk-public-money`, alebo do priečinka v premennej
 prostredia `SK_PUBLIC_MONEY_CACHE_DIR`.
@@ -150,6 +169,9 @@ licencie:
 - TED: bezplatné opätovné použitie s uvedením zdroja (Úrad pre publikácie EÚ)
 - RPVS: otvorené údaje Ministerstva spravodlivosti SR
 - Finančná správa SR: CC BY 4.0 (index daňovej spoľahlivosti CC0), „Zdroj údajov: Finančná správa SR - https://opendata.financnasprava.sk/“
+- Súdne rozhodnutia a sudcovia (Ministerstvo spravodlivosti SR) a majetkové priznania sudcov (Súdna rada SR): licencia nie je zverejnená
+- PPA: licencia nie je uvedená; zoznamy zverejňuje Pôdohospodárska platobná agentúra podľa čl. 98
+  nariadenia (EÚ) 2021/2116
 
 Server dodržiava pravidlá jednotlivých portálov pre automatizovaný prístup a požiadavky na ne posiela
 s odstupom. Podrobnosti o každom zdroji sú v [docs/SOURCES.md](docs/SOURCES.md) a o vývoji
@@ -172,6 +194,8 @@ can search and read them, and combine data from several registers in one answer.
 | **RPO**: Register of Legal Entities | The identity of every company, sole trader, public body and association by IČO: names over time, seat, directors, partners, capital, founding and dissolution, predecessors and successors | The Ministry of Interior's API ([rpo.minv.sk](https://rpo.minv.sk)) | `rpo_*` |
 | **RÚZ**: Register of Financial Statements | Financial statements: revenue, profit, assets and equity by year | The open API of [registeruz.sk](https://www.registeruz.sk) | `ruz_*` |
 | **Finančná správa SR**: the tax authority | VAT registration, tax reliability index, VAT payers facing cancellation and struck off, corporate income tax assessed and tax loss by year, VAT excess deductions, tax debtors | Open data at [opendata.financnasprava.sk](https://opendata.financnasprava.sk) (lists kept in a local index) | `fs_*` |
+| **Courts**: decisions and judges | Decisions of the general courts (about 4.7 million, with text from the PDF) that mention a company's IČO; judges and their asset declarations | The Ministry of Justice's pilot API ([obcan.justice.sk](https://obcan.justice.sk)) and the [Judicial Council](https://www.sudnarada.gov.sk) | `court_*` |
+| **PPA**: farm subsidies | Who got money from the Common Agricultural Policy (EAGF and EAFRD) and national co-financing, how much, under which measure and in which municipality; the last two financial years | The beneficiary lists published by the [Agricultural Paying Agency](https://www.apa.sk/o-nas/zverejnovane-udaje/prehlad-prijimatelia-pomoci-z-epzf-epfrv) (XLSX, in a local index) | `ppa_*` |
 
 How the registers connect:
 
@@ -194,6 +218,8 @@ Example questions for the assistant:
   years?"
 - "What exactly is in this contract's attachment?"
 - "Which contracts did the Ministry of Health publish yesterday?"
+- "Who has this company been in court with, and how did the court decide?"
+- "How much farm subsidy did the Agrofert group's companies get, and under which measures?"
 
 | Tool | What it does |
 | --- | --- |
@@ -216,10 +242,17 @@ Example questions for the assistant:
 | `fs_get_taxpayer` | A taxpayer by IČO: VAT registration, tax reliability index, VAT cancellation and struck-off lists, corporate income tax and tax loss by year, latest VAT excess deductions |
 | `fs_search_debtors` | Searches the tax debtor list by name (the list has no IČO) |
 | `fs_list_flagged` | VAT payers struck off or facing cancellation, or rated less reliable, by date and place |
+| `court_search_decisions` | Searches court decisions by IČO or words, court, judge, legal area and date |
+| `court_get_decision` | A decision by ID or ECLI: court, judge, case number, outcome, cited laws and the text of its PDF |
+| `court_judge` | A judge: court, function, status, and their asset declarations since 2013, which it can also read |
+| `ppa_search_beneficiary` | A beneficiary's farm subsidies by name or IČO (via its name in RPO): amounts by fund and measure, municipality, parent company |
+| `ppa_top` | The largest beneficiaries in a financial year, by measure, municipality or kind of beneficiary |
 
 Things to watch out for:
 
 - **The same name doesn't mean the same person.** Compare birth dates (RPVS) or addresses (RPO).
+- **Court decisions are found by IČO in their full text:** the number may belong to another party or
+  be an unrelated figure, so check the snippet. People are anonymised in decisions.
 - **A framework agreement's value is a maximum,** not what was actually paid. A value of 0 means the
   buyer didn't disclose it.
 - **TED only covers contracts above the EU thresholds.** Below-threshold and low-value contracts are
@@ -283,10 +316,18 @@ them.
 uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync fs
 ```
 
-It downloads about FS_DOWNLOAD MB in FS_TIME minutes; the index takes about FS_SIZE MB. Corporate income tax is
+It downloads about 170 MB in 2–3 minutes; the index takes about 220 MB. Corporate income tax is
 put together from the quarterly lists since 2023 (`--since 2018-01-01` adds the older ones). The
 command fetches only the lists that changed; run it, say, once a day. The tools update the small daily
 lists of VAT payers facing cancellation and struck off themselves.
+**The farm subsidy index** (needed by the `ppa_*` tools):
+
+```sh
+uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync ppa
+```
+
+It downloads the beneficiary lists of both published financial years (about 16 MB) in under a
+minute; the index takes about 20 MB. Run it again when PPA publishes a new year.
 
 The index and other data are stored in `~/.cache/sk-public-money`, or in the folder set in the
 `SK_PUBLIC_MONEY_CACHE_DIR` environment variable.
@@ -304,6 +345,9 @@ licences:
 - TED: free reuse with attribution (Publications Office of the EU)
 - RPVS: open data of the Ministry of Justice of the Slovak Republic
 - Finančná správa SR: CC BY 4.0 (the tax reliability index CC0), "Zdroj údajov: Finančná správa SR - https://opendata.financnasprava.sk/"
+- Court decisions and judges (Ministry of Justice) and judges' asset declarations (Judicial Council of the Slovak Republic): no licence published
+- PPA: no licence stated; the lists are published by the Agricultural Paying Agency under Article 98
+  of Regulation (EU) 2021/2116
 
 The server follows each portal's rules for automated access and spaces out its requests. Details on
 each source are in [docs/SOURCES.md](docs/SOURCES.md), and on development in

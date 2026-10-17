@@ -41,4 +41,6 @@ The tests run offline:
 - **RPVS:** a mocked OData API with fictional people.
 - **RPO:** a mocked REST API with fictional organizations and people.
 - **ÚVO:** fictional TED notices in both XML formats and a fictional Vestník issue in `tests/uvo/fixtures`, and mocked TED and data.slovensko.sk APIs.
+- **Courts:** a mocked ISU API and Súdna rada list with fictional judges and companies, and generated PDFs.
 - **RÚZ:** real report templates in `tests/ruz/fixtures` with fictional entities and amounts, and a mocked API.
+- **PPA:** workbooks built in the tests in both published layouts with fictional beneficiaries, the real download section of the PPA page in `tests/ppa/fixtures`, and a mocked RPO.

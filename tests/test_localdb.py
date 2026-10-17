@@ -41,7 +41,7 @@ async def test_download_streams_to_disk_and_checks_the_start(tmp_path):
 
 
 def test_sync_command_names_the_sources(capsys):
-    with pytest.raises(SystemExit, match="sources: .*uvo"):
+    with pytest.raises(SystemExit, match=r"sources: (\w+, )*uvo\b"):
         sync.main([])
     with pytest.raises(SystemExit) as exc:
         sync.main(["uvo", "--help"])

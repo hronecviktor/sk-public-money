@@ -164,6 +164,42 @@ The tax authority publishes lists of taxpayers as zipped XML files at
 | `fs_get_taxpayer` | Everything on one taxpayer by IČO (or DIČ, IČ DPH): VAT registrations, reliability index, cancellation and struck-off entries, corporate income tax per period (with the list it came from), the latest 12 VAT periods, the VAT group it represents (matched by the group's name), and debtor list entries with exactly the same name (`matched_by: name`). |
 | `fs_search_debtors` | Searches the debtor list by words of the name (word starts, no case or diacritics), optionally by place and minimum debt; largest debts first; every result `matched_by: name`. |
 | `fs_list_flagged` | Lists struck-off VAT payers (by date struck off), VAT payers with reasons to cancel (by publication date), or taxpayers rated menej spoľahlivý (by name), optionally by place. |
+### Courts: decisions and judges ([obcan.justice.sk](https://obcan.justice.sk), [sudnarada.gov.sk](https://www.sudnarada.gov.sk))
+
+The Ministry of Justice publishes every decision of the general courts (*rozhodnutie*: judgments,
+orders, payment orders; about 4.7 million since around 2000) and its register of judges through the
+ISU ("Infosúd") API, which is labelled *pilot*. The Judicial Council (Súdna rada) publishes judges'
+yearly asset declarations (*majetkové priznania*, 2013 onwards, about 13,000 PDFs).
+
+| Tool | What it does |
+| --- | --- |
+| `court_search_decisions` | Finds decisions by IČO or words, court, judge, legal area (*oblasť* or *podoblasť*) and date, newest first. Each hit has court, judge, case number, form and text snippets with the match marked «like this», plus counts by area, form and court type. |
+| `court_get_decision` | A decision by guid or ECLI: nature (*povaha*: confirmed, overturned, …), legal area, cited laws with Slov-Lex links and the PDF link. With `text=true` it downloads the PDF and returns its text page by page. |
+| `court_judge` | Finds judges by name (court, function, status, `judge_id` for the decision search) and lists their asset declarations from Súdna rada. With `declaration_url` it reads one declaration: real estate, movables, income from the office, debts and declared conflicts. |
+
+Things to know:
+
+- The API has no full text of decisions, only search snippets. The text comes from the PDF, which robots.txt of obcan.justice.sk disallows (`/content`); the user decided PDFs may be fetched one at a time on demand. Decisions from 2009 and declarations from 2017 checked so far have a text layer; a PDF without one is reported with a note.
+- Decisions anonymise people (*A. B., nar. XX.X.XXXX*); companies keep their name and IČO.
+- An IČO search is a full-text search, run twice: for `31322832` and for the phrase `"31 322 832"` (leading zeros dropped, so `"604 381"` also finds `00 604 381`). The results are merged, and `matching` gives the count for each spelling. The number may belong to another party, or be an amount, so the result says `matched_by` and each hit carries its snippet. Merged IČO results can be paged through the newest 500 only.
+- Text search stems words and requires all of them; quotes make a phrase. Operators like `OR` are not supported (the backend fails on them, reported as a bad query).
+- Judges' asset declarations are listed on Súdna rada's website, which matches a single surname without diacritics. The tool searches by the last word of the name first, then the others, and keeps declarations whose name contains every word given. They are matched to judges **by name only** (`asset_declarations_matched_by`), and list the court where the judge served that year.
+- Not used: court hearings (*pojednávania*, no parties), and the register of disqualified persons (*diskvalifikácia*, people banned from company boards), which the API also offers.
+
+### PPA: Pôdohospodárska platobná agentúra (farm subsidies)
+
+Who received money from the Common Agricultural Policy: the EAGF (*EPZF*: direct payments, market
+measures) and the EAFRD (*EPFRV*: rural development) with its national co-financing. PPA publishes
+one list per EU financial year (16 October to 15 October; FY2025 = payments from 16 October 2024 to
+15 October 2025) as XLSX on
+[its website](https://www.apa.sk/o-nas/zverejnovane-udaje/prehlad-prijimatelia-pomoci-z-epzf-epfrv),
+under Article 98 of Regulation (EU) 2021/2116, which keeps each list public for two years. The lists
+have no search and change their download link with every upload, so they are kept in a local index.
+
+| Tool | What it does |
+| --- | --- |
+| `ppa_search_beneficiary` | Finds beneficiaries by name (also by the name of a parent company), or by IČO: the company's current and former names are looked up in RPO and beneficiaries with exactly such a name are returned, with `seat_obec_matches` comparing the obec to the seat in RPO. Each result is one beneficiary in one financial year: total, EPZF, EPFRV and co-financing, the obce, the parent company, and the amounts by measure code with the CAP specific objectives. |
+| `ppa_top` | Ranks beneficiaries of a financial year (default the newest) by what they received, overall or only under a measure code (`I.6`, or a group such as `V`), in an obec, or of one kind (natural person, entity, anonymised), with the number of beneficiaries and their sum. |
 
 Building the index:
 
@@ -173,7 +209,7 @@ sk-public-money-sync fs --since 2018-01-01    # add the corporate tax archive ba
 sk-public-money-sync fs --lists ds_dphs,ds_iz_ran --force
 ```
 
-The first run downloads about FS_DOWNLOAD MB and takes about FS_TIME minutes; the index is about FS_SIZE MB.
+The first run downloads about 170 MB and takes about 2–3 minutes; the index is about 220 MB.
 Each further run asks each file's Last-Modified and downloads only changed lists. The tools check the
 two small daily VAT flag lists every 6 hours and update them inline; they name any other list that is
 older than usual and suggest the sync command.
@@ -187,6 +223,24 @@ Things to know:
 - Names are cleaned of padding inside their quotes (`" CCL s.r.o. "` becomes `"CCL s.r.o."`); the quotes stay. Dates are converted from DD.MM.YYYY and DDMMYYYY. Some IČOs have 12 digits (organisational units: IČO + 4 digits) and are kept whole. A handful of violation years are nonsense (0, 25, 525) and are passed on as published text. Archive files up to 2023 are Windows-1250, newer ones UTF-8.
 - Natural persons (sole traders, people registered for VAT, debtors) appear with name and address as published.
 - Data: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), "Zdroj údajov: Finančná správa SR - https://opendata.financnasprava.sk/"; the reliability index file says CC0.
+sk-public-money-sync ppa                  # both listed years: ~16 MB download, ~20 s, ~20 MB index
+sk-public-money-sync ppa --reindex        # download and index every listed year again
+sk-public-money-sync ppa --keep-delisted  # keep years PPA no longer publishes
+```
+
+A year is downloaded again only when its link changes, and each XLSX is deleted once indexed. Years
+PPA stops publishing are dropped from the index, so it holds what PPA publishes. The tools say when
+the index was last checked more than 45 days ago.
+
+Things to know:
+
+- **No IČO.** The lists give a name, for people a first name and surname, the obec, and for members of a group the parent company with its VAT or tax number as typed. `ico` is filled only when you search by IČO, and then only because the name matches (`matched_by: name`). Many sole traders appear under their own name without a surname column (`kind: entity`).
+- **Anonymised recipients.** Recipients of EUR 1,250 or less a year are published as a numeric code (`kind: anonymised`). Where a small obec would identify a person, PPA gives the okres (FY2024: "Okres Komárno"); the `obec` filters match both.
+- **Per operation rows.** Each beneficiary's operations are followed by a subtotal row; the index sums the operations and checks them against the subtotal (both years match to the cent: FY2025 16,589 beneficiaries, EUR 1,105,157,155.72; FY2024 16,037, EUR 708,644,192.44). Recoveries are negative amounts.
+- **Measure codes** follow Annex IX of Implementing Regulation (EU) 2022/128: I.x direct payments under the CAP Strategic Plan, II.x direct payments under the old rules, III.x sectoral interventions, IV.x market measures, V.x rural development 2023–2027, VI.x the 2014–2022 Rural Development Programme. Some operations have no code ("(prázdne)"; FY2025: 266 operations, EUR 64.1 million), and FY2024 uses II.11 (6,584 operations, net EUR −2.7 million, mostly recoveries), which the 2024 version of Annex IX does not list; both are shown without a label.
+- **Layouts differ by year.** FY2024 has (always empty) start and end date columns and repeats the name on the subtotal row; FY2025's sheet is titled "FY 2024" and joins a person's name on the subtotal row. Columns are found by their header and the year by the title row. A beneficiary whose name is spelt differently across its operations is shown under the subtotal's spelling with the others in `also_named`.
+- PPA's older search for FY2021–2022 (archiv.apa.sk) is not used.
+- No licence is stated for the lists. www.apa.sk has no robots.txt and publishes no limits; the sync makes three requests, 2 s apart.
 
 ## Being a polite robot
 
@@ -198,7 +252,9 @@ Each source has its own throttle:
 - **data.slovensko.sk** (Vestník issues) publishes no limits and its robots.txt allows everything. The sync fetches one issue at a time, 2 s apart. The data are licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) by ÚVO.
 - **TED** uses its [Search API](https://docs.ted.europa.eu/api/latest/index.html), which needs no key and publishes no rate limit; requests are spaced 0.5 s apart. Notice XML is cached for good, since published notices never change (a correction is a new notice). TED data may be reused free of charge with attribution (Commission Decision 2011/833/EU). ÚVO's own website disallows robots in its robots.txt and is not used.
 - **Finančná správa** publishes no limits; its robots.txt is missing (404) and its servers sit behind an F5 firewall that sometimes resets a transfer. The sync spaces requests 2 s apart and retries a reset download twice. The tools send at most two HEAD requests and two small downloads every 6 hours.
+- **Courts:** the ISU API publishes no limits or licence, and its robots.txt does not cover `/pilot/api`; requests are spaced 1 s apart, and page numbers are 1-based. Decision PDFs and asset declarations are fetched one at a time when a tool asks for text, and the last few are kept in memory, not on disk. Súdna rada publishes no robots.txt. No licence is published for either source.
 - **RÚZ** uses its [open API](https://www.registeruz.sk/cruz-public/home/api), which needs no key and publishes no limits; robots.txt only disallows the XLS exports. Requests are spaced 0.5 s apart. Every statement and report is a separate request, so the first look at a large filer takes 10–30 s. Statements and reports are then cached for 3 days, and report templates (which RÚZ never changes) for good. RÚZ data are licensed [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
+- **PPA** lists are XLSX files on www.apa.sk, which has no robots.txt and publishes no limits or licence. The sync fetches the page and the changed files only, 2 s apart.
 
 CRZ daily exports and attachments are cached in `~/.cache/sk-public-money`, or in
 `$SK_PUBLIC_MONEY_CACHE_DIR` when it's set. CRZ export data is licensed
