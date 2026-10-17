@@ -157,6 +157,11 @@ async def fs_get_taxpayer(
             for r in ix.cit(dics)
         ] if dics else [],
     })
+    periods = [r["period"] for r in out["corporate_income_tax"]]
+    if len(periods) != len(set(periods)):
+        out["corporate_income_tax_note"] = ("A period listed more than once was published in several quarterly lists (list_of): "
+                                            "a later row may carry only an additional assessment after a supplementary return. "
+                                            "Amounts are as published in each list; do not add them up blindly.")
     returns = sorted(ix.vat_returns(dics), key=lambda r: _period_key(r["period"]), reverse=True) if dics else []
     out["vat_returns"] = [
         _drop_empty({**({"dic": r["dic"]} if many else {}), "period": r["period"],

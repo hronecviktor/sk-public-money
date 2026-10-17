@@ -40,7 +40,7 @@ def anyio_backend():
 
 @pytest.fixture
 def ix(tmp_path, monkeypatch):
-    """An index of every fixture list (the archive file last, to check that the newer list wins)."""
+    """An index of every fixture list (the archive file last, to check that its older names do not replace newer ones)."""
     monkeypatch.setenv("SK_PUBLIC_MONEY_CACHE_DIR", str(tmp_path / "cache"))
     index = FSIndex()
     for name in LISTS:
@@ -95,12 +95,16 @@ def test_index_counts_and_dates(ix):
     assert lists["ds_dppos"]["as_of"] == "2026-09-15"
 
 
-def test_newest_corporate_tax_list_wins(ix):
-    rows = ix.cit(["2020999001"])
-    assert [(r["period_to"], r["tax"], r["release"]) for r in rows] == [
-        ("2025-12-31", 192000, "2026-09-15"),
-        ("2022-12-31", 0, "2023-06-15"),
+def test_every_published_corporate_tax_row_is_kept(ix, tmp_path):
+    expected = [
+        ("2025-12-31", 192000, 0, "2026-09-15"),
+        ("2022-12-31", 0, 25000, "2026-09-15"),  # an additional assessment in a later list
+        ("2022-12-31", 50000, 0, "2023-06-15"),
     ]
+    rows = ix.cit(["2020999001"])
+    assert [(r["period_to"], r["tax"], r["additional"], r["release"]) for r in rows] == expected
+    ix.load("ds_dppos", write_zip(tmp_path, "ds_dppos"))  # indexing a file again adds nothing
+    assert len(ix.cit(["2020999001"])) == 3
 
 
 def test_reloading_a_list_replaces_it(ix, tmp_path):
@@ -124,7 +128,9 @@ async def test_get_taxpayer(ix):
                                                 "violation_year": "2026", "published": "2026-10-09"}]
     assert "vat_struck_off" not in out
     assert out["corporate_income_tax"][0] == {"period": "2025-01-01 – 2025-12-31", "tax_assessed": 1920.0, "list_of": "2026-09-15"}
-    assert out["corporate_income_tax"][1]["tax_loss"] == 3400.1 and out["corporate_income_tax"][1]["additional_tax_assessed"] == 250.0
+    assert out["corporate_income_tax"][1] == {"period": "2022-01-01 – 2022-12-31", "tax_assessed": 0.0, "additional_tax_assessed": 250.0, "list_of": "2026-09-15"}
+    assert out["corporate_income_tax"][2]["tax_loss"] == 3400.1 and out["corporate_income_tax"][2]["tax_assessed"] == 500.0
+    assert "several quarterly lists" in out["corporate_income_tax_note"]
     assert out["vat_returns"] == [
         {"period": "2026-03", "excess_deduction": 1522.86},
         {"period": "2026-Q1", "own_tax_liability": 517.25},
@@ -234,7 +240,7 @@ async def test_sync_builds_skips_unchanged_and_retries(tmp_path, monkeypatch):
     assert not any("20180630" in u for u in gets)  # before --since
     ix = FSIndex()
     assert json.loads(ix.get_meta("dppos_archive")) == ["2023-06-30"]
-    assert len(ix.cit(["2020999001"])) == 2
+    assert len(ix.cit(["2020999001"])) == 3
     ix.close()
     assert not list((tmp_path / "fs" / "raw").glob("*"))  # zips deleted after indexing
 

@@ -4,7 +4,7 @@ The lists have no search API, only zipped XML files that are replaced daily, mon
 so sync.py downloads them, this module stores the fields the tools use, and the zips are deleted.
 Amounts are stored in cents. One table per list, plus `subjects` (DIČ -> IČO, name, address) filled
 from every list that names its taxpayers, so a row that carries only a DIČ can be found by IČO.
-Corporate income tax accumulates over the quarterly files (the newest file wins for a tax period);
+Corporate income tax accumulates over the quarterly files (each file's rows are kept, by list date);
 every other list is replaced whole when a new version is indexed.
 """
 
@@ -34,7 +34,7 @@ CREATE INDEX IF NOT EXISTS vat_flags_ic_dph ON vat_flags (ic_dph);
 CREATE INDEX IF NOT EXISTS vat_flags_list ON vat_flags (list, published);
 -- Dates as YYYYMMDD integers: this table holds several quarterly files.
 CREATE TABLE IF NOT EXISTS cit (dic TEXT, period_from INTEGER, period_to INTEGER, tax INTEGER, additional INTEGER, loss INTEGER, release INTEGER,
-    PRIMARY KEY (dic, period_from, period_to)) WITHOUT ROWID;
+    PRIMARY KEY (dic, period_from, period_to, release)) WITHOUT ROWID;
 CREATE TABLE IF NOT EXISTS vat_returns (dic TEXT, period TEXT, excess INTEGER, own INTEGER, PRIMARY KEY (dic, period)) WITHOUT ROWID;
 CREATE TABLE IF NOT EXISTS debtors (id INTEGER PRIMARY KEY, name TEXT, name_key TEXT, amount INTEGER, place TEXT, town TEXT);
 CREATE INDEX IF NOT EXISTS debtors_key ON debtors (name_key);
@@ -61,9 +61,9 @@ UPSERT_SUBJECT = """INSERT INTO subjects (dic, ico, name, place) VALUES (?,?,?,?
 # An archived (older) file only fills in what no newer list gave.
 FILL_SUBJECT = """INSERT INTO subjects (dic, ico, name, place) VALUES (?,?,?,?) ON CONFLICT (dic) DO UPDATE SET
     ico = coalesce(ico, excluded.ico), name = coalesce(name, excluded.name), place = coalesce(place, excluded.place)"""
-UPSERT_CIT = """INSERT INTO cit VALUES (?,?,?,?,?,?,?) ON CONFLICT (dic, period_from, period_to) DO UPDATE SET
-    tax = excluded.tax, additional = excluded.additional, loss = excluded.loss, release = excluded.release
-    WHERE excluded.release >= cit.release"""
+# Every published row is kept: a later list can carry the same period again, e.g. with only the
+# additional tax assessed after a supplementary return, which does not replace the first assessment.
+UPSERT_CIT = "INSERT OR REPLACE INTO cit VALUES (?,?,?,?,?,?,?)"
 
 
 def default_path() -> Path:
@@ -228,7 +228,7 @@ class FSIndex:
 
     def cit(self, dics: list[str]) -> list[dict]:
         marks = ",".join("?" * len(dics))
-        rows = self.db.execute(f"SELECT * FROM cit WHERE dic IN ({marks}) ORDER BY period_to DESC, dic", dics)
+        rows = self.db.execute(f"SELECT * FROM cit WHERE dic IN ({marks}) ORDER BY period_to DESC, release DESC, dic", dics)
         return [{**dict(r), **{k: _iso(r[k]) for k in ("period_from", "period_to", "release")}} for r in rows]
 
     def vat_returns(self, dics: list[str]) -> list[dict]:
