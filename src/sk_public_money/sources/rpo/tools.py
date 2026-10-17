@@ -9,6 +9,7 @@ from pydantic import Field
 
 from ...app import READ_ONLY, mcp, user_errors
 from ...text import fold
+from ..court import disqualified
 from . import parse
 from .client import MAX_RESULTS, RPOClient
 
@@ -51,7 +52,8 @@ async def rpo_get_organization(
     dates, source register (e.g. Obchodný register with its court and file number), statutory body
     (directors, board), stakeholders (partners, sole shareholder, supervisory board, procurists),
     registered capital and contributions, predecessors and successors. RPO publishes no birth dates
-    and no beneficial owners; see rpvs_get_partner for owners."""
+    and no beneficial owners; see rpvs_get_partner for owners. Current directors and procurists whose
+    name is in the register of disqualified persons carry a 'disqualified' flag (see court_disqualified)."""
     if (ico is None) == (rpo_id is None):
         raise ValueError("Give exactly one of ico or rpo_id.")
     if ico is not None:
@@ -65,6 +67,10 @@ async def rpo_get_organization(
     out: dict = {"organizations": orgs}
     if ico is not None and len(found) > MAX_SAME_ICO:
         out["not_shown"] = len(found) - MAX_SAME_ICO
+    # Flags current directors and procurists found in the register of disqualified persons.
+    note = await disqualified.flag([p for org in orgs for p in disqualified.officers(org)])
+    if note:
+        out["disqualification_check"] = note
     return out
 
 
@@ -153,7 +159,8 @@ async def rpo_search_person(
     """Find organizations where a person is in the statutory body (konateľ, predstavenstvo, sole
     trader) or a stakeholder (spoločník, akcionár, dozorná rada, prokurista), with each
     organization's IČO. RPO has no birth dates, so a matching name is not proof of the same person;
-    compare addresses, or birth dates in RPVS."""
+    compare addresses, or birth dates in RPVS. Roles of a person whose name is in the register of
+    disqualified persons carry a 'disqualified' flag (see court_disqualified)."""
     surname, first_name = surname.strip(), (first_name or "").strip()
     wanted_surname, wanted_first = fold(surname), fold(first_name)
     roles = list(PERSON_PARAMS) if role == "any" else [role]
@@ -191,7 +198,9 @@ async def rpo_search_person(
             summary = {k: org[k] for k in ("rpo_id", "ico", "name", "address", "legal_form", "established", "terminated")}
             results.append({"organization": summary, "roles": held})
 
-    return {
+    # Flags roles whose holder's name is in the register of disqualified persons.
+    note = await disqualified.flag([r for res in results for r in res["roles"]])
+    out = {
         # Organizations where the server found the name somewhere; not all are this person.
         "candidates": len(candidates),
         "capped": capped,
@@ -201,3 +210,6 @@ async def rpo_search_person(
         "former_roles_only": former_only,
         "has_more": checked < len(ordered),
     }
+    if note:
+        out["disqualification_check"] = note
+    return out
