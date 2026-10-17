@@ -51,7 +51,7 @@ The tests run offline:
 
 ## Prebuilt index snapshots
 
-Slow indexes whose data may be redistributed (`BUNDLED` in `bundle.py`: the Vestník, CC BY 4.0, and ITMS21+, whose licence is not published) are
+Slow indexes chosen by the maintainer (`BUNDLED` in `bundle.py`: the Vestník, CC BY 4.0, and ITMS21+, whose licence is not published) are
 published as xz-compressed SQLite snapshots in the GitHub release tagged `indexes`. A sync of such a
 source whose index doesn't exist yet downloads the snapshot first, checks its SHA-256 and schema
 version, and then fetches only what's newer; any problem falls back to a full build.
@@ -66,5 +66,8 @@ gh release upload indexes ../sk-public-money-bundle/manifest.json --clobber  # m
 
 The manifest names each file's hash, so a download during an upload fails the check and builds from
 the source instead of using a mismatched file. Bump a source's `SCHEMA_VERSION` when an index built by
-older code can't be topped up by newer code: clients then ignore older snapshots. Data with personal
-details or without a clear licence is not bundled (only what may be redistributed is).
+older code can't be topped up by newer code: clients then ignore older snapshots. Each bundled source
+is a maintainer's decision: open data, or data that is mostly about organisations, such as ITMS21+
+(recipients and suppliers, a few of them sole traders) whose licence is not published. Sources that are
+mostly about private individuals or come with unclear terms of reuse (Finančná správa, PPA, the
+register of disqualified persons, Obchodný vestník via Datahub) are not bundled.
