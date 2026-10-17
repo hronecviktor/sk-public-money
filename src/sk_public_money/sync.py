@@ -10,7 +10,9 @@ import sys
 
 # Source name -> module with main(argv). Add a line here for each source with an index.
 SOURCES = {
+    "fs": "sk_public_money.sources.fs.sync",
     "uvo": "sk_public_money.sources.uvo.sync",
+    "ppa": "sk_public_money.sources.ppa.sync",
     "eu": "sk_public_money.sources.eu.sync",
 }
 
