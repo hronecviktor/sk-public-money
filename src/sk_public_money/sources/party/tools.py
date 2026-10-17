@@ -20,6 +20,7 @@ from pydantic import Field
 from ... import localdb
 from ...app import READ_ONLY, mcp, user_errors
 from ...http import SourceUnavailable, cache_dir
+from ...localdb import sync_command
 from ...text import fold
 from . import parse, reports, sync
 from .client import MAX_PAGE, SLSP_WEB_URL, MinvClient, SLSPClient
@@ -199,7 +200,7 @@ async def _listing() -> dict | None:
         try:
             await sync.refresh(idx, minv(), years=newest + [max(newest) + 1])
         except (SourceUnavailable, LookupError) as exc:
-            return {"listing": f"Could not refresh the report listing ({exc}); run sk-public-money-sync party."}
+            return {"listing": f"Could not refresh the report listing ({exc}); run {sync_command('party')}."}
     return None
 
 

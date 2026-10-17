@@ -12,13 +12,14 @@ from typing import Annotated, Literal
 from pydantic import Field
 
 from ...app import READ_ONLY, mcp, user_errors
+from ...localdb import sync_command
 from . import parse, sync
 from .client import FSClient
 from .index import LISTS, FSIndex, default_path
 
 PAGE_SIZE = 20
 VAT_RETURNS = 12
-NO_INDEX = ("The Finančná správa index has not been built yet. Build it with: sk-public-money-sync fs "
+NO_INDEX = (f"The Finančná správa index has not been built yet. Build it with {sync_command('fs')} "
             "(downloads about 0.7 GB in about 15 minutes; the index takes about 0.75 GB).")
 LICENCE = "Zdroj údajov: Finančná správa SR - https://opendata.financnasprava.sk/ (CC BY 4.0)"
 # What a DRUH_REG_DPH means (zákon o DPH 222/2004 Z. z.).
@@ -68,9 +69,9 @@ def _stale(ix: FSIndex) -> dict:
     missing = [n for n in LISTS if n not in ix.lists()]
     note = []
     if old:
-        note.append(f"Lists older than usual: {', '.join(old)}; update with sk-public-money-sync fs.")
+        note.append(f"Lists older than usual: {', '.join(old)}; update with {sync_command('fs')}.")
     if missing:
-        note.append(f"Lists not indexed: {', '.join(missing)}; build them with sk-public-money-sync fs.")
+        note.append(f"Lists not indexed: {', '.join(missing)}; build them with {sync_command('fs')}.")
     return {"index_note": " ".join(note)} if note else {}
 
 
