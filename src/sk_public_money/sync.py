@@ -19,7 +19,7 @@ import sys
 import time
 from pathlib import Path
 
-from . import bundle
+from . import bundle, eta
 from .http import cache_dir
 
 # Source name -> module with main(argv). Add a line here for each source with an index, ordered from
@@ -57,10 +57,13 @@ def run_all(argv: list[str], *, bootstrap: bool = True) -> None:
     if unknown:
         parser.error(f"unknown source(s): {', '.join(sorted(unknown))}; sources: {', '.join(SOURCES)}")
     names = [name for name in SOURCES if name not in skip]
+    history = eta.load_history()
+    kinds = {name: eta.kind(name) for name in names}
+    expected = {name: eta.expected(name, kinds[name], bootstrap, history) for name in names}
     if args.jobs == 1:
-        results = _run_in_turn(names, bootstrap)
+        results = _run_in_turn(names, bootstrap, kinds, expected)
     else:
-        results = _run_parallel(names, args.jobs, bootstrap)
+        results = _run_parallel(names, args.jobs, bootstrap, kinds, expected)
     print("\n=== summary ===", file=sys.stderr)
     for name in names:
         if name in results:
@@ -69,11 +72,16 @@ def run_all(argv: list[str], *, bootstrap: bool = True) -> None:
         sys.exit(1)
 
 
-def _run_in_turn(names: list[str], bootstrap: bool) -> dict[str, str]:
+def _run_in_turn(names: list[str], bootstrap: bool, kinds: dict[str, str] | None = None,
+                 expected: dict[str, float] | None = None) -> dict[str, str]:
     """Each source in this process, one after another, with its output as it comes."""
     results: dict[str, str] = {}
-    for name in names:
-        print(f"\n=== {name} ===", file=sys.stderr, flush=True)
+    kinds = kinds or {}
+    expected = expected or {}
+    for i, name in enumerate(names):
+        left = sum(expected.get(n, 0) for n in names[i:])
+        estimate = f" (expected {eta.human(expected[name])}; all done in {eta.human(left)}, around {_clock(left)})" if name in expected else ""
+        print(f"\n=== {name} ==={estimate}", file=sys.stderr, flush=True)
         started = time.monotonic()
         try:
             if bootstrap:
@@ -87,7 +95,10 @@ def _run_in_turn(names: list[str], bootstrap: bool) -> dict[str, str]:
             break
         except Exception as exc:  # noqa: BLE001  (one source failing must not stop the others)
             outcome = f"failed: {type(exc).__name__}: {exc}"
-        results[name] = f"{outcome}, {_minutes(time.monotonic() - started)}"
+        took = time.monotonic() - started
+        if outcome == "ok" and name in kinds:
+            eta.remember(name, kinds[name], took)
+        results[name] = f"{outcome}, {_minutes(took)}"
     return results
 
 
@@ -100,13 +111,16 @@ def child_command(name: str, bootstrap: bool) -> list[str]:
     return [sys.executable, "-m", "sk_public_money.sync", name] + ([] if bootstrap else ["--no-bootstrap"])
 
 
-def _run_parallel(names: list[str], jobs: int, bootstrap: bool) -> dict[str, str]:
+def _run_parallel(names: list[str], jobs: int, bootstrap: bool, kinds: dict[str, str] | None = None,
+                  expected: dict[str, float] | None = None) -> dict[str, str]:
     """Each source in its own process, at most `jobs` at once, slowest first. Their output goes to a log
-    file per source; the terminal shows one status line per source."""
+    file per source; the terminal shows one status line per source and the expected time left."""
     waiting = list(reversed(names))  # SOURCES runs from quickest to slowest
     running: dict[str, tuple[subprocess.Popen, float]] = {}
     results: dict[str, str] = {}
-    status = _Status(names, sys.stderr)
+    kinds = kinds or {}
+    expected = expected or {name: 60.0 for name in names}
+    status = _Status(names, sys.stderr, expected, jobs)
     env = {**os.environ, "PYTHONUNBUFFERED": "1"}
     try:
         while waiting or running:
@@ -118,15 +132,18 @@ def _run_parallel(names: list[str], jobs: int, bootstrap: bool) -> dict[str, str
                     proc = subprocess.Popen(child_command(name, bootstrap), stdout=log, stderr=subprocess.STDOUT,
                                             stdin=subprocess.DEVNULL, env=env)
                 running[name] = (proc, time.monotonic())
-                status.event(f"{name}: started (log: {path})")
+                status.event(f"{name}: started (log: {path})", running, waiting)
             for name, (proc, started) in list(running.items()):
                 code = proc.poll()
                 if code is None:
                     continue
                 del running[name]
+                took = time.monotonic() - started
                 outcome = "ok" if code == 0 else f"failed (exit {code}; see {log_path(name)})"
-                results[name] = f"{outcome}, {_minutes(time.monotonic() - started)}"
-                status.event(f"{name}: {results[name]}")
+                if code == 0 and name in kinds:
+                    eta.remember(name, kinds[name], took)
+                results[name] = f"{outcome}, {_minutes(took)}"
+                status.event(f"{name}: {results[name]}", running, waiting)
             status.draw(running, results, waiting)
             time.sleep(0.5)
     except KeyboardInterrupt:
@@ -159,6 +176,10 @@ def _minutes(seconds: float) -> str:
     return f"{seconds / 60:.1f} min"
 
 
+def _clock(seconds_from_now: float) -> str:
+    return time.strftime("%H:%M", time.localtime(time.time() + seconds_from_now))
+
+
 def last_line(path: Path, width: int) -> str:
     """The last non-empty line a sync wrote, for its status line."""
     try:
@@ -176,15 +197,29 @@ class _Status:
     """On a terminal: a block of one line per source, redrawn in place. Elsewhere (cron, a pipe):
     only starts and finishes, one line each."""
 
-    def __init__(self, names: list[str], out):
+    def __init__(self, names: list[str], out, expected: dict[str, float] | None = None, jobs: int = 1):
         self.names, self.out = names, out
+        self.expected = expected or {}
+        self.jobs = jobs
         self.live = out.isatty() and os.environ.get("TERM") != "dumb"
         self.drawn = 0
         self.next_draw = 0.0
 
-    def event(self, text: str) -> None:
-        if not self.live:
-            print(f"{time.strftime('%H:%M:%S')} {text}", file=self.out, flush=True)
+    def _left(self, name: str, started: float) -> float:
+        return eta.remaining(time.monotonic() - started, self.expected.get(name, 60.0), last_line(log_path(name), 400))
+
+    def left(self, running: dict, waiting: list) -> float:
+        """Seconds until every source is done."""
+        return eta.total([self._left(n, r[1]) for n, r in running.items()],
+                         [self.expected.get(n, 60.0) for n in waiting], self.jobs)
+
+    def event(self, text: str, running: dict | None = None, waiting: list | None = None) -> None:
+        if self.live:
+            return
+        if running or waiting:
+            left = self.left(running or {}, waiting or [])
+            text += f"; all done in {eta.human(left)}, around {_clock(left)}"
+        print(f"{time.strftime('%H:%M:%S')} {text}", file=self.out, flush=True)
 
     def draw(self, running: dict, results: dict, waiting: list, final: bool = False) -> None:
         if not self.live or (not final and time.monotonic() < self.next_draw):
@@ -192,10 +227,16 @@ class _Status:
         self.next_draw = time.monotonic() + 1.0
         width = shutil.get_terminal_size((100, 20)).columns
         lines = []
+        if running or waiting:
+            left = self.left(running, waiting)
+            lines.append(f"all done in {eta.human(left)}, around {_clock(left)}")
         for name in self.names:
             if name in running:
                 elapsed = time.monotonic() - running[name][1]
-                head = f"{name:<6} {int(elapsed // 60):>3}:{int(elapsed % 60):02d}  "
+                line = last_line(log_path(name), 400)
+                left = ("longer than expected" if eta.overdue(elapsed, self.expected.get(name, 60.0), line)
+                        else eta.human(self._left(name, running[name][1])) + " left")
+                head = f"{name:<6} {int(elapsed // 60):>3}:{int(elapsed % 60):02d}  {left:<21}"
                 lines.append(head + last_line(log_path(name), width - len(head) - 1))
             elif name in results:
                 lines.append(f"{name:<6} {results[name]}"[: width - 1])

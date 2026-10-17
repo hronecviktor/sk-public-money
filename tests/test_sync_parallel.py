@@ -101,3 +101,13 @@ def test_free_space_counts_what_other_running_syncs_claimed(tmp_path, monkeypatc
     localdb.ensure_free_space(tmp_path, 1 << 20, reserve=0)
     assert not (claims / str(dead)).exists()
     assert (claims / str(os.getpid())).read_text() == str(1 << 20)  # this process's own claim
+
+
+def test_parallel_reports_the_time_left_and_remembers_durations(fake_sources, capsys):
+    from sk_public_money import eta
+
+    sync.main(["all", "--skip", "broken3"])
+    err = capsys.readouterr().err
+    assert "slow0: started" in err and "all done in" in err and "around" in err
+    history = eta.load_history()
+    assert set(history) == {"quick0:first", "mid0:first", "slow0:first"}

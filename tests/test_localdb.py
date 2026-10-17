@@ -49,7 +49,8 @@ def test_sync_command_names_the_sources(capsys):
     assert "sk-public-money-sync uvo" in capsys.readouterr().out
 
 
-def test_sync_all_runs_every_source_and_reports_failures(monkeypatch, capsys):
+def test_sync_all_runs_every_source_and_reports_failures(monkeypatch, capsys, tmp_path):
+    monkeypatch.setenv("SK_PUBLIC_MONEY_CACHE_DIR", str(tmp_path))  # it records durations in the cache
     ran = []
 
     class Fake:

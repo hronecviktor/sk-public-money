@@ -175,7 +175,7 @@ uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-s
 
 Príkaz synchronizuje štyri zdroje naraz, najpomalšie ako prvé. Každý zdroj sa pýta iného portálu,
 takže žiadny portál nedostane viac požiadaviek, než povoľuje jeho vlastný limit. V termináli ukazuje
-jeden riadok priebehu na zdroj; celý výstup každého zdroja je v `~/.cache/sk-public-money/logs/`.
+jeden riadok priebehu na zdroj a odhad, kedy bude hotovo (spresňuje sa podľa toho, ako dlho zdroje trvali naposledy); celý výstup každého zdroja je v `~/.cache/sk-public-money/logs/`.
 Prvé spustenie tak trvá zhruba tak dlho ako najpomalší zdroj, asi 70 minút. `--jobs 1` ich spustí
 jeden po druhom. Príkaz sa dá prerušiť (Ctrl+C) a spustiť znova (stiahne len to, čo chýba) a jeden
 zlyhaný zdroj nezastaví ostatné. Jeden index postavíte cez `sk-public-money-sync <zdroj>`, niektoré
@@ -409,7 +409,7 @@ uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-s
 
 It syncs four sources at once, the slowest first. Each source talks to a different portal, so no
 portal gets more requests than its own limit allows. In a terminal it shows one progress line per
-source; each source's full output is in `~/.cache/sk-public-money/logs/`. The first run therefore
+source and an estimate of when it will finish (refined by how long the sources took last time); each source's full output is in `~/.cache/sk-public-money/logs/`. The first run therefore
 takes about as long as the slowest source, around 70 minutes. `--jobs 1` runs them one after another.
 It can be stopped (Ctrl+C) and run again (it fetches only what's missing), and one failing source
 doesn't stop the others. `sk-public-money-sync <source>` builds a single index, and
