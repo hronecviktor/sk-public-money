@@ -47,6 +47,14 @@ spending; a value of 0 means undisclosed. Identifiers are labelled ico, dic (DI�
 ico is null when the notice gives no Slovak IČO. Vestník data CC BY 4.0 by ÚVO; TED data may be reused
 with attribution.
 
+Courts, súdy (court_* tools): decisions of Slovak general courts (~4.7M since about 2000) and judges,
+from the Ministry of Justice's pilot API (obcan.justice.sk), and judges' yearly asset declarations
+from Súdna rada. People who are parties are anonymised in decisions; companies keep name and IČO.
+court_search_decisions by IČO is a full-text match (both 31322832 and 31 322 832 spellings): check
+the snippet, the number may belong to another party. Decision text comes only from the PDF
+(court_get_decision text=true). Asset declarations are matched to judges by name. No licence is
+published for either source.
+
 People named in these registers are often private individuals; a matching name is not proof of the
 same person.
 """
