@@ -90,6 +90,6 @@ def test_sync_starts_from_the_snapshot_unless_told_not_to(cache, monkeypatch):
     sync.main(["uvo", "--since", "2026-01-01"])
     sync.main(["uvo", "--no-bootstrap"])
     others = ",".join(name for name in sync.SOURCES if name != "uvo")
-    sync.main(["all", "--no-bootstrap", "--skip", others])
-    sync.main(["all", "--skip", others])
+    sync.main(["all", "--jobs", "1", "--no-bootstrap", "--skip", others])
+    sync.main(["all", "--jobs", "1", "--skip", others])
     assert calls == ["uvo", ("main", ["--since", "2026-01-01"]), ("main", []), ("main", []), "uvo", ("main", [])]

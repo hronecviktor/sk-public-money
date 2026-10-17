@@ -69,7 +69,7 @@ def test_sync_all_runs_every_source_and_reports_failures(monkeypatch, capsys):
     monkeypatch.setattr(sync, "SOURCES", {name: name for name in fakes})
     monkeypatch.setattr(sync.importlib, "import_module", lambda name: fakes[name])
     with pytest.raises(SystemExit) as exc:
-        sync.main(["all", "--skip", "c"])
+        sync.main(["all", "--jobs", "1", "--skip", "c"])
     assert exc.value.code == 1
     assert ran == [("a", []), ("b", []), ("d", [])]
     err = capsys.readouterr().err
@@ -78,7 +78,7 @@ def test_sync_all_runs_every_source_and_reports_failures(monkeypatch, capsys):
     ran.clear()
     fakes = {"a": Fake("a"), "c": Fake("c", "exit0")}
     monkeypatch.setattr(sync, "SOURCES", {name: name for name in fakes})
-    sync.main(["all"])  # everything ok: no exit
+    sync.main(["all", "--jobs", "1"])  # everything ok: no exit
     assert [name for name, _ in ran] == ["a", "c"]
 
     with pytest.raises(SystemExit):

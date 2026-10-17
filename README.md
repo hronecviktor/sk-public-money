@@ -150,11 +150,15 @@ Všetky indexy postavíte, a neskôr aktualizujete, jedným príkazom:
 uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync all
 ```
 
-Príkaz ide od najrýchlejších zdrojov po najpomalšie. Dá sa prerušiť a spustiť znova (stiahne len to,
-čo chýba) a jeden zlyhaný zdroj nezastaví ostatné. Jeden index postavíte cez
-`sk-public-money-sync <zdroj>`, niektoré vynecháte cez `sk-public-money-sync all --skip ov`. Obchodný
-vestník (`ov`) je najpomalší, asi 70 minút, a nemá hotový index; ak ho nepotrebujete, vynechajte ho
-a postavte neskôr samostatne cez `sk-public-money-sync ov`.
+Príkaz synchronizuje štyri zdroje naraz, najpomalšie ako prvé. Každý zdroj sa pýta iného portálu,
+takže žiadny portál nedostane viac požiadaviek, než povoľuje jeho vlastný limit. V termináli ukazuje
+jeden riadok priebehu na zdroj; celý výstup každého zdroja je v `~/.cache/sk-public-money/logs/`.
+Prvé spustenie tak trvá zhruba tak dlho ako najpomalší zdroj, asi 70 minút. `--jobs 1` ich spustí
+jeden po druhom. Príkaz sa dá prerušiť (Ctrl+C) a spustiť znova (stiahne len to, čo chýba) a jeden
+zlyhaný zdroj nezastaví ostatné. Jeden index postavíte cez `sk-public-money-sync <zdroj>`, niektoré
+vynecháte cez `sk-public-money-sync all --skip ov`. Obchodný vestník (`ov`) je najpomalší, asi 70
+minút, a nemá hotový index; ak ho nepotrebujete, vynechajte ho a postavte neskôr samostatne cez
+`sk-public-money-sync ov`.
 
 | Zdroj | Pre nástroje | Prvé spustenie | Miesto na disku | Ako sa aktualizuje |
 | --- | --- | --- | --- | --- |
@@ -356,11 +360,15 @@ One command builds every index, and later keeps them up to date:
 uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync all
 ```
 
-It goes from the quickest source to the slowest. It can be stopped and run again (it fetches only
-what's missing), and one failing source doesn't stop the others. `sk-public-money-sync <source>`
-builds a single index, and `sk-public-money-sync all --skip ov` leaves some out. The Obchodný vestník
-(`ov`) is the slowest first build, about 70 minutes, with no prebuilt index; if you don't need it, skip
-it and build it later on its own with `sk-public-money-sync ov`.
+It syncs four sources at once, the slowest first. Each source talks to a different portal, so no
+portal gets more requests than its own limit allows. In a terminal it shows one progress line per
+source; each source's full output is in `~/.cache/sk-public-money/logs/`. The first run therefore
+takes about as long as the slowest source, around 70 minutes. `--jobs 1` runs them one after another.
+It can be stopped (Ctrl+C) and run again (it fetches only what's missing), and one failing source
+doesn't stop the others. `sk-public-money-sync <source>` builds a single index, and
+`sk-public-money-sync all --skip ov` leaves some out. The Obchodný vestník (`ov`) is the slowest first
+build, about 70 minutes, with no prebuilt index; if you don't need it, skip it and build it later on
+its own with `sk-public-money-sync ov`.
 
 | Source | For the tools | First run | Disk space | How it stays current |
 | --- | --- | --- | --- | --- |

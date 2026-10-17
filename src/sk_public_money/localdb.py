@@ -8,6 +8,7 @@ stale, fetch a little inline (see sources/uvo for the pattern).
 
 from __future__ import annotations
 
+import os
 import shutil
 import sqlite3
 import time
@@ -65,12 +66,52 @@ def mark_done(db: sqlite3.Connection, key: str) -> None:
     set_meta(db, key, str(time.time()))
 
 
+def _alive(pid: int, claim: Path) -> bool:
+    if os.name == "nt":  # os.kill(pid, 0) would send Ctrl+C there; trust recent claims instead
+        return time.time() - claim.stat().st_mtime < 12 * 3600
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def _claimed_by_others() -> int:
+    """Bytes other running processes said they are about to write (see ensure_free_space)."""
+    total = 0
+    for claim in (cache_dir() / ".claims").glob("*"):
+        try:
+            pid = int(claim.name)
+            if pid == os.getpid():
+                continue
+            if not _alive(pid, claim):
+                claim.unlink(missing_ok=True)
+                continue
+            total += int(claim.read_text() or 0)
+        except (ValueError, OSError):
+            continue
+    return total
+
+
 def ensure_free_space(path: Path, needed: int, *, reserve: int = 2 << 30) -> None:
-    """Refuse to start a download of `needed` bytes that would leave less than `reserve` free."""
+    """Refuse to start a download of `needed` bytes that would leave less than `reserve` free.
+
+    Syncs run in parallel (sk-public-money-sync all), so each process records its latest request
+    in <cache>/.claims/<pid> and the others count it as taken until that process ends."""
     probe = path if path.exists() else next((p for p in path.parents if p.exists()), Path("/"))
     free = shutil.disk_usage(probe).free
-    if free - needed < reserve:
+    others = _claimed_by_others()
+    if free - others - needed < reserve:
+        taken = f" ({others / 2**30:.1f} GB of it claimed by other running syncs)" if others else ""
         raise OSError(
-            f"Not enough disk space in {probe}: {free / 2**30:.1f} GB free, this needs about "
+            f"Not enough disk space in {probe}: {free / 2**30:.1f} GB free{taken}, this needs about "
             f"{needed / 2**30:.1f} GB and leaves {reserve / 2**30:.0f} GB spare."
         )
+    claims = cache_dir() / ".claims"
+    try:
+        claims.mkdir(parents=True, exist_ok=True)
+        (claims / str(os.getpid())).write_text(str(needed))
+    except OSError:
+        pass  # a claim is a courtesy to parallel syncs, never a reason to fail

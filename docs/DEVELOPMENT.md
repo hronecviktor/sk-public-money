@@ -33,8 +33,11 @@ A source that needs a local index keeps it in the cache directory and uses `loca
 `ensure_free_space()` before a large download. `ThrottledClient._download()` streams a large file to
 disk. Its `sync.py` has `main(argv)` and a line in the `SOURCES` table of `sync.py` at the package
 root, so `sk-public-money-sync <source>` builds or tops up its index. `sk-public-money-sync all` runs
-them in the order of that table, so keep quick sources first and add a row to the README's first-run
-table. Delete raw downloads once they
+every source in its own process, four at once, slowest first (the reverse of that table, which goes
+from the quickest first build to the slowest; `--jobs 1` runs them in table order in one process).
+Keep the table ordered by first-build time and add a row to the README's first-run table. Sources
+run side by side, so a source must not share a portal with another one's sync, and
+`ensure_free_space()` counts the space other running syncs have claimed. Delete raw downloads once they
 are indexed unless the source needs them to re-index.
 
 The tests run offline:
