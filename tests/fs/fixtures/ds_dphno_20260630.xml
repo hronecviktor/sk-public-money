@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ZoznamSubjektovDPHNO>
+  <DatumAktualizacieZoznamu>15062026</DatumAktualizacieZoznamu>
+  <DS_DPHNO>
+    <ITEM>
+      <DIC>2020999001</DIC>
+      <IC_DPH>SK2020999001</IC_DPH>
+      <ICO>01234567</ICO>
+      <NAZOV_DS>ALFA TEST s.r.o. (starý názov)</NAZOV_DS>
+      <OBEC>Žilina</OBEC>
+      <PSC>01001</PSC>
+      <ULICA_CISLO>Fiktívna 1/A</ULICA_CISLO>
+      <STAT>SK</STAT>
+      <ZDAN_OBDOBIE>1225</ZDAN_OBDOBIE>
+      <NADMERNY_ODPOCET>100.00</NADMERNY_ODPOCET>
+      <VLAST_DAN_POV>0.00</VLAST_DAN_POV>
+    </ITEM>
+    <ITEM>
+      <DIC>2020999001</DIC>
+      <IC_DPH>SK2020999001</IC_DPH>
+      <ICO>01234567</ICO>
+      <NAZOV_DS>ALFA TEST s.r.o. (starý názov)</NAZOV_DS>
+      <OBEC>Žilina</OBEC>
+      <PSC>01001</PSC>
+      <ULICA_CISLO>Fiktívna 1/A</ULICA_CISLO>
+      <STAT>SK</STAT>
+      <ZDAN_OBDOBIE>0326</ZDAN_OBDOBIE>
+      <NADMERNY_ODPOCET>1400.00</NADMERNY_ODPOCET>
+      <VLAST_DAN_POV>0.00</VLAST_DAN_POV>
+    </ITEM>
+  </DS_DPHNO>
+</ZoznamSubjektovDPHNO>

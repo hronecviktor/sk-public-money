@@ -161,9 +161,33 @@ The tax authority publishes lists of taxpayers as zipped XML files at
 
 | Tool | What it does |
 | --- | --- |
-| `fs_get_taxpayer` | Everything on one taxpayer by IČO (or DIČ, IČ DPH): VAT registrations, reliability index, cancellation and struck-off entries, corporate income tax per period (with the list it came from), the latest 12 VAT periods, the VAT group it represents (matched by the group's name), and debtor list entries with exactly the same name (`matched_by: name`). |
+| `fs_get_taxpayer` | Everything on one taxpayer by IČO (or DIČ, IČ DPH): VAT registrations, reliability index, cancellation and struck-off entries, corporate income tax per period (with the list it came from), VAT returns (latest 12 rows, or all with `vat_history`), the VAT group it represents (matched by the group's name), and debtor list entries with exactly the same name (`matched_by: name`). |
 | `fs_search_debtors` | Searches the debtor list by words of the name (word starts, no case or diacritics), optionally by place and minimum debt; largest debts first; every result `matched_by: name`. |
 | `fs_list_flagged` | Lists struck-off VAT payers (by date struck off), VAT payers with reasons to cancel (by publication date), or taxpayers rated menej spoľahlivý (by name), optionally by place. |
+Building the index:
+
+```sh
+sk-public-money-sync fs                       # all lists, with the quarterly archives (default --since 2016-01-01)
+sk-public-money-sync fs --since 2024-01-01    # a first build with less history
+sk-public-money-sync fs --lists ds_dphs,ds_iz_ran --force
+```
+
+The first run downloads about FS_DL (the two archives are about 33 files each: 7 MB of corporate tax,
+15–18 MB of VAT returns) and takes FS_TIME_EN; the index is about FS_SIZE, most of it the VAT returns
+(FS_VATROWS rows). Each further run asks each file's Last-Modified and downloads only changed lists. The tools check the
+two small daily VAT flag lists every 6 hours and update them inline; they name any other list that is
+older than usual and suggest the sync command.
+
+Things to know:
+
+- **Corporate income tax builds up from quarterly files.** The current `ds_dppos.zip` holds the returns processed in the latest quarter (mostly the previous tax year, plus late returns for older years); older quarters are in an [archive](https://www.financnasprava.sk/sk/elektronicke-sluzby/verejne-sluzby/zoznamy/archiv-vybranych-informacnych/zoznam-subjektov-s-vyskou-dane) back to the list of 30 June 2018, the oldest published (the default `--since 2016-01-01` takes the whole archive; the first lists also carry late returns for 2017 and earlier periods). The index keeps every published row with the date of its list (`list_of`); a period that appears in several lists (e.g. a later row with only the additional tax after a supplementary return) shows each row as published. A missing year may be in an older file (`--since`) or was never published.
+- **VAT returns build up the same way** from the current `ds_dphno.zip` and its [archive](https://www.financnasprava.sk/sk/elektronicke-sluzby/verejne-sluzby/zoznamy/archiv-vybranych-informacnych/zoznam-danovych-subjektov-dph), which also starts with the list of 30 June 2018: each quarterly file holds the returns filed that quarter, with late returns for older periods. Every row is kept with its list date; a period published in several lists (e.g. after a corrective return) shows each, with `list_of`. `fs_get_taxpayer` shows the latest 12 rows, `vat_history=true` all of them. Periods read `2026-03` (month) or `2026-Q1` (quarter).
+- **VAT groups:** a company in a VAT group (e.g. Slovnaft) is not in the VAT register itself; the group is, named "Skupina DPH zastupovaná: <representative>", and files the VAT returns. `fs_get_taxpayer` links the group by that name for its representative. The lists do not name the other members.
+- **The debtor list has no identifiers.** Matches are by name only; compare the address. `fs_get_taxpayer` shows debtor entries only when the cleaned name is identical.
+- Names are cleaned of padding inside their quotes (`" CCL s.r.o. "` becomes `"CCL s.r.o."`); the quotes stay. Dates are converted from DD.MM.YYYY and DDMMYYYY. Some IČOs have 12 digits (organisational units: IČO + 4 digits) and are kept whole. A handful of violation years are nonsense (0, 25, 525) and are passed on as published text. Archive files up to 2023 are Windows-1250, newer ones UTF-8.
+- Natural persons (sole traders, people registered for VAT, debtors) appear with name and address as published.
+- Data: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), "Zdroj údajov: Finančná správa SR - https://opendata.financnasprava.sk/"; the reliability index file says CC0.
+
 ### Courts: decisions and judges ([obcan.justice.sk](https://obcan.justice.sk), [sudnarada.gov.sk](https://www.sudnarada.gov.sk))
 
 The Ministry of Justice publishes every decision of the general courts (*rozhodnutie*: judgments,
@@ -204,25 +228,6 @@ have no search and change their download link with every upload, so they are kep
 Building the index:
 
 ```sh
-sk-public-money-sync fs                       # all lists; corporate tax archive since 2023
-sk-public-money-sync fs --since 2018-01-01    # add the corporate tax archive back to 2018
-sk-public-money-sync fs --lists ds_dphs,ds_iz_ran --force
-```
-
-The first run downloads about 170 MB and takes about 2–3 minutes; the index is about 220 MB.
-Each further run asks each file's Last-Modified and downloads only changed lists. The tools check the
-two small daily VAT flag lists every 6 hours and update them inline; they name any other list that is
-older than usual and suggest the sync command.
-
-Things to know:
-
-- **Corporate income tax builds up from quarterly files.** The current `ds_dppos.zip` holds the returns processed in the latest quarter (mostly the previous tax year, plus late returns for older years); older quarters are in an [archive](https://www.financnasprava.sk/sk/elektronicke-sluzby/verejne-sluzby/zoznamy/archiv-vybranych-informacnych/zoznam-subjektov-s-vyskou-dane) back to 2018. The index keeps every published row with the date of its list (`list_of`); a period that appears in several lists (e.g. a later row with only the additional tax after a supplementary return) shows each row as published. A missing year may be in an older file (`--since`) or was never published.
-- **VAT returns are only the latest quarter's file**: returns filed in that quarter, with late returns for older periods. Periods read `2026-03` (month) or `2026-Q1` (quarter).
-- **VAT groups:** a company in a VAT group (e.g. Slovnaft) is not in the VAT register itself; the group is, named "Skupina DPH zastupovaná: <representative>", and files the VAT returns. `fs_get_taxpayer` links the group by that name for its representative. The lists do not name the other members.
-- **The debtor list has no identifiers.** Matches are by name only; compare the address. `fs_get_taxpayer` shows debtor entries only when the cleaned name is identical.
-- Names are cleaned of padding inside their quotes (`" CCL s.r.o. "` becomes `"CCL s.r.o."`); the quotes stay. Dates are converted from DD.MM.YYYY and DDMMYYYY. Some IČOs have 12 digits (organisational units: IČO + 4 digits) and are kept whole. A handful of violation years are nonsense (0, 25, 525) and are passed on as published text. Archive files up to 2023 are Windows-1250, newer ones UTF-8.
-- Natural persons (sole traders, people registered for VAT, debtors) appear with name and address as published.
-- Data: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), "Zdroj údajov: Finančná správa SR - https://opendata.financnasprava.sk/"; the reliability index file says CC0.
 sk-public-money-sync ppa                  # both listed years: ~16 MB download, ~20 s, ~20 MB index
 sk-public-money-sync ppa --reindex        # download and index every listed year again
 sk-public-money-sync ppa --keep-delisted  # keep years PPA no longer publishes

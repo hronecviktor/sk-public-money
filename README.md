@@ -140,10 +140,11 @@ nástroje každých 6 hodín skontrolujú nové čísla a stiahnu ich.
 uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync fs
 ```
 
-Stiahne asi 170 MB za 2–3 minúty; index zaberá asi 220 MB. Daň z príjmov právnických osôb
-sa skladá zo štvrťročných zoznamov od roku 2023 (staršie od roku 2018 pridá `--since 2018-01-01`).
-Príkaz stiahne len zoznamy, ktoré sa zmenili; spúšťajte ho napríklad raz denne. Malé denné zoznamy
-platiteľov DPH na zrušenie registrácie a vymazaných si nástroje aktualizujú samy.
+Prvé spustenie stiahne asi FS_DL za FS_TIME_SK; index zaberá asi FS_SIZE. Daň z príjmov právnických
+osôb a nadmerné odpočty DPH sa skladajú zo všetkých štvrťročných zoznamov, ktoré Finančná správa archivuje (od júna 2018).
+Ďalej príkaz stiahne len zoznamy, ktoré sa zmenili; spúšťajte ho napríklad raz denne. Malé denné
+zoznamy platiteľov DPH na zrušenie registrácie a vymazaných si nástroje aktualizujú samy.
+
 **Index poľnohospodárskych dotácií** (potrebný pre nástroje `ppa_*`):
 
 ```sh
@@ -316,10 +317,11 @@ them.
 uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync fs
 ```
 
-It downloads about 170 MB in 2–3 minutes; the index takes about 220 MB. Corporate income tax is
-put together from the quarterly lists since 2023 (`--since 2018-01-01` adds the older ones). The
-command fetches only the lists that changed; run it, say, once a day. The tools update the small daily
-lists of VAT payers facing cancellation and struck off themselves.
+The first run downloads about FS_DL in FS_TIME_EN; the index takes about FS_SIZE. Corporate income
+tax and VAT excess deductions are put together from every quarterly list the tax authority keeps
+in its archive (since June 2018). After that the command fetches only the lists that changed; run it, say, once a day. The
+tools update the small daily lists of VAT payers facing cancellation and struck off themselves.
+
 **The farm subsidy index** (needed by the `ppa_*` tools):
 
 ```sh

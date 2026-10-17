@@ -50,8 +50,9 @@ with attribution.
 Finančná správa SR, the tax authority (fs_* tools): its published lists, kept in a local index (built
 with sk-public-money-sync fs): VAT registration, index daňovej spoľahlivosti (tax reliability rating),
 VAT payers with reasons to cancel their registration (§ 52(6)) and struck off (§ 52(8)), corporate
-income tax assessed and tax loss per tax period (quarterly lists since 2023), VAT excess deduction or
-own liability per period (latest quarterly list only), and tax debtors. The debtor list has no IČO, so
+income tax assessed and tax loss per tax period, VAT excess deduction or own liability per period
+(both from every quarterly list since the oldest archived, June 2018; a period published in several lists shows each with
+list_of), and tax debtors. The debtor list has no IČO, so
 debtors are matched by name only (matched_by: name). Natural persons appear as published. Amounts in
 EUR. CC BY 4.0 (the reliability index CC0): Zdroj údajov: Finančná správa SR - https://opendata.financnasprava.sk/.
 
