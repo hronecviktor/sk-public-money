@@ -324,15 +324,19 @@ class EUIndex:
         return {"code": row[0], "name": row[1]} if row else None
 
     def find_programme(self, text: str) -> int:
-        want = fold(text).replace(" ", "")
-        for p in self.programmes():
-            if want in (fold(p["abbr"] or "").replace(" ", ""), p["code"]) or want == str(p["id"]):
+        """A programme by ID, code or abbreviation (PSK, PRH SR, VI A SKAT ...), a unique part of the
+        abbreviation (SKAT, PRH) or a unique part of the name."""
+        want = fold(text).replace(" ", "").replace("-", "")
+        programmes = self.programmes()
+        abbr = lambda p: fold(p["abbr"] or "").replace(" ", "").replace("-", "")  # noqa: E731
+        for p in programmes:
+            if want in (abbr(p), p["code"], str(p["id"])):
                 return p["id"]
-        matches = [p for p in self.programmes() if fold(text) in fold(p["name"])]
-        if len(matches) == 1:
-            return matches[0]["id"]
-        names = ", ".join(f"{p['abbr']} ({p['name']})" for p in self.programmes())
-        raise ValueError(f"Unknown programme {text!r}; ITMS21+ has: {names}.")
+        for matches in ([p for p in programmes if want and want in abbr(p)], [p for p in programmes if fold(text) in fold(p["name"])]):
+            if len(matches) == 1:
+                return matches[0]["id"]
+        names = ", ".join(f"{p['abbr']} ({p['name']})" for p in programmes)
+        raise ValueError(f"Unknown or ambiguous programme {text!r}; ITMS21+ has: {names}.")
 
     def claims_summary(self, project_ids: list[int]) -> dict[int, dict]:
         if not project_ids:

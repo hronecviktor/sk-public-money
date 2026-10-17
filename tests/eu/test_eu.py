@@ -269,7 +269,8 @@ async def test_search_projects_programme_from_code_and_text(built):
     assert [r["code"] for r in amif["results"]] == ["408010I909"]
     # Diacritics and endings of longer words: "kulturny domu" finds "kultúrneho domu".
     assert (await tools.eu_search_projects(text="kulturny domu"))["total"] == 1
-    with pytest.raises(Exception, match="Unknown programme"):
+    assert (await tools.eu_search_projects(programme="Program Slovensko"))["total"] == 1
+    with pytest.raises(Exception, match="Unknown or ambiguous programme"):
         await tools.eu_search_projects(programme="XYZ")
 
 

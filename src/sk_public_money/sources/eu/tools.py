@@ -91,7 +91,7 @@ async def eu_search_projects(
     ico: Annotated[str | None, Field(description="IČO of a recipient (prijímateľ, for applications the applicant) or partner.")] = None,
     role: Annotated[Literal["any", "recipient", "partner"], Field(description="With ico: the organisation's role.")] = "any",
     text: Annotated[str | None, Field(description="Words in the project's code, name or its organisations' names; ignores case and diacritics.")] = None,
-    programme: Annotated[str | None, Field(description="Programme abbreviation or code: PSK (Program Slovensko), PRH (fisheries), VI A SKAT / VI A SKCZ (Interreg), AMIF, ISF, BMVI.")] = None,
+    programme: Annotated[str | None, Field(description="Programme: PSK (Program Slovensko), PRH (fisheries), SKAT or SKCZ (Interreg Slovakia-Austria, -Czechia), AMIF, ISF, BMVI.")] = None,
     kind: Annotated[Literal["projects", "applications", "all"], Field(description="projects: contracted projects. applications: grant applications (ŽoNFP), approved or not. all: projects plus applications that did not become one.")] = "projects",
     sort: Annotated[Literal["amount", "newest"], Field(description="amount: largest contracted (or approved, else requested) amount first.")] = "amount",
     page: Annotated[int, Field(ge=0, description="0-based page; 20 per page.")] = 0,
