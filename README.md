@@ -440,3 +440,29 @@ licences:
 The server follows each portal's rules for automated access and spaces out its requests. Details on
 each source are in [docs/SOURCES.md](docs/SOURCES.md), and on development in
 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+
+## Upozornenie · Disclaimer
+
+**Slovensky.** Údaje pochádzajú z verejných registrov. Server ich preberá tak, ako ich registre
+zverejňujú, a niekedy ich skracuje, prepája alebo sumarizuje. Registre môžu obsahovať chyby,
+oneskorenia a neúplné záznamy, server ich môže prečítať alebo priradiť nesprávne (napríklad podľa
+mena tam, kde register neuvádza IČO) a AI asistent ich môže nesprávne vyložiť. Autor nezodpovedá za
+správnosť, úplnosť ani aktuálnosť údajov, ani za závery, ktoré z nich niekto vyvodí. Výsledky berte
+ako východisko na ďalšie overovanie, nie ako dôkaz: každé zistenie si pred použitím alebo
+zverejnením overte v pôvodnom zdroji. Nástroje pri údajoch uvádzajú odkazy na zdrojové záznamy
+(zmluvy v CRZ, oznámenia vo Vestníku, závierky v RÚZ, PDF dokumenty, súdne rozhodnutia), cez ktoré
+sa to dá urobiť, a asistenta môžete požiadať, aby vám ich ukázal. Zhoda mena nie je dôkazom, že ide
+o tú istú osobu alebo firmu. Softvér sa poskytuje tak, ako je, bez akejkoľvek záruky (pozri
+[LICENSE](LICENSE)).
+
+**English.** The data come from public registers. The server takes them as the registers publish
+them, and sometimes shortens, links or summarises them. The registers can contain errors, delays and
+incomplete records, the server can read or match them wrongly (for example by name where a register
+gives no IČO), and an AI assistant can misinterpret them. The author is not responsible for the
+accuracy, completeness or timeliness of the data, nor for any conclusions anyone draws from them.
+Treat the results as a starting point for further checking, not as proof: verify every finding in
+the original source before you use or publish it. The tools give links to the source records
+(contracts in CRZ, notices in the procurement journal, statements in RÚZ, PDF documents, court
+decisions) so you can do that, and you can ask the assistant to show them. A matching name is not
+proof of the same person or company. The software is provided as is, without any warranty (see
+[LICENSE](LICENSE)).
