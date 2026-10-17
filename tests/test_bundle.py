@@ -93,3 +93,17 @@ def test_sync_starts_from_the_snapshot_unless_told_not_to(cache, monkeypatch):
     sync.main(["all", "--jobs", "1", "--no-bootstrap", "--skip", others])
     sync.main(["all", "--jobs", "1", "--skip", others])
     assert calls == ["uvo", ("main", ["--since", "2026-01-01"]), ("main", []), ("main", []), "uvo", ("main", [])]
+
+
+def test_rebuilding_one_snapshot_keeps_the_others_in_the_manifest(cache, tmp_path, monkeypatch):
+    out = tmp_path / "out"
+    out.mkdir()
+    (out / "other.sqlite.xz").write_bytes(b"x")
+    (out / "manifest.json").write_text(json.dumps({"format": 1, "sources": {
+        "other": {"file": "other.sqlite.xz", "sha256": "abc", "schema": 1},
+        "gone": {"file": "gone.sqlite.xz", "sha256": "def", "schema": 1},  # its file was removed: dropped
+    }}))
+    build_index(uvo_index.default_path())
+    manifest = json.loads(bundle.build(out, ["uvo"]).read_text())
+    assert sorted(manifest["sources"]) == ["other", "uvo"]
+    assert manifest["sources"]["other"]["sha256"] == "abc"

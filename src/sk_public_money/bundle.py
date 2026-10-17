@@ -104,13 +104,21 @@ def snapshot(name: str, out: Path) -> dict:
 
 
 def build(out: Path, names: list[str]) -> Path:
+    """Snapshot the named sources into out. Entries of other sources already in out's manifest are
+    kept (when their file is still there), so refreshing one snapshot doesn't drop the others."""
+    path = out / "manifest.json"
     manifest = {"format": 1, "sources": {}}
+    if path.exists():
+        try:
+            kept = json.loads(path.read_text()).get("sources", {})
+        except ValueError:
+            kept = {}
+        manifest["sources"] = {n: e for n, e in kept.items() if n not in names and (out / e.get("file", "")).is_file()}
     for name in names:
         print(f"{name}: snapshotting…", file=sys.stderr, flush=True)
         manifest["sources"][name] = entry = snapshot(name, out)
         print(f"{name}: {entry['file']} {entry['bytes'] / 2**20:.0f} MB (index {entry['sqlite_bytes'] / 2**20:.0f} MB)",
               file=sys.stderr, flush=True)
-    path = out / "manifest.json"
     path.write_text(json.dumps(manifest, indent=2) + "\n")
     return path
 
