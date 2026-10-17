@@ -1,9 +1,10 @@
 """Download the Finančná správa lists into the local index: sk-public-money-sync fs.
 
 Every list is one zip (70 MB together); a list is downloaded only when its Last-Modified changed
-since it was indexed, parsed as a stream and the zip deleted. The corporate income tax list adds the
-quarterly archive files since --since (default 2023), so a company's tax shows over several years;
-each archive file is about 7 MB. The tools top up the two small daily VAT lists (cancellation reasons
+since it was indexed, parsed as a stream and the zip deleted. The two quarterly lists, corporate
+income tax and VAT returns, also add their archived quarterly files since --since (default 2016; the
+archives start with the lists of June 2018, so all of them), so a company's history shows; about 33 files of 7 MB and 33 of 15-18 MB, each
+downloaded once. The tools top up the two small daily VAT lists (cancellation reasons
 and struck off) inline when they are stale; everything else is this command's job.
 """
 
@@ -19,10 +20,12 @@ from pathlib import Path
 
 from ... import localdb
 from ...http import SourceUnavailable, cache_dir
-from .client import FSClient, list_url
+from .client import ARCHIVE_PAGES, FSClient, list_url
 from .index import LISTS, FSIndex
 
-DEFAULT_SINCE = "2023-01-01"
+# The user asked for history back to 2016; the published archives start with the lists of
+# 30 June 2018, so this takes all of them.
+DEFAULT_SINCE = "2016-01-01"
 # Process order: older corporate tax files first, then lists whose names are most current last, so
 # the names in `subjects` come from the newest list.
 ORDER = ["ds_dppos", "ds_dphno", "ds_dsdd", "ds_dphz", "ds_dphv", "ds_dphs", "ds_iz_ran"]
@@ -61,28 +64,31 @@ async def sync_list(client: FSClient, index: FSIndex, name: str, *, force: bool 
     return result
 
 
-async def sync_archive(client: FSClient, index: FSIndex, since: str, *, say=None) -> list[str]:
-    """Index the archived corporate tax files dated since a day that are not indexed yet."""
-    done = set(json.loads(index.get_meta("dppos_archive") or "[]"))
-    files = [(d, url) for d, url in await client.archive_files() if d >= since and d not in done]
+async def sync_archive(client: FSClient, index: FSIndex, name: str, since: str, *, say=None) -> list[str]:
+    """Index the archived quarterly files of a list dated since a day that are not indexed yet."""
+    key = f"{name}_archive"
+    done = set(json.loads(index.get_meta(key) or "[]"))
+    files = [(d, url) for d, url in await client.archive_files(name) if d >= since and d not in done]
     failed = []
     for n, (day, url) in enumerate(files, 1):
-        path = raw_dir() / f"ds_dppos_{day}.zip"
+        path = raw_dir() / f"{name}_{day}.zip"
         try:
-            localdb.ensure_free_space(path, 60 << 20)
+            localdb.ensure_free_space(path, 200 << 20)
             await client.download(url, path)
-            result = index.load("ds_dppos", path, archive=True)
+            started = time.monotonic()
+            result = index.load(name, path, archive=True)
         except SourceUnavailable as exc:
-            failed.append(f"{day}: {exc}")
+            failed.append(f"{name} {day}: {exc}")
             if say:
-                say(f"[{n}/{len(files)}] ds_dppos {day} FAILED: {exc}")
+                say(f"[{n}/{len(files)}] {name} archive {day} FAILED: {exc}")
             continue
         finally:
             path.unlink(missing_ok=True)
         done.add(day)
-        index.set_meta("dppos_archive", json.dumps(sorted(done)))
+        index.set_meta(key, json.dumps(sorted(done)))
         if say:
-            say(f"[{n}/{len(files)}] ds_dppos archive {day}: {result['records']} records as of {result['as_of']}")
+            say(f"[{n}/{len(files)}] {name} archive {day}: {result['records']} records as of {result['as_of']} "
+                f"in {time.monotonic() - started:.0f} s")
     return failed
 
 
@@ -109,12 +115,12 @@ async def run(lists: list[str], since: str, *, force: bool = False, archive: boo
     started = time.monotonic()
     try:
         for name in [n for n in ORDER if n in lists]:
-            if name == "ds_dppos" and archive:
+            if name in ARCHIVE_PAGES and archive:
                 try:
-                    failed += await sync_archive(client, index, since, say=say)
+                    failed += await sync_archive(client, index, name, since, say=say)
                 except SourceUnavailable as exc:
-                    failed.append(f"ds_dppos archive: {exc}")
-                    say(f"ds_dppos archive FAILED: {exc}")
+                    failed.append(f"{name} archive: {exc}")
+                    say(f"{name} archive FAILED: {exc}")
             try:
                 if await sync_list(client, index, name, force=force, say=say) is None:
                     say(f"{name}: unchanged")
@@ -122,6 +128,7 @@ async def run(lists: list[str], since: str, *, force: bool = False, archive: boo
                 failed.append(f"{name}: {exc}")
                 say(f"{name} FAILED: {exc}")
         localdb.mark_done(index.db, "inline_checked_at")
+        index.coverage(refresh=True)
         # Replacing whole lists leaves a write-ahead log as large as the lists; give the space back.
         index.db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         size = index.path.stat().st_size / 2**20
@@ -139,8 +146,8 @@ async def run(lists: list[str], since: str, *, force: bool = False, archive: boo
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="sk-public-money-sync fs", description="Download the Finančná správa SR lists (VAT, tax reliability, debtors, corporate tax) into the local index.")
     parser.add_argument("--lists", default=",".join(ORDER), help=f"comma-separated lists to update (default all: {','.join(ORDER)})")
-    parser.add_argument("--since", default=DEFAULT_SINCE, help=f"oldest archived corporate tax file to add, YYYY-MM-DD (default {DEFAULT_SINCE}; the archive starts in 2018)")
-    parser.add_argument("--no-archive", dest="archive", action="store_false", help="skip the archived corporate tax files")
+    parser.add_argument("--since", default=DEFAULT_SINCE, help=f"oldest archived quarterly file (corporate tax, VAT returns) to add, YYYY-MM-DD (default {DEFAULT_SINCE}; the archives start in June 2018)")
+    parser.add_argument("--no-archive", dest="archive", action="store_false", help="skip the archived quarterly files")
     parser.add_argument("--force", action="store_true", help="download and index the lists again even when unchanged")
     args = parser.parse_args(argv)
     lists = [n.strip() for n in args.lists.split(",") if n.strip()]

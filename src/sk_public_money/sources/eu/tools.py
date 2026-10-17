@@ -14,6 +14,7 @@ from typing import Annotated, Literal
 from pydantic import Field
 
 from ...app import READ_ONLY, mcp, user_errors
+from ...localdb import sync_command
 from ...http import SourceUnavailable
 from . import parse
 from .client import ITMSClient
@@ -22,8 +23,8 @@ from .index import EUIndex, default_path
 PAGE_SIZE = 20
 STALE_AFTER = 8 * 86400
 MAX_LIVE_LOOKUPS = 10
-NO_INDEX = ("The ITMS21+ index has not been built. Build it with sk-public-money-sync eu (lists in a few minutes, "
-            "then procurement details for about 4 hours; searches work as soon as the lists are in).")
+NO_INDEX = (f"The ITMS21+ index has not been built. Build it with {sync_command('eu')} (a few minutes from the "
+            "prebuilt index; from the source, lists in a few minutes and procurement details in about 5 hours).")
 NOT_COVERED = ("ITMS21+ covers the 2021-2027 programmes only. Projects of 2014-2020 (ITMS2014+) and the Recovery "
                "Plan (Plán obnovy) are not in this source.")
 CODE = re.compile(r"^\s*([A-Z0-9]{6,12})\s*$", re.I)
@@ -61,7 +62,7 @@ def _status(ix: EUIndex) -> dict:
     out = {"index": ix.coverage()}
     synced = ix.get_meta("lists_synced_at")
     if synced and time.time() - float(synced) > STALE_AFTER:
-        out["index_note"] = "The index is more than a week old; refresh it with sk-public-money-sync eu."
+        out["index_note"] = f"The index is more than a week old; refresh it with {sync_command('eu')}."
     return out
 
 
@@ -255,6 +256,10 @@ async def eu_search_procurements(
         if inv:
             out["invoices_as_supplier"] = inv
     out.update(_status(ix))
+    partial = "procurement_details" in (out.get("index") or {})
+    if any("details" in r for r in out["results"]) or (partial and (text or (icos and role != "buyer"))):
+        out["details_note"] = (f"Some procurements have no details yet, so a supplier search can miss them; the index fills "
+                               f"them in with {sync_command('eu')}.")
     if icos and not total and "invoices_as_supplier" not in out:
         out["note"] = f"No procurement or invoice with IČO {icos} in ITMS21+. Suppliers are matched by the main supplier of each contract only. {NOT_COVERED}"
     return out

@@ -54,8 +54,9 @@ with attribution.
 Finančná správa SR, the tax authority (fs_* tools): its published lists, kept in a local index (built
 with sk-public-money-sync fs): VAT registration, index daňovej spoľahlivosti (tax reliability rating),
 VAT payers with reasons to cancel their registration (§ 52(6)) and struck off (§ 52(8)), corporate
-income tax assessed and tax loss per tax period (quarterly lists since 2023), VAT excess deduction or
-own liability per period (latest quarterly list only), and tax debtors. The debtor list has no IČO, so
+income tax assessed and tax loss per tax period, VAT excess deduction or own liability per period
+(both from every quarterly list since the oldest archived, June 2018; a period published in several lists shows each with
+list_of), and tax debtors. The debtor list has no IČO, so
 debtors are matched by name only (matched_by: name). Natural persons appear as published. Amounts in
 EUR. CC BY 4.0 (the reliability index CC0): Zdroj údajov: Finančná správa SR - https://opendata.financnasprava.sk/.
 
@@ -75,6 +76,17 @@ Common Agricultural Policy per beneficiary and EU financial year (FY2025 = 16 Oc
 measure code (Annex IX of Reg. 2022/128) and obec, from a local index. The lists carry no IČO: a
 company is found by name, and results say matched_by name. Recipients of EUR 1,250 or less are only a
 numeric code. No licence is stated; published under Article 98 of Reg. 2021/2116.
+
+Political-party financing (party_* tools). party_account_transactions: transparent accounts
+(transparentný účet) at Slovenská sporiteľňa, every movement with date, signed amount (negative = paid
+out), counterparty name as the bank shows it, note and variable symbol; no counterparty IBAN or IČO.
+The account list mixes parties, candidates, campaigns and charities; other banks (ČSOB, VÚB, Tatra
+banka, Fio) are not covered; no terms of use published. Donors, lenders and membership fees are in the
+parties' annual reports (výročné správy, 2015 on, minv.sk, no licence published): find the report with
+party_annual_reports, then party_read_report. Most reports are scans: read_report returns text pages
+as text and scanned pages as images for you to read; without pages it gives coverage and thumbnails to
+find the registers (usually G gifts, F loans, J membership fees, K overdue liabilities). A report with
+no rows found is not proof of no donors. Check every name and amount read from an image against it.
 
 EU funds 2021-2027, ITMS21+ (eu_* tools): projects co-financed by the EU (Program Slovensko, fisheries,
 Interreg SK-AT and SK-CZ, home-affairs funds AMIF, ISF, BMVI), grant applications (ŽoNFP), payment

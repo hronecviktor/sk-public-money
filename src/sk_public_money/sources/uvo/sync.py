@@ -24,6 +24,7 @@ from pathlib import Path
 import httpx
 
 from ...http import SourceUnavailable, ThrottledClient, cache_dir
+from ...localdb import sync_command
 from . import vestnik
 from .index import VestnikIndex
 
@@ -196,7 +197,7 @@ async def refresh(index: VestnikIndex, catalogue: CatalogueClient, *, limit: int
         return {"vestnik_update": f"Could not update the Vestník index: {exc}"}
     index.set_meta("checked_at", str(time.time()))
     if len(todo) > limit:
-        return {"vestnik_update": f"{len(todo) - limit} more new Vestník issues are not indexed yet; run sk-public-money-sync uvo."}
+        return {"vestnik_update": f"{len(todo) - limit} more new Vestník issues are not indexed yet; run {sync_command('uvo')}."}
     return None
 
 

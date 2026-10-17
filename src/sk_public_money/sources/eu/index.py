@@ -18,6 +18,7 @@ import zlib
 from pathlib import Path
 
 from ... import localdb
+from ...localdb import sync_command
 from ...text import fold
 
 # Bump when an index built by older code cannot be topped up by newer code (prebuilt snapshots).
@@ -312,7 +313,7 @@ class EUIndex:
         row = self.db.execute("SELECT data, fetched FROM suppliers WHERE id=?", (supplier_id,)).fetchone()
         if row and row[0]:
             return unpack(row[0])
-        return {"supplier_id": supplier_id, "note": "not resolved yet (run sk-public-money-sync eu)" if not row else "unknown to the API"}
+        return {"supplier_id": supplier_id, "note": f"not resolved yet (run {sync_command('eu')})" if not row else "unknown to the API"}
 
     def short_org(self, subject_id: int | None = None, supplier_id: int | None = None) -> dict | None:
         o = self.org(subject_id) if subject_id is not None else self.supplier(supplier_id)
@@ -455,7 +456,7 @@ class EUIndex:
         rec.pop("buyer_supplier_id", None)
         out.update(rec)
         if detail is None:
-            out["note"] = "Details (contracts, suppliers, projects) not loaded yet; run sk-public-money-sync eu."
+            out["details"] = "not loaded yet: contracts, suppliers and projects unknown"
             return out
         project_ids = detail.pop("project_ids", [])
         out.update(detail)

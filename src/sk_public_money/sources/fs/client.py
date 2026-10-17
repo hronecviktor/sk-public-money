@@ -2,7 +2,8 @@
 
 The lists are zipped XML files at https://report.financnasprava.sk/<list>.zip, replaced daily,
 monthly or quarterly (Last-Modified tells when); no key is needed. Older quarterly files of the
-corporate income tax list are linked from an archive page on www.financnasprava.sk. The server sits
+corporate income tax and VAT returns lists (since the lists of 30 June 2018) are linked from archive pages on
+www.financnasprava.sk; the archive directories themselves cannot be listed. The server sits
 behind an F5 firewall and sometimes resets a transfer midway, so downloads are retried. No rate limit
 or robots rules are published (robots.txt is a 404); requests are spaced 2 s apart.
 
@@ -21,8 +22,10 @@ import httpx
 from ...http import SourceUnavailable, ThrottledClient
 
 REPORT_URL = "https://report.financnasprava.sk"
-ARCHIVE_PAGE = "https://www.financnasprava.sk/sk/elektronicke-sluzby/verejne-sluzby/zoznamy/archiv-vybranych-informacnych/zoznam-subjektov-s-vyskou-dane"
-ARCHIVE_LINK = re.compile(r"https://report\.financnasprava\.sk/archiv/DS_DPPOS/ds_dppos_(\d{8})\.zip")
+ARCHIVE_PAGES = {
+    "ds_dppos": "https://www.financnasprava.sk/sk/elektronicke-sluzby/verejne-sluzby/zoznamy/archiv-vybranych-informacnych/zoznam-subjektov-s-vyskou-dane",
+    "ds_dphno": "https://www.financnasprava.sk/sk/elektronicke-sluzby/verejne-sluzby/zoznamy/archiv-vybranych-informacnych/zoznam-danovych-subjektov-dph",
+}
 INTERVAL = 2.0
 RETRIES = 3
 RETRY_WAIT = 10.0
@@ -57,10 +60,11 @@ class FSClient(ThrottledClient):
                 await asyncio.sleep(self._retry_wait * attempt)
         raise AssertionError("unreachable")
 
-    async def archive_files(self) -> list[tuple[str, str]]:
-        """The archived corporate income tax files as (YYYY-MM-DD, url), oldest first."""
-        resp = await self._get(ARCHIVE_PAGE)
+    async def archive_files(self, name: str) -> list[tuple[str, str]]:
+        """The archived quarterly files of a list (ds_dppos, ds_dphno) as (YYYY-MM-DD, url), oldest first."""
+        resp = await self._get(ARCHIVE_PAGES[name])
         if resp.status_code != 200:
-            raise SourceUnavailable(f"www.financnasprava.sk returned HTTP {resp.status_code} for the archive page.")
-        found = {m.group(1): m.group(0) for m in ARCHIVE_LINK.finditer(resp.text)}
+            raise SourceUnavailable(f"www.financnasprava.sk returned HTTP {resp.status_code} for the {name} archive page.")
+        link = re.compile(rf"https://report\.financnasprava\.sk/archiv/{name.upper()}/{name}_(\d{{8}})\.zip")
+        found = {m.group(1): m.group(0) for m in link.finditer(resp.text)}
         return [(f"{d[:4]}-{d[4:6]}-{d[6:]}", url) for d, url in sorted(found.items())]

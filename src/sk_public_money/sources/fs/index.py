@@ -4,12 +4,13 @@ The lists have no search API, only zipped XML files that are replaced daily, mon
 so sync.py downloads them, this module stores the fields the tools use, and the zips are deleted.
 Amounts are stored in cents. One table per list, plus `subjects` (DIČ -> IČO, name, address) filled
 from every list that names its taxpayers, so a row that carries only a DIČ can be found by IČO.
-Corporate income tax accumulates over the quarterly files (each file's rows are kept, by list date);
-every other list is replaced whole when a new version is indexed.
+Corporate income tax and VAT returns accumulate over the quarterly files and their archives (each
+file's rows are kept, by list date); every other list is replaced whole when a new version is indexed.
 """
 
 from __future__ import annotations
 
+import json
 import re
 import sqlite3
 import time
@@ -35,7 +36,10 @@ CREATE INDEX IF NOT EXISTS vat_flags_list ON vat_flags (list, published);
 -- Dates as YYYYMMDD integers: this table holds several quarterly files.
 CREATE TABLE IF NOT EXISTS cit (dic TEXT, period_from INTEGER, period_to INTEGER, tax INTEGER, additional INTEGER, loss INTEGER, release INTEGER,
     PRIMARY KEY (dic, period_from, period_to, release)) WITHOUT ROWID;
-CREATE TABLE IF NOT EXISTS vat_returns (dic TEXT, period TEXT, excess INTEGER, own INTEGER, PRIMARY KEY (dic, period)) WITHOUT ROWID;
+-- Every quarterly file since mid-2018 (tens of millions of rows), so as compact as it gets: DIČ as a
+-- number, period as YYYYMM (a quarter as YYYY2q: 202621 = Q1 2026), list date as YYYYMMDD.
+CREATE TABLE IF NOT EXISTS vat_returns (dic INTEGER, period INTEGER, release INTEGER, excess INTEGER, own INTEGER,
+    PRIMARY KEY (dic, period, release)) WITHOUT ROWID;
 CREATE TABLE IF NOT EXISTS debtors (id INTEGER PRIMARY KEY, name TEXT, name_key TEXT, amount INTEGER, place TEXT, town TEXT);
 CREATE INDEX IF NOT EXISTS debtors_key ON debtors (name_key);
 CREATE VIRTUAL TABLE IF NOT EXISTS debtors_text USING fts5 (text, content = '', tokenize = 'unicode61 remove_diacritics 2');
@@ -64,6 +68,7 @@ FILL_SUBJECT = """INSERT INTO subjects (dic, ico, name, place) VALUES (?,?,?,?) 
 # Every published row is kept: a later list can carry the same period again, e.g. with only the
 # additional tax assessed after a supplementary return, which does not replace the first assessment.
 UPSERT_CIT = "INSERT OR REPLACE INTO cit VALUES (?,?,?,?,?,?,?)"
+UPSERT_VAT_RETURN = "INSERT OR REPLACE INTO vat_returns VALUES (?,?,?,?,?)"
 
 
 def default_path() -> Path:
@@ -99,6 +104,41 @@ def _cit(row: tuple | None) -> tuple | None:
     return (dic, _day(start), _day(end), tax, additional, loss, _day(release))
 
 
+def _period_code(period: str | None) -> int | str | None:
+    """'2026-03' -> 202603, '2026-Q1' -> 202621; anything else as published."""
+    m = re.fullmatch(r"(\d{4})-(?:(\d{2})|Q([1-4]))", period or "")
+    if not m:
+        return period
+    return int(m.group(1)) * 100 + (int(m.group(2)) if m.group(2) else 20 + int(m.group(3)))
+
+
+def _period_text(code) -> str:
+    if isinstance(code, int) and 190001 <= code <= 299924:
+        year, rest = divmod(code, 100)
+        return f"{year}-{rest:02d}" if rest <= 12 else f"{year}-Q{rest - 20}"
+    return str(code)
+
+
+def _period_end(code) -> int:
+    """A sort key: the period's last month as YYYYMM (a quarter ends in its third month)."""
+    if not isinstance(code, int):
+        return 0
+    year, rest = divmod(code, 100)
+    return year * 100 + (rest if rest <= 12 else (rest - 20) * 3)
+
+
+def _dic_value(dic: str) -> int | str:
+    """A DIČ as stored in vat_returns: a number (DIČs never start with 0)."""
+    return int(dic) if dic.isdigit() and not dic.startswith("0") else dic
+
+
+def _vat_return(row: tuple | None, release: str | None) -> tuple | None:
+    if row is None:
+        return None
+    dic, period, excess, own = row
+    return (_dic_value(dic), _period_code(period), _day(release), excess, own)
+
+
 def fts_query(text: str) -> str | None:
     """Every word must occur, as a word prefix: 'Siroky' finds Široký, Širokého."""
     words = re.findall(r"\w+", fold(text))
@@ -110,6 +150,20 @@ class FSIndex:
         self.path = path or default_path()
         self.db = localdb.connect(self.path, SCHEMA)
         self.db.create_function("fold", 1, lambda s: fold(s) if s else s, deterministic=True)
+        self._migrate()
+
+    def _migrate(self) -> None:
+        """Indexes built before VAT returns kept their history: start that table afresh."""
+        columns = {r[1] for r in self.db.execute("PRAGMA table_info(vat_returns)")}
+        if "release" not in columns:
+            with self.db:
+                self.db.execute("DROP TABLE vat_returns")
+                self.db.execute("DELETE FROM lists WHERE name = 'ds_dphno'")
+            self.db.executescript(SCHEMA)
+        if (old := self.get_meta("dppos_archive")) is not None:
+            with self.db:
+                self.db.execute("INSERT OR REPLACE INTO meta VALUES ('ds_dppos_archive', ?)", (old,))
+                self.db.execute("DELETE FROM meta WHERE key = 'dppos_archive'")
 
     def close(self) -> None:
         self.db.close()
@@ -124,7 +178,8 @@ class FSIndex:
 
     def load(self, name: str, path: Path, *, last_modified: str | None = None, archive: bool = False) -> dict:
         """Index one downloaded list file; returns {as_of, records, skipped}. archive: an older
-        corporate tax file, which adds rows but does not stand for the list's current version."""
+        quarterly file (corporate tax, VAT returns), which adds rows but does not stand for the list's
+        current version."""
         source = parse.ListFile(path)
         counts = {"records": 0, "skipped": 0}
 
@@ -142,8 +197,8 @@ class FSIndex:
                 self._load_with_subjects(source, "NAZOV_DS", lambda item: _cit(parse.cit_row(item, source.as_of or "")), UPSERT_CIT, counts,
                                          subject_sql=FILL_SUBJECT if archive else UPSERT_SUBJECT)
             elif name == "ds_dphno":
-                self.db.execute("DELETE FROM vat_returns")
-                self._load_with_subjects(source, "NAZOV_DS", parse.vat_return_row, "INSERT OR REPLACE INTO vat_returns VALUES (?,?,?,?)", counts)
+                self._load_with_subjects(source, "NAZOV_DS", lambda item: _vat_return(parse.vat_return_row(item), source.as_of), UPSERT_VAT_RETURN,
+                                         counts, subject_sql=FILL_SUBJECT if archive else UPSERT_SUBJECT)
             elif name == "ds_iz_ran":
                 self.db.execute("UPDATE subjects SET rating = NULL WHERE rating IS NOT NULL")
                 self._load_with_subjects(source, "NAZOV_SUBJEKTU", _rated, "UPDATE subjects SET rating = ? WHERE dic = ?", counts)
@@ -164,6 +219,8 @@ class FSIndex:
                         self.db.execute("INSERT INTO debtors_text (rowid, text) VALUES (?,?)", (rowid, fold(row[0])))
             else:
                 raise ValueError(f"Unknown list {name}")
+            if name in ("ds_dppos", "ds_dphno"):
+                self.db.execute("DELETE FROM meta WHERE key = 'coverage'")
             if not archive:
                 self.db.execute(
                     "INSERT OR REPLACE INTO lists VALUES (?,?,?,?,?,?)",
@@ -198,9 +255,26 @@ class FSIndex:
     def as_of(self) -> dict[str, str | None]:
         return {name: info["as_of"] for name, info in sorted(self.lists().items())}
 
+    def coverage(self, *, refresh: bool = False) -> dict:
+        """What the history tables span. Scanning millions of rows takes a second or two, so the
+        result is kept in meta and computed again only after a quarterly list was indexed."""
+        cached = self.get_meta("coverage")
+        if cached and not refresh:
+            return json.loads(cached)
+        # Some published periods are nonsense (01.01.1000); the span counts plausible dates only.
+        cit = self.db.execute(
+            "SELECT min(period_to), max(period_to), min(release) FROM cit WHERE period_to BETWEEN 19930101 AND 21000101"
+        ).fetchone()
+        vat = self.db.execute("SELECT min(release), max(release) FROM vat_returns").fetchone()
+        out = {
+            "cit": {"periods_to": [_iso(cit[0]), _iso(cit[1])], "oldest_list": _iso(cit[2])} if cit[0] else None,
+            "vat_returns": {"lists": [_iso(vat[0]), _iso(vat[1])]} if vat[0] else None,
+        }
+        self.set_meta("coverage", json.dumps(out))
+        return out
+
     def cit_coverage(self) -> dict | None:
-        row = self.db.execute("SELECT min(period_to), max(period_to), min(release) FROM cit").fetchone()
-        return {"periods_to": [_iso(row[0]), _iso(row[1])], "oldest_list": _iso(row[2])} if row[0] else None
+        return self.coverage()["cit"]
 
     def dics_for_ico(self, ico: str) -> list[str]:
         dics = [r[0] for r in self.db.execute("SELECT dic FROM subjects WHERE ico = ? ORDER BY dic", (ico,))]
@@ -232,9 +306,16 @@ class FSIndex:
         return [{**dict(r), **{k: _iso(r[k]) for k in ("period_from", "period_to", "release")}} for r in rows]
 
     def vat_returns(self, dics: list[str]) -> list[dict]:
+        """VAT return rows, newest period first (and within a period, newest list first)."""
         marks = ",".join("?" * len(dics))
-        rows = self.db.execute(f"SELECT * FROM vat_returns WHERE dic IN ({marks})", dics)
-        return [dict(r) for r in rows]
+        rows = self.db.execute(f"SELECT * FROM vat_returns WHERE dic IN ({marks})", [_dic_value(d) for d in dics]).fetchall()
+        # Same last month: the month before the quarter, then the newest list first.
+        rows.sort(key=lambda r: (_period_end(r["period"]), _period_end(r["period"]) == r["period"], r["release"] or 0), reverse=True)
+        return [{"dic": str(r["dic"]), "period": _period_text(r["period"]), "release": _iso(r["release"]),
+                 "excess": r["excess"], "own": r["own"]} for r in rows]
+
+    def vat_returns_coverage(self) -> dict | None:
+        return self.coverage()["vat_returns"]
 
     def vat_groups_led_by(self, names: list[str]) -> list[dict]:
         """VAT groups (named 'Skupina DPH zastupovaná: <representative>') whose representative has one

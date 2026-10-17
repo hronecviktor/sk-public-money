@@ -18,6 +18,7 @@ from . import bundle
 # Source name -> module with main(argv). Add a line here for each source with an index, in the order
 # `all` builds them: quick ones first, so a long build that is stopped leaves the rest done.
 SOURCES = {
+    "party": "sk_public_money.sources.party.sync",
     "ppa": "sk_public_money.sources.ppa.sync",
     "fs": "sk_public_money.sources.fs.sync",
     "court": "sk_public_money.sources.court.sync",
