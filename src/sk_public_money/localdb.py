@@ -16,6 +16,13 @@ from pathlib import Path
 from .http import cache_dir
 
 META = "CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);"
+REPO = "git+https://github.com/hronecviktor/sk-public-money"
+
+
+def sync_command(source: str) -> str:
+    """How to run a source's sync, for tool messages. The server usually runs through uvx, which puts
+    no sk-public-money-sync on the user's PATH, so the uvx form comes first."""
+    return f"`uvx --from {REPO} sk-public-money-sync {source}` (or `sk-public-money-sync {source}` where the package is installed)"
 
 
 def db_path(source: str, name: str | None = None) -> Path:

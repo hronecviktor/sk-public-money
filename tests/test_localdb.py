@@ -83,3 +83,13 @@ def test_sync_all_runs_every_source_and_reports_failures(monkeypatch, capsys):
 
     with pytest.raises(SystemExit):
         sync.main(["all", "--skip", "nope"])
+
+
+def test_build_hints_work_for_uvx_installs():
+    hint = localdb.sync_command("fs")
+    assert hint.startswith("`uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync fs`")
+    from sk_public_money.sources.fs.tools import NO_INDEX
+    from sk_public_money.sources.ppa.tools import NOT_BUILT
+    from sk_public_money.sources.uvo.tools import NO_INDEX_NOTE
+
+    assert all("uvx --from" in message for message in (NO_INDEX, NOT_BUILT, NO_INDEX_NOTE))

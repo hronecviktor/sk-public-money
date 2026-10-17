@@ -16,6 +16,7 @@ from typing import Annotated, Literal
 from pydantic import Field
 
 from ...app import READ_ONLY, mcp, user_errors
+from ...localdb import sync_command
 from . import parse, sync
 from .client import MAX_RESULTS, TEDClient
 from .index import VestnikIndex, default_path
@@ -30,7 +31,7 @@ TED_ROLE_NOTES = {
     "subcontractor": "TED indexes subcontractors only in eForms notices (from November 2023).",
 }
 NO_INDEX_NOTE = ("Only TED was searched (procurements above the EU thresholds): the local Vestník index, which adds "
-                 "procurements below them and low-value contracts, has not been built. Build it with sk-public-money-sync uvo.")
+                 f"procurements below them and low-value contracts, has not been built. Build it with {sync_command('uvo')}.")
 TED_NUMBER = re.compile(r"(\d{1,8}-\d{4})")
 VESTNIK_ID = re.compile(r"vestnik:\d+(?:-\d+)?")
 
@@ -160,7 +161,7 @@ async def uvo_search_procurements(
     ix = index() if source != "ted" else None
     out: dict = {}
     if source == "vestnik" and ix is None:
-        raise ValueError("The Vestník index has not been built; build it with sk-public-money-sync uvo, or search source=ted.")
+        raise ValueError(f"The Vestník index has not been built; build it with {sync_command('uvo')}, or search source=ted.")
     if ix is not None:
         out.update(await sync.refresh(ix, catalogue()) or {})
 
@@ -229,7 +230,7 @@ async def uvo_get_notice(
     if vestnik_id:
         ix = index()
         if ix is None:
-            raise ValueError("The Vestník index has not been built; build it with sk-public-money-sync uvo.")
+            raise ValueError(f"The Vestník index has not been built; build it with {sync_command('uvo')}.")
         notice = ix.get(vestnik_id.group(0))
         if notice is None:
             raise LookupError(f"No notice {vestnik_id.group(0)} in the Vestník index.")

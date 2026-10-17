@@ -14,6 +14,7 @@ from pydantic import Field
 
 from ... import localdb
 from ...app import READ_ONLY, mcp, user_errors
+from ...localdb import sync_command
 from ...text import fold
 from ..rpo import parse as rpo_parse
 from ..rpo.tools import client as rpo_client
@@ -22,7 +23,7 @@ from .index import PPAIndex, default_path
 from .parse import FUNDS, MEASURES, OBJECTIVES, measure_code, place_key
 
 STALE_AFTER = 45 * 86400
-NOT_BUILT = ("The PPA beneficiary index has not been built yet. Build it with: sk-public-money-sync ppa "
+NOT_BUILT = (f"The PPA beneficiary index has not been built yet. Build it with {sync_command('ppa')} "
              "(downloads about 16 MB from www.apa.sk and takes about a minute).")
 NAME_NOTE = ("PPA publishes no IČO; ico is filled only when you searched by IČO, and then the beneficiary "
              "merely carries the same name (matched_by: name), which is not proof of the same entity.")
@@ -56,7 +57,7 @@ def _notes(idx: PPAIndex) -> dict:
     checked = idx.get_meta("checked_at")
     if checked and time.time() - float(checked) > STALE_AFTER:
         out["index_note"] = ("The index was last checked against www.apa.sk on "
-                             f"{time.strftime('%Y-%m-%d', time.localtime(float(checked)))}; run sk-public-money-sync ppa for newer lists.")
+                             f"{time.strftime('%Y-%m-%d', time.localtime(float(checked)))}; run {sync_command('ppa')} for newer lists.")
     return out
 
 
