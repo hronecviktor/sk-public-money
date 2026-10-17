@@ -130,38 +130,44 @@ Ak klient `uvx` nenájde, zadajte celú cestu, ktorú vypíše `which uvx` (na W
 `uvx --refresh --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-mcp`
 (ukončite ho cez Ctrl+C) a reštartom klienta.
 
-**Index Vestníka verejného obstarávania** (voliteľný, ale bez neho nástroje `uvo_*` hľadajú len
-v TED, teda len zákazky nad limitmi EÚ):
+### Prvé spustenie
+
+Väčšina nástrojov funguje hneď po pripojení: CRZ, RPVS, RPO, RÚZ, TED, súdne rozhodnutia
+a transparentné účty sa pýtajú priamo portálov a výročné správy strán sa sťahujú, až keď ich asistent
+číta. Niektoré registre sa však nedajú prehľadávať cez internet, dajú sa len stiahnuť celé,
+preto si ich server ukladá do lokálneho indexu. Kým index nie je postavený, nástroj to povie aj
+s príkazom, ktorý ho postaví.
+
+Všetky indexy postavíte, a neskôr aktualizujete, jedným príkazom:
 
 ```sh
-uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync uvo
+uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync all
 ```
 
-Prvé spustenie stiahne všetky čísla Vestníka od októbra 2023: asi 770 súborov, spolu približne 7 GB,
-čo trvá okolo 45 minút. Index potom zaberá asi 300 MB a stiahnuté súbory, uložené komprimované, ďalších
-0,75 GB. Príkaz sa dá prerušiť a spustiť znova; stiahne len to, čo chýba. Ďalej sa index dopĺňa sám:
-nástroje každých 6 hodín skontrolujú nové čísla a stiahnu ich.
+Príkaz ide od najrýchlejších zdrojov po najpomalšie. Dá sa prerušiť a spustiť znova (stiahne len to,
+čo chýba) a jeden zlyhaný zdroj nezastaví ostatné. Jeden index postavíte cez
+`sk-public-money-sync <zdroj>`, niektoré vynecháte cez `sk-public-money-sync all --skip uvo`.
 
-**Index zoznamov Finančnej správy** (bez neho nástroje `fs_*` nefungujú):
+| Zdroj | Pre nástroje | Prvé spustenie | Miesto na disku | Ako sa aktualizuje |
+| --- | --- | --- | --- | --- |
+| `party` | `party_annual_reports` a `party_read_report` (zoznam si pri prvom použití postavia samy) | asi 20 sekúnd | menej ako 1 MB | zoznam najnovších rokov si nástroje obnovia samy raz týždenne |
+| `ppa` | `ppa_*` (bez indexu nefungujú) | menej ako minúta | asi 20 MB | znova spustiť, keď PPA zverejní nový rok |
+| `fs` | `fs_*` (bez indexu nefungujú) | niekoľko minút | niekoľko sto MB | spúšťať denne; malé denné zoznamy si nástroje doplnia samy |
+| `court` | `court_disqualified` a kontrola štatutárov v RPO (fungujú aj bez neho) | asi 20 minút | menej ako 1 MB | zoznam si nástroje obnovia samy raz denne |
+| `uvo` | `uvo_*` pod limitmi EÚ (bez indexu len TED) | asi 45 minút, sťahuje asi 7 GB | asi 300 MB + 0,75 GB stiahnutých čísel | nové čísla si nástroje doplnia samy každých 6 hodín |
+
+Spolu to zaberá asi 1,5 GB. Stiahnuté čísla Vestníka slúžia len na prestavanie indexu; bez nich ho
+postaví `sk-public-money-sync uvo --no-keep-raw`. Prvé spustenie je pomalé zámerne: server dodržiava
+pravidlá portálov pre roboty a posiela požiadavky s odstupom.
+
+Aby boli údaje čerstvé, spúšťajte `all` pravidelne, napríklad každú noc cez cron (s celou cestou
+k `uvx`, ktorú vypíše `which uvx`):
 
 ```sh
-uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync fs
+0 4 * * * /home/<vy>/.local/bin/uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync all
 ```
 
-Stiahne asi 170 MB za 2–3 minúty; index zaberá asi 220 MB. Daň z príjmov právnických osôb
-sa skladá zo štvrťročných zoznamov od roku 2023 (staršie od roku 2018 pridá `--since 2018-01-01`).
-Príkaz stiahne len zoznamy, ktoré sa zmenili; spúšťajte ho napríklad raz denne. Malé denné zoznamy
-platiteľov DPH na zrušenie registrácie a vymazaných si nástroje aktualizujú samy.
-**Index poľnohospodárskych dotácií** (potrebný pre nástroje `ppa_*`):
-
-```sh
-uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync ppa
-```
-
-Stiahne zoznamy prijímateľov za oba zverejnené finančné roky (asi 16 MB) a trvá menej ako minútu;
-index zaberá asi 20 MB. Keď PPA zverejní nový rok, spustite príkaz znova.
-
-Index a ďalšie údaje sa ukladajú do `~/.cache/sk-public-money`, alebo do priečinka v premennej
+Indexy a ďalšie údaje sa ukladajú do `~/.cache/sk-public-money`, alebo do priečinka v premennej
 prostredia `SK_PUBLIC_MONEY_CACHE_DIR`.
 
 ### Zdroje údajov a licencie
@@ -314,39 +320,44 @@ If the client can't find `uvx`, give the full path that `which uvx` prints (on W
 `uvx --refresh --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-mcp` once
 (stop it with Ctrl+C) and restart the client.
 
-**The procurement journal index** (optional, but without it the `uvo_*` tools search only TED, so
-only contracts above the EU thresholds):
+### First run
+
+Most tools work as soon as the server is connected: CRZ, RPVS, RPO, RÚZ, TED, court decisions and
+transparent accounts ask the portals directly, and parties' annual reports are downloaded only when
+the assistant reads one. Some registers can't be searched online, only downloaded whole, so the server
+keeps them in a local index. Until an index is built, its tools say so, with the command that builds
+it.
+
+One command builds every index, and later keeps them up to date:
 
 ```sh
-uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync uvo
+uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync all
 ```
 
-The first run downloads every Vestník issue since October 2023: about 770 files, roughly 7 GB in
-total, which takes around 45 minutes. The index then takes about 300 MB, and the downloaded files,
-kept compressed, another 0.75 GB. The command can be stopped and run again; it fetches only what's
-missing. After that the index tops itself up: every 6 hours the tools check for new issues and fetch
-them.
+It goes from the quickest source to the slowest. It can be stopped and run again (it fetches only
+what's missing), and one failing source doesn't stop the others. `sk-public-money-sync <source>`
+builds a single index, and `sk-public-money-sync all --skip uvo` leaves some out.
 
-**The tax authority's lists index** (the `fs_*` tools need it):
+| Source | For the tools | First run | Disk space | How it stays current |
+| --- | --- | --- | --- | --- |
+| `party` | `party_annual_reports` and `party_read_report` (they build the list themselves on first use) | about 20 seconds | under 1 MB | the tools refresh the newest years themselves once a week |
+| `ppa` | `ppa_*` (they don't work without it) | under a minute | about 20 MB | run again when PPA publishes a new year |
+| `fs` | `fs_*` (they don't work without it) | a few minutes | a few hundred MB | run daily; the tools update the small daily lists themselves |
+| `court` | `court_disqualified` and the director check in RPO (both work without it too) | about 20 minutes | under 1 MB | the tools refresh the list themselves once a day |
+| `uvo` | `uvo_*` below the EU thresholds (without it, TED only) | about 45 minutes, downloads about 7 GB | about 300 MB + 0.75 GB of downloaded issues | the tools fetch new issues themselves every 6 hours |
+
+Together that's about 1.5 GB. The downloaded Vestník issues are only needed to rebuild the index;
+`sk-public-money-sync uvo --no-keep-raw` builds it without keeping them. The first run is slow on
+purpose: the server follows each portal's rules for robots and spaces out its requests.
+
+To keep the data fresh, run `all` regularly, for example nightly from cron (with the full path to
+`uvx` that `which uvx` prints):
 
 ```sh
-uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync fs
+0 4 * * * /home/<you>/.local/bin/uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync all
 ```
 
-It downloads about 170 MB in 2–3 minutes; the index takes about 220 MB. Corporate income tax is
-put together from the quarterly lists since 2023 (`--since 2018-01-01` adds the older ones). The
-command fetches only the lists that changed; run it, say, once a day. The tools update the small daily
-lists of VAT payers facing cancellation and struck off themselves.
-**The farm subsidy index** (needed by the `ppa_*` tools):
-
-```sh
-uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync ppa
-```
-
-It downloads the beneficiary lists of both published financial years (about 16 MB) in under a
-minute; the index takes about 20 MB. Run it again when PPA publishes a new year.
-
-The index and other data are stored in `~/.cache/sk-public-money`, or in the folder set in the
+Indexes and other data are stored in `~/.cache/sk-public-money`, or in the folder set in the
 `SK_PUBLIC_MONEY_CACHE_DIR` environment variable.
 
 ### Data sources and licences

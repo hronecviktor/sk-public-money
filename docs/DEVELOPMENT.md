@@ -32,7 +32,9 @@ A source that needs a local index keeps it in the cache directory and uses `loca
 `db_path()`, `connect()` with a meta table, `is_due()`/`mark_done()` for refresh intervals, and
 `ensure_free_space()` before a large download. `ThrottledClient._download()` streams a large file to
 disk. Its `sync.py` has `main(argv)` and a line in the `SOURCES` table of `sync.py` at the package
-root, so `sk-public-money-sync <source>` builds or tops up its index. Delete raw downloads once they
+root, so `sk-public-money-sync <source>` builds or tops up its index. `sk-public-money-sync all` runs
+them in the order of that table, so keep quick sources first and add a row to the README's first-run
+table. Delete raw downloads once they
 are indexed unless the source needs them to re-index.
 
 The tests run offline:
