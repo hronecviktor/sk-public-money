@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ZoznamSubjektovRegistrovanychkDPH>
+  <DatumAktualizacieZoznamu>17102026</DatumAktualizacieZoznamu>
+  <DS_DPHS>
+    <ITEM>
+      <DRUH_REG_DPH>§5</DRUH_REG_DPH>
+      <DATUM_REG>07.10.2026</DATUM_REG>
+      <PLAT_DPH_OD>07.10.2026</PLAT_DPH_OD>
+    </ITEM>
+    <ITEM>
+      <IC_DPH>SK2020999001</IC_DPH>
+      <ICO>01234567</ICO>
+      <NAZOV_DS>&quot; ALFA TEST s.r.o. &quot;</NAZOV_DS>
+      <OBEC>Žilina</OBEC>
+      <PSC>01001</PSC>
+      <ULICA_CISLO>Fiktívna 1/A</ULICA_CISLO>
+      <STAT>Slovensko</STAT>
+      <DRUH_REG_DPH>§4</DRUH_REG_DPH>
+      <DATUM_REG>01.06.2002</DATUM_REG>
+      <PLAT_DPH_OD>01.06.2002</PLAT_DPH_OD>
+    </ITEM>
+    <ITEM>
+      <IC_DPH>SK1099999002</IC_DPH>
+      <ICO>99999002</ICO>
+      <NAZOV_DS>Jozef Široký</NAZOV_DS>
+      <OBEC>Prešov</OBEC>
+      <PSC>08001</PSC>
+      <ULICA_CISLO>Vymyslená 7</ULICA_CISLO>
+      <STAT>Slovensko</STAT>
+      <DRUH_REG_DPH>§7a</DRUH_REG_DPH>
+      <DATUM_REG>15.08.2016</DATUM_REG>
+      <DATUM_ZMENY_DRUHU_REG>01.01.2020</DATUM_ZMENY_DRUHU_REG>
+    </ITEM>
+    <ITEM>
+      <IC_DPH>SK7120999003</IC_DPH>
+      <NAZOV_DS>Skupina DPH zastupovaná: BETA TEST, a.s.</NAZOV_DS>
+      <OBEC>Bratislava</OBEC>
+      <PSC>82101</PSC>
+      <ULICA_CISLO>Skúšobná 2</ULICA_CISLO>
+      <STAT>Slovensko</STAT>
+      <DRUH_REG_DPH>§4b</DRUH_REG_DPH>
+      <DATUM_REG>01.01.2023</DATUM_REG>
+      <PLAT_DPH_OD>01.01.2023</PLAT_DPH_OD>
+    </ITEM>
+  </DS_DPHS>
+</ZoznamSubjektovRegistrovanychkDPH>

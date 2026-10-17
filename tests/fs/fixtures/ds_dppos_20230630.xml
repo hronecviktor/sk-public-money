@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="Windows-1250"?>
+<ZoznamSubjektovDPPOS>
+  <DatumAktualizacieZoznamu>15062023</DatumAktualizacieZoznamu>
+  <DS_DPPOS>
+    <ITEM>
+      <ICO>01234567</ICO>
+      <DIC>2020999001</DIC>
+      <NAZOV_DS>ALFA TEST s.r.o. (starý názov Žilina)</NAZOV_DS>
+      <OBEC>Žilina</OBEC>
+      <PSC>01001</PSC>
+      <ULICA_CISLO>Fiktívna 1/A</ULICA_CISLO>
+      <STAT>SK</STAT>
+      <ZDAN_OBDOBIE_OD>01.01.2022</ZDAN_OBDOBIE_OD>
+      <ZDAN_OBDOBIE_DO>31.12.2022</ZDAN_OBDOBIE_DO>
+      <VYRUBENA_DAN>500.00</VYRUBENA_DAN>
+      <DODAT_VYRUBENA_DAN>0.00</DODAT_VYRUBENA_DAN>
+      <DANOVA_STRATA>3400.10</DANOVA_STRATA>
+    </ITEM>
+  </DS_DPPOS>
+</ZoznamSubjektovDPPOS>

@@ -30,7 +30,11 @@ trader, public body and association by IČO: names over time, seat, legal form, 
 dissolution, statutory body (konateľ, predstavenstvo), stakeholders (spoločník, akcionár, dozorná
 rada, prokurista), capital, predecessors and successors. RPO has no birth dates and no beneficial
 owners. Data lags the source registers by up to a day. Searches ignore case and diacritics; the API
-is slow (searches 5-30 s). CC BY 4.0 by MV SR.
+is slow (searches 5-30 s). Current directors and procurists (rpo_get_organization) and the roles
+found by rpo_search_person carry a 'disqualified' flag when their name is in the register of
+disqualified persons: matched by name only (strengthened when the address or town matches, as said
+in matched_by), with the ban period and whether it is active; court_disqualified shows the record.
+CC BY 4.0 by MV SR.
 
 RÚZ, Register účtovných závierok (ruz_* tools): financial statements of companies, sole traders,
 non-profits and public bodies. ruz_get_financials reads revenue, profit, assets and equity per year and
@@ -47,11 +51,30 @@ spending; a value of 0 means undisclosed. Identifiers are labelled ico, dic (DI�
 ico is null when the notice gives no Slovak IČO. Vestník data CC BY 4.0 by ÚVO; TED data may be reused
 with attribution.
 
-Political-party financing (party_* tools): party_account_transactions reads transparent accounts
-(transparentný účet) at Slovenská sporiteľňa: every movement with date, signed amount (negative = paid
-out), counterparty name as the bank shows it, note and variable symbol, but no counterparty IBAN or
-IČO. The account list mixes parties, candidates, campaigns and charities; accounts at other banks
-(ČSOB, VÚB, Tatra banka, Fio) are not covered. No licence or terms of use are published.
+Finančná správa SR, the tax authority (fs_* tools): its published lists, kept in a local index (built
+with sk-public-money-sync fs): VAT registration, index daňovej spoľahlivosti (tax reliability rating),
+VAT payers with reasons to cancel their registration (§ 52(6)) and struck off (§ 52(8)), corporate
+income tax assessed and tax loss per tax period (quarterly lists since 2023), VAT excess deduction or
+own liability per period (latest quarterly list only), and tax debtors. The debtor list has no IČO, so
+debtors are matched by name only (matched_by: name). Natural persons appear as published. Amounts in
+EUR. CC BY 4.0 (the reliability index CC0): Zdroj údajov: Finančná správa SR - https://opendata.financnasprava.sk/.
+
+Courts, súdy (court_* tools): decisions of Slovak general courts (~4.7M since about 2000) and judges,
+from the Ministry of Justice's pilot API (obcan.justice.sk), and judges' yearly asset declarations
+from Súdna rada. People who are parties are anonymised in decisions; companies keep name and IČO.
+court_search_decisions by IČO is a full-text match (both 31322832 and 31 322 832 spellings): check
+the snippet, the number may belong to another party. Decision text comes only from the PDF
+(court_get_decision text=true). Asset declarations are matched to judges by name.
+court_disqualified searches the register of disqualified persons (people banned by a court or tax
+office from company statutory bodies; ~1000 records, kept in a local copy refreshed daily) by name,
+with address, case and ban period; it has no birth dates. No licence is published for these sources.
+
+PPA, Pôdohospodárska platobná agentúra (ppa_* tools): farm and rural-development subsidies of the
+Common Agricultural Policy per beneficiary and EU financial year (FY2025 = 16 Oct 2024 to 15 Oct
+2025; the last two years), split into EPZF (EAGF), EPFRV (EAFRD) and national co-financing, by
+measure code (Annex IX of Reg. 2022/128) and obec, from a local index. The lists carry no IČO: a
+company is found by name, and results say matched_by name. Recipients of EUR 1,250 or less are only a
+numeric code. No licence is stated; published under Article 98 of Reg. 2021/2116.
 
 People named in these registers are often private individuals; a matching name is not proof of the
 same person.

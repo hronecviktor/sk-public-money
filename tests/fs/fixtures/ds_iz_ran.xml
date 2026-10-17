@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ZoznamSubjektovsIDS>
+  <Licencia>CC0</Licencia>
+  <PopisLicencie>Žiadne autorské práva</PopisLicencie>
+  <DatumAktualizacieZoznamu>16102026</DatumAktualizacieZoznamu>
+  <DS_IZ_RAN>
+    <ITEM>
+      <DIC>2020999001</DIC>
+      <ICO>1234567</ICO>
+      <IDS>menej spoľahlivý</IDS>
+      <NAZOV_SUBJEKTU>&quot; ALFA TEST s.r.o. &quot;</NAZOV_SUBJEKTU>
+      <OBEC>Žilina</OBEC>
+      <PSC>01001</PSC>
+      <ULICA_CISLO>Fiktívna 1/A</ULICA_CISLO>
+      <STAT>SK</STAT>
+    </ITEM>
+    <ITEM>
+      <DIC>2020999004</DIC>
+      <ICO>99999004</ICO>
+      <IDS>vysoko spoľahlivý</IDS>
+      <NAZOV_SUBJEKTU>BETA TEST, a.s.</NAZOV_SUBJEKTU>
+      <OBEC>Bratislava</OBEC>
+      <PSC>82101</PSC>
+      <ULICA_CISLO>Skúšobná 2</ULICA_CISLO>
+      <STAT>SK</STAT>
+    </ITEM>
+    <ITEM>
+      <DIC>7120999003</DIC>
+      <ICO>99999005</ICO>
+      <IDS>spoľahlivý</IDS>
+      <NAZOV_SUBJEKTU>Skupina DPH zastupovaná: BETA TEST, a.s.</NAZOV_SUBJEKTU>
+      <OBEC>Bratislava</OBEC>
+      <PSC>82101</PSC>
+      <ULICA_CISLO>Skúšobná 2</ULICA_CISLO>
+      <STAT>SK</STAT>
+    </ITEM>
+  </DS_IZ_RAN>
+</ZoznamSubjektovsIDS>

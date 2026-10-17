@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ZoznamSubjektovDPHNO>
+  <DatumAktualizacieZoznamu>15092026</DatumAktualizacieZoznamu>
+  <DS_DPHNO>
+    <ITEM>
+      <DIC>2020999001</DIC>
+      <IC_DPH>SK2020999001</IC_DPH>
+      <ICO>01234567</ICO>
+      <NAZOV_DS>&quot; ALFA TEST s.r.o. &quot;</NAZOV_DS>
+      <OBEC>Žilina</OBEC>
+      <PSC>01001</PSC>
+      <ULICA_CISLO>Fiktívna 1/A</ULICA_CISLO>
+      <STAT>SK</STAT>
+      <ZDAN_OBDOBIE>0326</ZDAN_OBDOBIE>
+      <NADMERNY_ODPOCET>1522.86</NADMERNY_ODPOCET>
+      <VLAST_DAN_POV>0.00</VLAST_DAN_POV>
+    </ITEM>
+    <ITEM>
+      <DIC>2020999001</DIC>
+      <IC_DPH>SK2020999001</IC_DPH>
+      <ICO>01234567</ICO>
+      <NAZOV_DS>&quot; ALFA TEST s.r.o. &quot;</NAZOV_DS>
+      <OBEC>Žilina</OBEC>
+      <PSC>01001</PSC>
+      <ULICA_CISLO>Fiktívna 1/A</ULICA_CISLO>
+      <STAT>SK</STAT>
+      <ZDAN_OBDOBIE>Q126</ZDAN_OBDOBIE>
+      <NADMERNY_ODPOCET>0.00</NADMERNY_ODPOCET>
+      <VLAST_DAN_POV>517.25</VLAST_DAN_POV>
+    </ITEM>
+    <ITEM>
+      <DIC>7120999003</DIC>
+      <IC_DPH>SK7120999003</IC_DPH>
+      <NAZOV_DS>Skupina DPH zastupovaná: BETA TEST, a.s.</NAZOV_DS>
+      <OBEC>Bratislava</OBEC>
+      <PSC>82101</PSC>
+      <ULICA_CISLO>Skúšobná 2</ULICA_CISLO>
+      <STAT>SK</STAT>
+      <ZDAN_OBDOBIE>0526</ZDAN_OBDOBIE>
+      <NADMERNY_ODPOCET>0.00</NADMERNY_ODPOCET>
+      <VLAST_DAN_POV>100000.50</VLAST_DAN_POV>
+    </ITEM>
+  </DS_DPHNO>
+</ZoznamSubjektovDPHNO>
