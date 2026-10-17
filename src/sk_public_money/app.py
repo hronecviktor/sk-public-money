@@ -96,6 +96,21 @@ recipient is in eu_get_project only. Searches read a local index (sk-public-mone
 changed records may be missing. 2014-2020 projects (ITMS2014+) and the Recovery Plan are not covered.
 No licence is published for the data.
 
+Insolvency, REPLIK (insolvency_* tools): the Ministry of Justice register of bankruptcy (konkurz),
+restructuring, personal debt relief (oddlženie), court-ordered liquidation and preventive
+restructuring proceedings; since October 2025 it replaced Register úpadcov and holds its history.
+insolvency_search by IČO or full text (names, file numbers), insolvency_get for parties, trustee and
+the court's and trustee's public notices (newest first; full text on request). Personal debt relief
+cases name private people with birth dates. A case moved between courts in 2023 keeps its REPLIK ID
+under a new file number. Live from the public API; no licence is published.
+
+Obchodný vestník (ov_* tools): the Ministry of Justice's Commercial Bulletin since July 2011, from a
+local index of Slovensko.Digital's Datahub. ov_search_notices by IČO: liquidation and calls to
+creditors, mergers/splits/conversions, capital reductions, commercial register entries, and konkurz
+notices up to September 2025 (later ones: insolvency_* tools). Texts are shortened; a company only
+named in another's notice is marked mentioned_only. Data are informative only, not legally binding
+(Datahub dataset terms, which allow reuse of modified data when the modification is stated).
+
 People named in these registers are often private individuals; a matching name is not proof of the
 same person.
 """

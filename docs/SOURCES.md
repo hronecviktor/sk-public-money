@@ -342,6 +342,46 @@ Things to know:
 - Natural persons (sole traders, individual recipients) are returned as the register publishes them.
 - No licence or rate limit is published for the API. Requests are spaced 1 s apart.
 
+### REPLIK: insolvency register ([replik-ws.justice.sk](https://replik-ws.justice.sk/ru-verejnost-ws/konanieService.wsdl))
+
+The Ministry of Justice's *Register predinsolvenčných, likvidačných a insolvenčných konaní* records
+bankruptcy (*konkurz*, *malý konkurz*), restructuring, personal debt relief (*oddlženie*),
+court-ordered liquidation and public preventive restructuring proceedings. On 1 October 2025 it
+replaced the Register úpadcov and took over its history (proceedings from 2012 and later were seen in tests).
+
+| Tool | What it does |
+| --- | --- |
+| `insolvency_search` | Finds proceedings by the debtor's IČO or by full text (names in any case and diacritics, file numbers, IČO). Each hit: REPLIK ID, court and file number, type, status, debtor with IČO or birth date, dates and trustee. |
+| `insolvency_get` | A proceeding by REPLIK ID: debtor and petitioners with addresses, court, judge, trustee (*správca*) with IČO and trustee mark, status and dates, and its public notices (court decisions and trustee announcements) newest first, with their texts on request. Or one notice's full text by notice ID. |
+
+Things to know:
+
+- Personal debt relief cases are about private people: REPLIK publishes their name, address and birth date, and so do the tools. Name searches return `matched_by: "text"`; a matching name is not proof of the same person.
+- When the courts were reorganised in 2023, cases moved to new courts with new file numbers (27K/14/2021 at Okresný súd Bratislava I became B1-27K/14/2021 at Mestský súd Bratislava III). The REPLIK ID stays. Notices listed by IČO keep the old court and file number; listed by file number, they carry the current ones. `insolvency_get` lists them by the current file number.
+- REPLIK lists notices oldest first; the tool reads the last pages so it can return the newest.
+- The proceedings service spells types `ODDLZENIE_KONKURZ`, the notices service `ODDLZENIE-KONKURZ`, and the manual differs from the WSDL; the tools use the proceedings spelling everywhere.
+- Trustees' notices are HTML and are returned as plain text. Each notice's text is cut at 6,000 characters when several are read and at 60,000 for a single notice; cut texts are marked `truncated`. Attachments are listed by name only.
+- A proceeding's detail has no status; the tool takes it from the search results. Voluntary liquidations of companies are not in REPLIK: they are announced in the Obchodný vestník.
+
+### Obchodný vestník: Commercial Bulletin ([Datahub](https://ekosystem.slovensko.digital/sluzby/datahub))
+
+The Ministry of Justice's Obchodný vestník publishes what companies and courts must announce. The
+server reads it from Slovensko.Digital's Datahub, which keeps every notice since July 2011 as the
+portal's original XML, and keeps a local index of the notices that concern a company by IČO.
+
+| Tool | What it does |
+| --- | --- |
+| `ov_search_notices` | Notices about an IČO, newest first, optionally of one kind and since a date: liquidation (entering liquidation, call to creditors, liquidators as published), dissolution (merger, split, conversion, dissolution), capital (capital reduction, capital funds), register (commercial register entries: new, change, deletion), insolvency (konkurz and trustee notices until September 2025) and other notices and corrections. Each has date, issue, title, the companies concerned, and shortened text and details. |
+
+Things to know:
+
+- **Build:** `sk-public-money-sync ov` streams Datahub's weekly Postgres dump (`ov.sql.gz`, about 4.2 GB) and reads its COPY blocks on the fly; the dump is never stored. The same rows would take about 42,000 requests to the sync API (60 per minute, about 12 hours). Later runs, and the tool every 6 hours (at most 5 pages inline), fetch changes from the `raw_issues` sync API by its since/last_id cursor.
+- Datahub's parsed OV tables are not used: `likvidator_issues` stops in 2017 and `or_podanie_issues` in 2019. The server parses the raw XML of every form itself, so all years are read the same way.
+- A notice's subject companies are the IČO fields outside role blocks (trustee, petitioner, liquidator, partner, creditor). IČOs written with spaces are normalised. Other companies named in a merger, capital or liquidation text are indexed too, but as `mentioned_only`. Old register filings (until early 2019) are plain text; IČO and name are read from it.
+- Notices about people without an IČO (personal bankruptcy, trustees' notices about individuals) are not kept. Insolvency notices are kept only up to 30 September 2025, when REPLIK took over; use `insolvency_*` for those.
+- Texts are cut (2,000 characters; insolvency 1,000). Register filings are about 90 % of the notices (about 2.5 million since 2011) and repeat the whole register entry, so only what says what happened is kept: the type (new entry, change, deletion, deeds filed), the company, the deletion sentence and reason, and the list of deeds filed (e.g. *Zmluva o prevode obchodného podielu*). What changed on a date is in `rpo_get_organization` with history. Bulk lists of companies that filed deeds (`*_ZBL_ZOZNAM`, ~200 companies each, no content) are not kept. Each notice links its Datahub source record.
+- Licence: Datahub's [dataset terms](https://ekosystem.slovensko.digital/podmienky) (from 1 March 2024) allow extraction and reuse. They require that changes be stated with their date, and they say the data are *informative only and not legally binding* (*informatívny charakter*). Every result says so, with the index build date.
+
 ## Being a polite robot
 
 Each source has its own throttle:
@@ -353,6 +393,8 @@ Each source has its own throttle:
 - **TED** uses its [Search API](https://docs.ted.europa.eu/api/latest/index.html), which needs no key and publishes no rate limit; requests are spaced 0.5 s apart. Notice XML is cached for good, since published notices never change (a correction is a new notice). TED data may be reused free of charge with attribution (Commission Decision 2011/833/EU). ÚVO's own website disallows robots in its robots.txt and is not used.
 - **Finančná správa** publishes no limits; its robots.txt is missing (404) and its servers sit behind an F5 firewall that sometimes resets a transfer. The sync spaces requests 2 s apart and retries a reset download twice. The tools send at most two HEAD requests and two small downloads every 6 hours.
 - **Courts:** the ISU API publishes no limits or licence, and its robots.txt does not cover `/pilot/api`; requests are spaced 1 s apart, and page numbers are 1-based. Decision PDFs and asset declarations are fetched one at a time when a tool asks for text, and the last few are kept in memory, not on disk. Súdna rada publishes no robots.txt. No licence is published for either source.
+- **REPLIK** uses its public SOAP API (integration manual *Integračná príručka – endpoint pre verejnosť*, v1.0.12), which needs no registration in production and publishes no limits or licence. Requests are spaced 1 s apart; pages hold at most 100 results; notice lists take 2–8 s.
+- **Datahub** (Obchodný vestník): the dump is one streamed download from S3. The sync API allows 60 requests per minute (`x-ratelimit-limit`); requests are spaced 1.1 s apart.
 - **RÚZ** uses its [open API](https://www.registeruz.sk/cruz-public/home/api), which needs no key and publishes no limits; robots.txt only disallows the XLS exports. Requests are spaced 0.5 s apart. Every statement and report is a separate request, so the first look at a large filer takes 10–30 s. Statements and reports are then cached for 3 days, and report templates (which RÚZ never changes) for good. RÚZ data are licensed [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
 - **PPA** lists are XLSX files on www.apa.sk, which has no robots.txt and publishes no limits or licence. The sync fetches the page and the changed files only, 2 s apart.
 - **Slovenská sporiteľňa** transparent accounts use the unauthenticated JSON API behind its web page (`api.slsp.sk/ta-accounts`, `api.slsp.sk/ta-turnovers`). It serves no robots.txt and no terms of use or licence were found, so requests are spaced at least 1 s apart and pages kept small (50 movements by default).
