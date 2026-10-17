@@ -367,3 +367,31 @@ async def test_details_refresh_only_when_due(built):
     # The detail fetched earlier is kept through a list reload.
     assert ix.procurement(106502)["contracts"]
     assert json.dumps(ix.procurement(106600))
+
+
+def test_snapshot_then_top_up_fetches_only_lists(tmp_path, monkeypatch):
+    """A sync that starts from a prebuilt snapshot reloads the lists but fetches no detail or supplier
+    it already has."""
+    import asyncio
+
+    from sk_public_money import bundle
+    from sk_public_money.http import ThrottledClient
+
+    monkeypatch.setenv("SK_PUBLIC_MONEY_CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setenv("SK_PUBLIC_MONEY_BUNDLE_URL", "https://example.sk/rel/")
+    assert asyncio.run(sync.run(out=io.StringIO(), client=make_client([])))
+    bundle.build(tmp_path / "out", ["eu"])
+    index_mod.default_path().unlink()
+    files = {p.name: p.read_bytes() for p in (tmp_path / "out").iterdir()}
+    assert json.loads(files["manifest.json"])["sources"]["eu"]["schema"] == index_mod.SCHEMA_VERSION
+
+    def handler(request):
+        name = request.url.path.rsplit("/", 1)[-1]
+        return httpx.Response(200, content=files[name]) if name in files else httpx.Response(404)
+
+    assert bundle.bootstrap("eu", ThrottledClient(lambda: 0, http=httpx.AsyncClient(transport=httpx.MockTransport(handler))))
+    calls = []
+    assert asyncio.run(sync.run(out=io.StringIO(), client=make_client(calls)))
+    fetched = {path.split("/")[0] for path, _ in calls if "/id/" in path}
+    assert fetched == set()  # lists only: no procurement detail, no supplier
+    assert index_mod.EUIndex().counts()["procurements_with_detail"] == 2

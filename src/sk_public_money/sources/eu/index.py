@@ -20,6 +20,9 @@ from pathlib import Path
 from ... import localdb
 from ...text import fold
 
+# Bump when an index built by older code cannot be topped up by newer code (prebuilt snapshots).
+SCHEMA_VERSION = 1
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS subjects (id INTEGER PRIMARY KEY, ico TEXT, name TEXT, data BLOB);
 CREATE INDEX IF NOT EXISTS subjects_ico ON subjects (ico);

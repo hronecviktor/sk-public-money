@@ -48,6 +48,8 @@ ROLES = {
 }
 # Forms that report who won: results and the half-year summary reports.
 AWARD_FORMS = ("result",)
+# Bump when an index built by older code can't be topped up by this code (prebuilt snapshots check it).
+SCHEMA_VERSION = 1
 
 
 def default_path() -> Path:

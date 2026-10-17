@@ -287,7 +287,9 @@ that are new or changed, plus at most 300 re-checks per run of details older tha
 procurements) or 180 days (finished ones), since a contract can be added without the procurement's
 change date moving. A weekly run thus makes a few hundred detail requests. Suppliers and some
 buyers are records of a separate register with no list (`dodavatelobstaravatel`), so each new one is
-fetched once and cached: about 4,000 on the first run. The index takes about 60 MB. The tools do not
+fetched once and cached: about 4,000 on the first run. The index takes about 60 MB. A first run starts
+from the prebuilt snapshot (see DEVELOPMENT.md) when one is published, and then fetches only the lists and
+what the snapshot lacks; `--no-bootstrap` builds from the source. The tools do not
 top it up themselves; they say how old it is.
 
 Things to know:
