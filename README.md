@@ -18,6 +18,7 @@ obstarávania, firmy, ich skutočných vlastníkov a účtovné závierky. Asist
 | **RPVS**: Register partnerov verejného sektora | Koneční užívatelia výhod (skutoční vlastníci) firiem, ktoré dostávajú verejné peniaze, s dátumom narodenia; oprávnené osoby a verejní funkcionári | Otvorené API [rpvs.gov.sk](https://rpvs.gov.sk/rpvs) | `rpvs_*` |
 | **RPO**: Register právnických osôb | Totožnosť každej firmy, živnostníka, inštitúcie a združenia podľa IČO: názvy v čase, sídlo, štatutári, spoločníci, kapitál, vznik a zánik, právni predchodcovia a nástupcovia | API Ministerstva vnútra SR ([rpo.minv.sk](https://rpo.minv.sk)) | `rpo_*` |
 | **RÚZ**: Register účtovných závierok | Účtovné závierky: tržby, výsledok hospodárenia, aktíva a vlastné imanie po rokoch | Otvorené API [registeruz.sk](https://www.registeruz.sk) | `ruz_*` |
+| **Finančná správa SR** | Registrácia pre DPH, index daňovej spoľahlivosti, platitelia DPH s dôvodom na zrušenie registrácie a vymazaní, vyrubená daň z príjmov právnických osôb a daňová strata po rokoch, nadmerné odpočty DPH, daňoví dlžníci | Otvorené dáta [opendata.financnasprava.sk](https://opendata.financnasprava.sk) (zoznamy v lokálnom indexe) | `fs_*` |
 
 Ako sú registre prepojené:
 
@@ -58,6 +59,9 @@ Príklady otázok pre asistenta:
 | `ruz_search_entity` | Hľadá účtovné jednotky podľa názvu, IČO alebo DIČ |
 | `ruz_get_entity` | Účtovná jednotka so zoznamom všetkých jej závierok |
 | `ruz_get_financials` | Tržby, výnosy, výsledok hospodárenia, aktíva a vlastné imanie po rokoch, s uvedením riadku výkazu, z ktorého pochádzajú |
+| `fs_get_taxpayer` | Daňový subjekt podľa IČO: registrácia pre DPH, index daňovej spoľahlivosti, zoznamy na zrušenie registrácie a vymazaných platiteľov, daň z príjmov a daňová strata po rokoch, posledné nadmerné odpočty DPH |
+| `fs_search_debtors` | Hľadá v zozname daňových dlžníkov podľa mena (zoznam nemá IČO) |
+| `fs_list_flagged` | Vymazaní platitelia DPH, platitelia s dôvodom na zrušenie registrácie alebo menej spoľahliví podľa dátumu a miesta |
 
 Na čo si dať pozor:
 
@@ -72,6 +76,7 @@ Na čo si dať pozor:
 - **Niektoré odpovede trvajú niekoľko sekúnd:** portály obmedzujú počet požiadaviek a niektoré API sú
   pomalé (vyhľadávanie v RPO 5–30 s, prvé načítanie veľkej firmy v RÚZ až 30 s). CRZ má večer
   pravidelnú údržbu, počas ktorej nie je dostupný.
+- **Zoznam daňových dlžníkov nemá IČO,** dlžníci sa hľadajú len podľa mena; porovnajte adresu.
 - **Vyhľadávanie mien nerozlišuje veľké a malé písmená ani diakritiku:** „Siroky“ nájde Široký,
   Siroký aj Široky.
 
@@ -118,6 +123,17 @@ Prvé spustenie stiahne všetky čísla Vestníka od októbra 2023: asi 770 súb
 0,75 GB. Príkaz sa dá prerušiť a spustiť znova; stiahne len to, čo chýba. Ďalej sa index dopĺňa sám:
 nástroje každých 6 hodín skontrolujú nové čísla a stiahnu ich.
 
+**Index zoznamov Finančnej správy** (bez neho nástroje `fs_*` nefungujú):
+
+```sh
+uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync fs
+```
+
+Stiahne asi FS_DOWNLOAD MB za FS_TIME minút; index zaberá asi FS_SIZE MB. Daň z príjmov právnických osôb
+sa skladá zo štvrťročných zoznamov od roku 2023 (staršie od roku 2018 pridá `--since 2018-01-01`).
+Príkaz stiahne len zoznamy, ktoré sa zmenili; spúšťajte ho napríklad raz denne. Malé denné zoznamy
+platiteľov DPH na zrušenie registrácie a vymazaných si nástroje aktualizujú samy.
+
 Index a ďalšie údaje sa ukladajú do `~/.cache/sk-public-money`, alebo do priečinka v premennej
 prostredia `SK_PUBLIC_MONEY_CACHE_DIR`.
 
@@ -133,6 +149,7 @@ licencie:
 - RÚZ: [CC0](https://creativecommons.org/publicdomain/zero/1.0/)
 - TED: bezplatné opätovné použitie s uvedením zdroja (Úrad pre publikácie EÚ)
 - RPVS: otvorené údaje Ministerstva spravodlivosti SR
+- Finančná správa SR: CC BY 4.0 (index daňovej spoľahlivosti CC0), „Zdroj údajov: Finančná správa SR - https://opendata.financnasprava.sk/“
 
 Server dodržiava pravidlá jednotlivých portálov pre automatizovaný prístup a požiadavky na ne posiela
 s odstupom. Podrobnosti o každom zdroji sú v [docs/SOURCES.md](docs/SOURCES.md) a o vývoji
@@ -154,6 +171,7 @@ can search and read them, and combine data from several registers in one answer.
 | **RPVS**: Register of Public Sector Partners | Beneficial owners of companies that receive public money, with birth dates; authorized persons and public officials | The open API of [rpvs.gov.sk](https://rpvs.gov.sk/rpvs) | `rpvs_*` |
 | **RPO**: Register of Legal Entities | The identity of every company, sole trader, public body and association by IČO: names over time, seat, directors, partners, capital, founding and dissolution, predecessors and successors | The Ministry of Interior's API ([rpo.minv.sk](https://rpo.minv.sk)) | `rpo_*` |
 | **RÚZ**: Register of Financial Statements | Financial statements: revenue, profit, assets and equity by year | The open API of [registeruz.sk](https://www.registeruz.sk) | `ruz_*` |
+| **Finančná správa SR**: the tax authority | VAT registration, tax reliability index, VAT payers facing cancellation and struck off, corporate income tax assessed and tax loss by year, VAT excess deductions, tax debtors | Open data at [opendata.financnasprava.sk](https://opendata.financnasprava.sk) (lists kept in a local index) | `fs_*` |
 
 How the registers connect:
 
@@ -195,6 +213,9 @@ Example questions for the assistant:
 | `ruz_search_entity` | Finds accounting entities by name, IČO or DIČ |
 | `ruz_get_entity` | An accounting entity with the list of all its statements |
 | `ruz_get_financials` | Revenue, income, profit, assets and equity by year, each with the report row it came from |
+| `fs_get_taxpayer` | A taxpayer by IČO: VAT registration, tax reliability index, VAT cancellation and struck-off lists, corporate income tax and tax loss by year, latest VAT excess deductions |
+| `fs_search_debtors` | Searches the tax debtor list by name (the list has no IČO) |
+| `fs_list_flagged` | VAT payers struck off or facing cancellation, or rated less reliable, by date and place |
 
 Things to watch out for:
 
@@ -209,6 +230,7 @@ Things to watch out for:
 - **Some answers take several seconds:** the portals limit request rates and some APIs are slow
   (RPO searches 5–30 s, the first look at a large company in RÚZ up to 30 s). CRZ has regular evening
   maintenance, during which it's unavailable.
+- **The tax debtor list has no IČO,** so debtors are matched by name only; compare the address.
 - **Name searches ignore case and diacritics:** "Siroky" finds Široký, Siroký and Široky.
 
 ### Installation
@@ -255,6 +277,17 @@ kept compressed, another 0.75 GB. The command can be stopped and run again; it f
 missing. After that the index tops itself up: every 6 hours the tools check for new issues and fetch
 them.
 
+**The tax authority's lists index** (the `fs_*` tools need it):
+
+```sh
+uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync fs
+```
+
+It downloads about FS_DOWNLOAD MB in FS_TIME minutes; the index takes about FS_SIZE MB. Corporate income tax is
+put together from the quarterly lists since 2023 (`--since 2018-01-01` adds the older ones). The
+command fetches only the lists that changed; run it, say, once a day. The tools update the small daily
+lists of VAT payers facing cancellation and struck off themselves.
+
 The index and other data are stored in `~/.cache/sk-public-money`, or in the folder set in the
 `SK_PUBLIC_MONEY_CACHE_DIR` environment variable.
 
@@ -270,6 +303,7 @@ licences:
 - RÚZ: [CC0](https://creativecommons.org/publicdomain/zero/1.0/)
 - TED: free reuse with attribution (Publications Office of the EU)
 - RPVS: open data of the Ministry of Justice of the Slovak Republic
+- Finančná správa SR: CC BY 4.0 (the tax reliability index CC0), "Zdroj údajov: Finančná správa SR - https://opendata.financnasprava.sk/"
 
 The server follows each portal's rules for automated access and spaces out its requests. Details on
 each source are in [docs/SOURCES.md](docs/SOURCES.md), and on development in
