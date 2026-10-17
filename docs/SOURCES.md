@@ -143,6 +143,28 @@ Things to know:
 - Corrected notices and reports ("Oprava: …") are indexed as their own records next to the original, labelled in `kind`; they are not merged into it.
 - Three issues are missing from the index because data.slovensko.sk lacks them: 202/2023 has no usable download link, and the datasets titled 144/2024 and 145/2025 are byte-identical copies of 145/2024 and 144/2025. The sync reports them on every run. All other issues since 201/2023 (17 October 2023) are indexed.
 
+### Courts: decisions and judges ([obcan.justice.sk](https://obcan.justice.sk), [sudnarada.gov.sk](https://www.sudnarada.gov.sk))
+
+The Ministry of Justice publishes every decision of the general courts (*rozhodnutie*: judgments,
+orders, payment orders; about 4.7 million since around 2000) and its register of judges through the
+ISU ("Infosúd") API, which is labelled *pilot*. The Judicial Council (Súdna rada) publishes judges'
+yearly asset declarations (*majetkové priznania*, 2013 onwards, about 13,000 PDFs).
+
+| Tool | What it does |
+| --- | --- |
+| `court_search_decisions` | Finds decisions by IČO or words, court, judge, legal area (*oblasť* or *podoblasť*) and date, newest first. Each hit has court, judge, case number, form and text snippets with the match marked «like this», plus counts by area, form and court type. |
+| `court_get_decision` | A decision by guid or ECLI: nature (*povaha*: confirmed, overturned, …), legal area, cited laws with Slov-Lex links and the PDF link. With `text=true` it downloads the PDF and returns its text page by page. |
+| `court_judge` | Finds judges by name (court, function, status, `judge_id` for the decision search) and lists their asset declarations from Súdna rada. With `declaration_url` it reads one declaration: real estate, movables, income from the office, debts and declared conflicts. |
+
+Things to know:
+
+- The API has no full text of decisions, only search snippets. The text comes from the PDF, which robots.txt of obcan.justice.sk disallows (`/content`); the user decided PDFs may be fetched one at a time on demand. Decisions from 2009 and declarations from 2017 checked so far have a text layer; a PDF without one is reported with a note.
+- Decisions anonymise people (*A. B., nar. XX.X.XXXX*); companies keep their name and IČO.
+- An IČO search is a full-text search, run twice: for `31322832` and for the phrase `"31 322 832"` (leading zeros dropped, so `"604 381"` also finds `00 604 381`). The results are merged, and `matching` gives the count for each spelling. The number may belong to another party, or be an amount, so the result says `matched_by` and each hit carries its snippet. Merged IČO results can be paged through the newest 500 only.
+- Text search stems words and requires all of them; quotes make a phrase. Operators like `OR` are not supported (the backend fails on them, reported as a bad query).
+- Judges' asset declarations are listed on Súdna rada's website, which matches a single surname without diacritics. The tool searches by the last word of the name first, then the others, and keeps declarations whose name contains every word given. They are matched to judges **by name only** (`asset_declarations_matched_by`), and list the court where the judge served that year.
+- Not used: court hearings (*pojednávania*, no parties), and the register of disqualified persons (*diskvalifikácia*, people banned from company boards), which the API also offers.
+
 ## Being a polite robot
 
 Each source has its own throttle:
@@ -152,6 +174,7 @@ Each source has its own throttle:
 - **RPO** uses the [REST API documented by MV SR](https://rpo.minv.sk/rpo-api-doc.html) at `api.statistics.sk/rpo/v1`, which needs no key and publishes no limits. Requests are spaced 0.5 s apart anyway. A detail takes about a second, while searches take 5–30 s.
 - **data.slovensko.sk** (Vestník issues) publishes no limits and its robots.txt allows everything. The sync fetches one issue at a time, 2 s apart. The data are licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) by ÚVO.
 - **TED** uses its [Search API](https://docs.ted.europa.eu/api/latest/index.html), which needs no key and publishes no rate limit; requests are spaced 0.5 s apart. Notice XML is cached for good, since published notices never change (a correction is a new notice). TED data may be reused free of charge with attribution (Commission Decision 2011/833/EU). ÚVO's own website disallows robots in its robots.txt and is not used.
+- **Courts:** the ISU API publishes no limits or licence, and its robots.txt does not cover `/pilot/api`; requests are spaced 1 s apart, and page numbers are 1-based. Decision PDFs and asset declarations are fetched one at a time when a tool asks for text, and the last few are kept in memory, not on disk. Súdna rada publishes no robots.txt. No licence is published for either source.
 - **RÚZ** uses its [open API](https://www.registeruz.sk/cruz-public/home/api), which needs no key and publishes no limits; robots.txt only disallows the XLS exports. Requests are spaced 0.5 s apart. Every statement and report is a separate request, so the first look at a large filer takes 10–30 s. Statements and reports are then cached for 3 days, and report templates (which RÚZ never changes) for good. RÚZ data are licensed [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
 
 CRZ daily exports and attachments are cached in `~/.cache/sk-public-money`, or in
