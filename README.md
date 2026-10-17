@@ -9,6 +9,13 @@ Claude) sprístupní slovenské verejné registre o tom, kam idú verejné penia
 obstarávania, firmy, ich skutočných vlastníkov a účtovné závierky. Asistent v nich vie vyhľadávať,
 čítať ich a prepájať údaje z viacerých registrov v jednej odpovedi.
 
+### Ukážka
+
+Na otázku *„Čo médiá nenapísali o zákazkách Ústrednej vojenskej nemocnice v Ružomberku a o novej
+nemocnici v Prešove?“* asistent s týmto serverom zostavil **[tento prehľad](https://hronecviktor.github.io/sk-public-money/examples/uvn-presov.html)**. Prepojil
+Vestník verejného obstarávania, CRZ, RPO, RPVS, RÚZ, Finančnú správu a súdne rozhodnutia a pri každom
+zistení overil, či o ňom už písali médiá.
+
 ### Prepojené registre
 
 | Register | Údaje | Čo obsahuje | Odkiaľ sú údaje | Nástroje |
@@ -220,6 +227,14 @@ v [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) (oboje v angličtine).
 (such as Claude) access to Slovak public registers about where public money goes: state contracts,
 public procurement, companies, their beneficial owners and their financial statements. The assistant
 can search and read them, and combine data from several registers in one answer.
+
+### Example
+
+Asked *"What haven't the media reported about the contracts of the Central Military Hospital in
+Ružomberok and the new hospital in Prešov?"*, an assistant using this server put together
+**[this report](https://hronecviktor.github.io/sk-public-money/examples/uvn-presov.html#en)**. It combined the procurement journal, CRZ, RPO, RPVS, RÚZ, the tax
+authority and court decisions, and checked each finding against what the media had already
+published.
 
 ### Connected registers
 

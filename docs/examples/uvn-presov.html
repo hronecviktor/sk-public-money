@@ -1,0 +1,346 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>ÚVN a nemocnica Prešov</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a register extract. One reading column, a facts rail up top, sections ruled like a filed dossier. */
+:root{
+  --bg:#f6f7f9; --surface:#ffffff; --ink:#14181f; --ink-2:#4a5260; --ink-3:#727a88;
+  --rule:#dde1e8; --accent:#1f4fa8; --accent-soft:#e7eefb;
+  --pos:#2a78d6; --neg:#e34948; --warn-bg:#fff4e0; --warn-ink:#7a4a00; --warn-line:#e8a33a;
+  --ok-bg:#e6f5ec; --ok-ink:#1b6a3a;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12151b; --surface:#1a1e26; --ink:#eef0f4; --ink-2:#b9c0cc; --ink-3:#8b93a1;
+  --rule:#2c323d; --accent:#8fb3ff; --accent-soft:#1f2a40;
+  --pos:#3987e5; --neg:#e66767; --warn-bg:#33270f; --warn-ink:#f3c879; --warn-line:#c98500;
+  --ok-bg:#15301f; --ok-ink:#8fd6a8; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#12151b; --surface:#1a1e26; --ink:#eef0f4; --ink-2:#b9c0cc; --ink-3:#8b93a1;
+  --rule:#2c323d; --accent:#8fb3ff; --accent-soft:#1f2a40;
+  --pos:#3987e5; --neg:#e66767; --warn-bg:#33270f; --warn-ink:#f3c879; --warn-line:#c98500;
+  --ok-bg:#15301f; --ok-ink:#8fd6a8; color-scheme:dark;}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:32px 64px}
+.wrap{max-width:960px;margin:0 auto;display:flex;flex-direction:column;gap:48px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:clamp(2rem,5vw,3rem);font-weight:700;letter-spacing:-.01em}
+h2{font-size:1.5rem;font-weight:700}
+h3{font-size:1.1rem;font-weight:500}
+p{margin:0;max-width:68ch}
+.mono,code{font-family:var(--f-mono);font-size:.88em}
+.eyebrow{font-family:var(--f-mono);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.muted{color:var(--ink-2)}
+.small{font-size:.9rem}
+a{color:var(--accent)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* Header */
+header{display:flex;flex-direction:column;gap:16px;padding-bottom:28px;border-bottom:2px solid var(--ink)}
+.ids{display:flex;flex-wrap:wrap;gap:8px 20px;font-family:var(--f-mono);font-size:.85rem;color:var(--ink-2)}
+.ids b{color:var(--ink);font-weight:500}
+.lede{font-size:1.1rem;color:var(--ink-2)}
+.facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+.fact{background:var(--surface);padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.fact .v{font-family:var(--f-display);font-size:1.5rem;font-weight:700;font-variant-numeric:tabular-nums}
+.fact .k{font-size:.85rem;color:var(--ink-3)}
+@media (max-width:640px){.facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Sections */
+section{display:flex;flex-direction:column;gap:18px}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--rule);padding-bottom:8px}
+.src{font-family:var(--f-mono);font-size:.72rem;color:var(--ink-3);letter-spacing:.04em}
+
+/* Tables */
+.tbl{overflow-x:auto;border:1px solid var(--rule);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--rule);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-weight:600;font-size:.8rem;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+td.neg{color:var(--neg)}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:0;}
+.kv th{text-transform:none;letter-spacing:0;font-size:.9rem;white-space:normal;width:1%}
+
+/* Callouts */
+.note{border-left:3px solid var(--warn-line);background:var(--warn-bg);color:var(--ink);padding:12px 16px;border-radius:0 6px 6px 0;display:flex;flex-direction:column;gap:4px}
+.note strong{color:var(--warn-ink)}
+.pill{display:inline-block;font-family:var(--f-mono);font-size:.72rem;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.pill.warn{background:var(--warn-bg);color:var(--warn-ink);border:1px solid var(--warn-line)}
+.pill.ok{background:var(--ok-bg);color:var(--ok-ink)}
+.pill.neutral{background:var(--accent-soft);color:var(--accent)}
+
+/* Ownership bar */
+.stack{display:flex;height:28px;border-radius:4px;overflow:hidden;gap:2px;background:var(--surface)}
+.stack span{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.9rem}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:baseline}
+
+/* Timeline */
+.tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border-left:2px solid var(--rule);margin-left:6px}
+.tl li{position:relative;padding:0 0 16px 20px;display:grid;grid-template-columns:7.5rem 1fr;gap:4px 16px}
+.tl li::before{content:"";position:absolute;left:-6px;top:7px;width:10px;height:10px;border-radius:50%;background:var(--surface);border:2px solid var(--accent)}
+.tl .d{font-family:var(--f-mono);font-size:.85rem;color:var(--ink-3)}
+.tl .cap{font-family:var(--f-mono);font-size:.85rem;color:var(--ink)}
+@media (max-width:560px){.tl li{grid-template-columns:1fr}}
+
+/* Charts */
+.chart{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:14px 14px 8px;position:relative;display:flex;flex-direction:column;gap:6px}
+.chart svg{width:100%;height:auto;display:block;overflow:visible}
+.chart .t{font-weight:600;font-size:.95rem}
+.charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:720px){.charts{grid-template-columns:1fr}}
+.axis text{fill:var(--ink-3);font-family:var(--f-mono);font-size:10px}
+.grid line{stroke:var(--rule);stroke-width:1}
+.zero{stroke:var(--ink-3);stroke-width:1}
+.bar{cursor:default}
+.hit{fill:transparent}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:.82rem;padding:6px 9px;border-radius:4px;white-space:nowrap;transform:translate(-50%,-110%);font-variant-numeric:tabular-nums}
+.tip[hidden]{display:none!important}
+
+/* Related firms */
+.firms{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:820px){.firms{grid-template-columns:1fr}}
+.firm{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.firm dl{margin:0;display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;font-size:.9rem}
+.firm dt{color:var(--ink-3)}
+.firm dd{margin:0;min-width:0}
+
+ol.flags{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:10px;max-width:72ch}
+footer{border-top:1px solid var(--rule);padding-top:16px;display:flex;flex-direction:column;gap:6px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+<style>
+.note.crit{border-left-color:var(--neg)}
+.note.crit strong{color:var(--neg)}
+.note p{max-width:none}
+.tl .d{white-space:nowrap}
+.lang-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:999px;overflow:hidden;background:var(--surface)}
+.seg button{font:inherit;font-size:.85rem;border:0;background:transparent;color:var(--ink-2);padding:6px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.lang-sk .en, .lang-en .sk{display:none!important}
+.tag{display:inline-block;font-family:var(--f-mono);font-size:.7rem;padding:2px 8px;border-radius:99px;white-space:nowrap;vertical-align:middle}
+.tag.new{background:var(--accent-soft);color:var(--accent)}
+.tag.part{background:var(--warn-bg);color:var(--warn-ink);border:1px solid var(--warn-line)}
+.tag.known{background:var(--bg);color:var(--ink-3);border:1px solid var(--rule)}
+.finding{display:flex;flex-direction:column;gap:12px;padding-top:4px}
+.finding h3{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.num{font-family:var(--f-mono);font-size:.8rem;color:var(--ink-3)}
+td.hl{font-weight:600}
+</style>
+
+<div class="wrap lang-sk" id="root">
+
+<div class="lang-bar">
+  <span class="eyebrow"><span class="sk">Analýza verejných registrov · stav k 17. 10. 2026</span><span class="en">Public-register analysis · as of 17 Oct 2026</span></span>
+  <div class="seg" role="group" aria-label="Jazyk / Language">
+    <button type="button" id="btn-sk" data-lang="sk" aria-pressed="true">Slovensky</button>
+    <button type="button" id="btn-en" data-lang="en" aria-pressed="false">English</button>
+  </div>
+</div>
+
+<header>
+  <h1><span class="sk">ÚVN Ružomberok a nemocnica v Prešove</span><span class="en">ÚVN Ružomberok and the Prešov Hospital</span></h1>
+  <p class="lede">
+    <span class="sk">Ústredná vojenská nemocnica SNP Ružomberok (ÚVN, rezort obrany) obstaráva od roku 2024 stavby v Ružomberku aj novú nemocnicu na mieste FNsP J. A. Reimana v Prešove. Médiá podrobne opísali pád konzorcia BEKOR, náhradnú zmluvu s IN VESTom bez súťaže a zákazku pre firmu SWINPET. Táto stránka pridáva súvislosti z verejných registrov, ktoré sme v médiách nenašli, a pri každom zistení uvádza, či už bolo publikované.</span>
+    <span class="en">Since 2024 the Central Military Hospital SNP Ružomberok (ÚVN, under the Ministry of Defence) has been procuring construction in Ružomberok and the new hospital on the site of the J. A. Reiman University Hospital (FNsP) in Prešov. The media have covered the collapse of the BEKOR consortium, the replacement contract with IN VEST awarded without a tender, and the contract for SWINPET in detail. This page adds connections from public registers that we did not find in the media, and marks for each finding whether it has already been published.</span>
+  </p>
+  <div class="facts">
+    <div class="fact"><span class="v">8</span><span class="k"><span class="sk">stavebných súťaží ÚVN s rovnakým externým obstarávateľom</span><span class="en">ÚVN construction tenders run by the same external agent</span></span></div>
+    <div class="fact"><span class="v">≈ 7,2 mil. €</span><span class="k"><span class="sk">rozdiel medzi víťaznou a najnižšou ponukou v 3 súťažiach (bez DPH)</span><span class="en">gap between winning and lowest bid in 3 tenders (excl. VAT)</span></span></div>
+    <div class="fact"><span class="v">6 → 2</span><span class="k"><span class="sk">žiadostí o účasť → ponúk v tendri na Prešov</span><span class="en">requests to participate → bids in the Prešov tender</span></span></div>
+    <div class="fact"><span class="v">≈ 18 mil. €</span><span class="k"><span class="sk">tri zákazky pre DAG SLOVAKIA za 3 mesiace</span><span class="en">three contracts for DAG SLOVAKIA within 3 months</span></span></div>
+  </div>
+</header>
+
+<section id="metoda">
+  <div class="sec-head"><h2><span class="sk">Ako čítať túto stránku</span><span class="en">How to read this page</span></h2></div>
+  <p class="small muted">
+    <span class="sk">Každé zistenie má štítok: <span class="tag new">nové</span> = v médiách sme ho nenašli, <span class="tag part">čiastočne</span> = médiá spomenuli jeho časť, <span class="tag known">známe</span> = už publikované. Overovali sme cielenými vyhľadávaniami v slovenských médiách 17. 10. 2026. Úplný prehľad všetkých médií to nie je, preto „nové" znamená „nenašli sme", nie „nikdy nepublikované". Údaje sú z Vestníka ÚVO, CRZ, RPO, RPVS, RÚZ, Finančnej správy a súdnych rozhodnutí.</span>
+    <span class="en">Each finding is labelled: <span class="tag new">new</span> = we did not find it in the media, <span class="tag part">partly</span> = the media mentioned part of it, <span class="tag known">known</span> = already published. We checked with targeted searches of Slovak media on 17 Oct 2026. That is not a complete media review, so "new" means "we did not find it", not "never published". Data come from the public-procurement journal (Vestník ÚVO), the contracts register (CRZ), the company register (RPO), the beneficial-ownership register (RPVS), financial statements (RÚZ), the tax authority and court decisions.</span>
+  </p>
+</section>
+
+<section id="obstaravatel">
+  <div class="sec-head"><h2><span class="num">01</span> <span class="sk">Jeden obstarávateľ pre všetky veľké stavby</span><span class="en">One agent for every major construction tender</span></h2><span class="tag new"><span class="sk">nové</span><span class="en">new</span></span></div>
+  <p>
+    <span class="sk">Vo všetkých ôsmich stavebných súťažiach ÚVN z rokov 2024 až 2026, ktoré sme otvorili, je ako kontakt verejného obstarávateľa uvedený <strong>PhDr. Matúš Džuppa, LL.M.</strong> (dzuppa@ekoauris.sk). Je jediným vlastníkom a konateľom firmy <strong>EkoAuris PLUS, s.r.o.</strong> z Prešova, ktorá má jedného zamestnanca. To, že EkoAuris pre ÚVN obstaráva na základe mandátnej zmluvy, je uvedené v dokumentoch k jednej súťaži (chcemvediet.sk). V správach o Prešove, SWINPET ani onkológii sme jeho meno ani firmu nenašli.</span>
+    <span class="en">In all eight ÚVN construction tenders from 2024 to 2026 that we opened, the contracting authority's contact is <strong>PhDr. Matúš Džuppa, LL.M.</strong> (dzuppa@ekoauris.sk). He is the sole owner and director of <strong>EkoAuris PLUS, s.r.o.</strong> of Prešov, a firm with one employee. That EkoAuris procures for ÚVN under a mandate contract appears in documents for one tender (chcemvediet.sk). We did not find his name or firm in news coverage of Prešov, SWINPET or the oncology pavilion.</span>
+  </p>
+  <div class="tbl"><table>
+    <thead><tr><th><span class="sk">Súťaž</span><span class="en">Tender</span></th><th><span class="sk">Rok</span><span class="en">Year</span></th><th><span class="sk">Víťaz</span><span class="en">Winner</span></th><th class="n"><span class="sk">Ponuky</span><span class="en">Bids</span></th><th class="n"><span class="sk">Hodnota bez DPH</span><span class="en">Value excl. VAT</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="sk">Nová nemocnica Prešov</span><span class="en">New Prešov hospital</span></td><td>2025</td><td>BEKOR + WHB, Magyar Építő, Confector</td><td class="n">2</td><td class="n">451 115 115 €</td></tr>
+      <tr><td><span class="sk">Severovýchodné krídlo chirurgie</span><span class="en">Surgery north-east wing</span></td><td>2025</td><td>STANTER, a.s.</td><td class="n">5</td><td class="n">29 377 000 €</td></tr>
+      <tr><td><span class="sk">Onkologický pavilón</span><span class="en">Oncology pavilion</span></td><td>2025</td><td>AVA-stav, s.r.o.</td><td class="n">5</td><td class="n">24 760 115 €</td></tr>
+      <tr><td><span class="sk">Polyfunkčný parkovací dom</span><span class="en">Multi-storey car park</span></td><td>2026</td><td>IN VEST + Adifex</td><td class="n">2</td><td class="n">9 784 994 €</td></tr>
+      <tr><td><span class="sk">Energocentrum Prešov</span><span class="en">Prešov energy centre</span></td><td>2026</td><td>DAG SLOVAKIA, a. s.</td><td class="n">2</td><td class="n">6 510 000 €</td></tr>
+      <tr><td><span class="sk">Chirurgia – západné krídlo</span><span class="en">Surgery west wing</span></td><td>2024</td><td>IN VEST s.r.o.</td><td class="n">6</td><td class="n">5 961 828 €</td></tr>
+      <tr><td><span class="sk">Riaditeľstvo – nadstavba</span><span class="en">Headquarters extension</span></td><td>2026</td><td>SWINPET s.r.o.</td><td class="n">5</td><td class="n">4 499 776 €</td></tr>
+      <tr><td><span class="sk">Pľúcny pavilón</span><span class="en">Lung pavilion</span></td><td>2025</td><td>MARPET s.r.o.</td><td class="n">6</td><td class="n">1 285 170 €</td></tr>
+    </tbody>
+  </table></div>
+  <div class="tbl"><table><tbody>
+    <tr><th scope="row"><span class="sk">Zmluvy EkoAuris s ÚVN</span><span class="en">EkoAuris contracts with ÚVN</span></th><td>74 400 € (7/2024) · 97 170 € (2/2025) · 114 000 € (9/2025) = <strong>285 570 €</strong></td></tr>
+    <tr><th scope="row"><span class="sk">Zmluva s FNsP Prešov</span><span class="en">Contract with FNsP Prešov</span></th><td><span class="sk">mandátna zmluva na obstarávanie, 90 000 €, jún 2025, teda počas tendra na novú nemocnicu</span><span class="en">procurement mandate, €90,000, June 2025, i.e. while the new-hospital tender was running</span></td></tr>
+    <tr><th scope="row"><span class="sk">Hospodárenie EkoAuris</span><span class="en">EkoAuris finances</span></th><td><span class="sk">tržby 118 tis. € (2023) → 243 tis. € (2024) → 289 tis. € (2025); zisk 2025: 178 tis. € (marža 62 %); 1 zamestnanec</span><span class="en">revenue €118k (2023) → €243k (2024) → €289k (2025); 2025 profit €178k (62% margin); 1 employee</span></td></tr>
+  </tbody></table></div>
+  <p class="small muted"><span class="sk">Externý obstarávateľ je bežná a zákonná prax. Problém by vznikol, keby mal vzťah k uchádzačom. Taký vzťah sme v registroch nenašli.</span><span class="en">Using an external procurement agent is common and lawful. It would be a problem only if the agent were linked to bidders. We found no such link in the registers.</span></p>
+</section>
+
+<section id="najnizsia">
+  <div class="sec-head"><h2><span class="num">02</span> <span class="sk">Najnižšia ponuka často nevyhrala</span><span class="en">The lowest bid often did not win</span></h2><span class="tag part"><span class="sk">čiastočne</span><span class="en">partly</span></span></div>
+  <p>
+    <span class="sk">Médiá písali o vylúčených lacnejších ponukách jednotlivo: pri SWINPETe a pľúcnom pavilóne (Demokrati) a pri onkológii (zastavmekorupciu.sk). Vo Vestníku však vidno, že víťaz nemal najnižšiu ponuku v troch súťažiach. Súčet týchto rozdielov sme v médiách nenašli.</span>
+    <span class="en">The media reported excluded cheaper bids case by case: SWINPET and the lung pavilion (Demokrati) and the oncology pavilion (zastavmekorupciu.sk). The procurement journal, however, shows that the winner did not have the lowest bid in three tenders. We did not find the combined total of these gaps in the media.</span>
+  </p>
+  <div class="tbl"><table>
+    <thead><tr><th><span class="sk">Súťaž</span><span class="en">Tender</span></th><th class="n"><span class="sk">Najnižšia ponuka</span><span class="en">Lowest bid</span></th><th class="n"><span class="sk">Víťazná ponuka</span><span class="en">Winning bid</span></th><th class="n"><span class="sk">Rozdiel</span><span class="en">Difference</span></th><th class="n"><span class="sk">Neprípustné</span><span class="en">Inadmissible</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="sk">Severovýchodné krídlo (STANTER)</span><span class="en">North-east wing (STANTER)</span></td><td class="n">24 978 000 €</td><td class="n">29 377 000 €</td><td class="n hl">+4 399 000 €</td><td class="n">1 z 5</td></tr>
+      <tr><td><span class="sk">Onkologický pavilón (AVA-stav)</span><span class="en">Oncology pavilion (AVA-stav)</span></td><td class="n">22 120 000 €</td><td class="n">24 760 115 €</td><td class="n hl">+2 640 115 €</td><td class="n">1 z 5</td></tr>
+      <tr><td><span class="sk">Pľúcny pavilón (MARPET)</span><span class="en">Lung pavilion (MARPET)</span></td><td class="n">1 100 000 €</td><td class="n">1 285 170 €</td><td class="n hl">+185 170 €</td><td class="n">3 z 6</td></tr>
+      <tr><td><strong><span class="sk">Spolu</span><span class="en">Total</span></strong></td><td></td><td></td><td class="n"><strong>+7 224 285 €</strong></td><td></td></tr>
+    </tbody>
+  </table></div>
+  <p class="small muted"><span class="sk">Pri onkológii a pľúcnom pavilóne bola víťazná ponuka podľa Vestníka zároveň najvyššou hodnotenou. Pri SWINPETe boli vylúčené 2 z 5 ponúk a víťaz mal najnižšiu zo zvyšných. Vylúčenie môže byť úplne oprávnené, napríklad pre nesplnené podmienky. Dôvody vo Vestníku nie sú, preverí ich len Úrad pre verejné obstarávanie alebo NKÚ.</span><span class="en">For oncology and the lung pavilion the winning bid was, per the journal, also the highest evaluated one. In SWINPET's tender 2 of 5 bids were excluded and the winner had the lowest of the rest. Exclusions may be fully justified, for example for unmet conditions. The journal does not give reasons; only the Public Procurement Office or the Supreme Audit Office can check them.</span></p>
+</section>
+
+<section id="presov-tender">
+  <div class="sec-head"><h2><span class="num">03</span> <span class="sk">Tender na Prešov: šesť záujemcov, dve ponuky, dve ceny</span><span class="en">The Prešov tender: six applicants, two bids, two prices</span></h2><span class="tag new"><span class="sk">nové</span><span class="en">new</span></span></div>
+  <ul class="small" style="margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:6px;max-width:72ch">
+    <li><span class="sk">Nemocnica zvolila <strong>rokovacie konanie so zverejnením</strong> podľa § 70 ods. 1 písm. c) zákona o verejnom obstarávaní s odôvodnením, že „existujú osobitné okolnosti" projektu.</span><span class="en">The hospital chose a <strong>negotiated procedure with prior publication</strong> under § 70(1)(c) of the Public Procurement Act, citing "special circumstances" of the project.</span></li>
+    <li><span class="sk"><strong>Žiadosti o účasť podalo šesť firiem, ponuky iba dve.</strong> Médiá písali o „minimálnom záujme" a dvoch uchádzačoch. Počet žiadostí o účasť sme v nich nenašli.</span><span class="en"><strong>Six firms requested to participate, only two bid.</strong> The media reported "minimal interest" and two bidders. We did not find the number of participation requests in them.</span></li>
+    <li><span class="sk">Vestník uvádza víťaznú ponuku <strong>451 115 115 €</strong> bez DPH. Zmluva v CRZ (550 812 591,45 € s DPH) aj BEKOR na súde uvádzajú <strong>447 815 115 €</strong> bez DPH. Médiá používajú obe sumy, ale rozdiel <strong>3,3 mil. €</strong> sme v nich vysvetlený nenašli.</span><span class="en">The journal gives the winning bid as <strong>€451,115,115</strong> excl. VAT. The CRZ contract (€550,812,591.45 incl. VAT) and BEKOR in court give <strong>€447,815,115</strong> excl. VAT. The media use both figures, but we found no explanation of the <strong>€3.3m</strong> gap.</span></li>
+    <li><span class="sk">Druhá ponuka, skupina „Nemocnica Prešov", mala 476,6 mil. €. Odhad nemocnice bol 360 mil. €, takže aj víťazná cena ho prekročila o 25 %.</span><span class="en">The second bid, group "Nemocnica Prešov", was €476.6m. The hospital's estimate was €360m, so even the winning price exceeded it by 25%.</span></li>
+  </ul>
+</section>
+
+<section id="sud">
+  <div class="sec-head"><h2><span class="num">04</span> <span class="sk">Čo vyšlo najavo na súde</span><span class="en">What came out in court</span></h2><span class="tag new"><span class="sk">nové</span><span class="en">new</span></span></div>
+  <p>
+    <span class="sk">BEKOR podal proti štátu (ministerstvu obrany) návrh na neodkladné opatrenie. <strong>Mestský súd Bratislava III mu 22. 5. 2026 priznal právo vykonať nezávislé deštruktívne skúšky betónu</strong> stĺpov za účasti vlastného znalca. Ostatné žiadosti zamietol, vrátane zákazu pokračovať v zmluve s IN VESTom. Krajský súd v Bratislave 29. 7. 2026 zamietnutie potvrdil (3Cob/90/2026). Toto rozhodnutie sme v médiách nenašli.</span>
+    <span class="en">BEKOR asked the court for an interim measure against the state (Ministry of Defence). <strong>On 22 May 2026 the Bratislava III City Court granted it the right to carry out independent destructive concrete tests</strong> on the columns with its own expert. It rejected the other requests, including a ban on continuing the IN VEST contract. The Bratislava Regional Court upheld the rejection on 29 Jul 2026 (3Cob/90/2026). We did not find this ruling in the media.</span>
+  </p>
+  <div class="note">
+    <strong><span class="sk">Tvrdenia BEKORu (nie zistenia súdu)</span><span class="en">BEKOR's claims (not findings of the court)</span></strong>
+    <ul class="small" style="margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:4px">
+      <li><span class="sk">Spodnú stavbu staval predchádzajúci dodávateľ označený ako <strong>„GD2"</strong>. Jeho čakacia výstuž nemala potrebnú presnosť, čo si vynútilo zmenu z prefabrikovaných stĺpov na monolitické. Štát ju odsúhlasil e-mailom 15. 10. 2025.</span><span class="en">The substructure was built by a previous contractor referred to as <strong>"GD2"</strong>. Its starter reinforcement lacked the required precision, forcing a switch from precast to cast-in-place columns. The state approved this by e-mail on 15 Oct 2025.</span></li>
+      <li><span class="sk">Projektová dokumentácia sa menila v rozsahu <strong>2 236 súborov a 368 revízií za mesiac</strong>. Štát nesprístupnil globálne statické výpočty.</span><span class="en">Design documentation changed by <strong>2,236 files and 368 revisions per month</strong>. The state did not release the global structural calculations.</span></li>
+      <li><span class="sk">Zo 334 stĺpov bolo otestovaných 226, väčšinou Schmidtovým kladivom. <strong>Jadrové vývrty sa robili len na troch stĺpoch.</strong> Podľa štátu treba zbúrať 23 až 36 stĺpov, teda 7 až 11 %.</span><span class="en">226 of 334 columns were tested, mostly with a rebound hammer. <strong>Core samples were taken from only three columns.</strong> According to the state, 23 to 36 columns (7–11%) need to be demolished.</span></li>
+      <li><span class="sk">Odstúpenie od zmluvy bolo podľa BEKORu „vopred naplánovaným krokom v rámci koordinovanej stratégie výmeny zhotoviteľa".</span><span class="en">BEKOR says the termination was "a pre-planned step in a coordinated strategy to replace the contractor".</span></li>
+    </ul>
+  </div>
+  <p class="small muted"><span class="sk">Zmluvu so „GD2" na spodnú stavbu sme v CRZ pod ÚVN nenašli. Mohla ju uzavrieť FNsP Prešov alebo ministerstvo.</span><span class="en">We did not find the "GD2" substructure contract in CRZ under ÚVN. It may have been signed by FNsP Prešov or a ministry.</span></p>
+</section>
+
+<section id="dag">
+  <div class="sec-head"><h2><span class="num">05</span> <span class="sk">DAG SLOVAKIA: tri zákazky za tri mesiace</span><span class="en">DAG SLOVAKIA: three contracts in three months</span></h2><span class="tag new"><span class="sk">nové</span><span class="en">new</span></span></div>
+  <div class="tbl"><table>
+    <thead><tr><th><span class="sk">Zákazka</span><span class="en">Contract</span></th><th><span class="sk">Zverejnené</span><span class="en">Published</span></th><th><span class="sk">Postup</span><span class="en">Procedure</span></th><th class="n"><span class="sk">Ponuky</span><span class="en">Bids</span></th><th class="n"><span class="sk">Zmluva (CRZ)</span><span class="en">Contract (CRZ)</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="sk">Vodojem (UVN-Prešov-001/2026)</span><span class="en">Water reservoir (UVN-Prešov-001/2026)</span></td><td>01/2026</td><td><span class="sk">iný postup</span><span class="en">other procedure</span></td><td class="n">2</td><td class="n">4 397 250 €</td></tr>
+      <tr><td><span class="sk">Bytový dom – ubytovacie zariadenie</span><span class="en">Residential building – staff housing</span></td><td>01/2026</td><td><span class="sk">iný postup</span><span class="en">other procedure</span></td><td class="n">4</td><td class="n">5 619 371 €</td></tr>
+      <tr><td><span class="sk">Energocentrum Prešov</span><span class="en">Prešov energy centre</span></td><td>03/2026</td><td><span class="sk">verejná súťaž (1 hodnotená ponuka)</span><span class="en">open (1 evaluated bid)</span></td><td class="n">2</td><td class="n">8 007 300 €</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small muted"><span class="sk">DAG SLOVAKIA, a. s. (Prešov, IČO 44886021). Koneční užívatelia výhod: Ing. Róbert Mitterpach a Ing. Tomáš Saloky. Pri energocentre boli dve ponuky, jedna však zostala neoverená, takže hodnotená bola len ponuka DAG. Spolu ide asi o 18 mil. € s DPH. V médiách sme tieto zákazky nenašli.</span><span class="en">DAG SLOVAKIA, a. s. (Prešov, company ID 44886021). Beneficial owners: Ing. Róbert Mitterpach and Ing. Tomáš Saloky. The energy-centre tender had two bids, but one remained unverified, so only DAG's bid was evaluated. In total about €18m incl. VAT. We did not find these contracts in the media.</span></p>
+</section>
+
+<section id="velkost">
+  <div class="sec-head"><h2><span class="num">06</span> <span class="sk">Veľkosť firiem a veľkosť zákaziek</span><span class="en">Company size versus contract size</span></h2><span class="tag part"><span class="sk">čiastočne</span><span class="en">partly</span></span></div>
+  <p class="small muted"><span class="sk">Že BEKOR prevádzkuje čerpacie stanice („pumpári z Galanty"), napísalo SME. Konkrétne čísla a to, že dve firmy jedného majiteľa držia zákazky ÚVN za vyše 470 mil. €, sme v médiách nenašli.</span><span class="en">SME reported that BEKOR runs petrol stations ("pump operators from Galanta"). We did not find the actual figures, or the fact that two firms of one owner hold ÚVN contracts worth over €470m, in the media.</span></p>
+  <div class="tbl"><table>
+    <thead><tr><th><span class="sk">Firma</span><span class="en">Company</span></th><th><span class="sk">Hlavná činnosť</span><span class="en">Main activity</span></th><th class="n"><span class="sk">Tržby (posledný rok pred zákazkou)</span><span class="en">Revenue (last year before award)</span></th><th class="n"><span class="sk">Zákazka bez DPH</span><span class="en">Contract excl. VAT</span></th><th class="n"><span class="sk">Pomer</span><span class="en">Ratio</span></th></tr></thead>
+    <tbody>
+      <tr><td>BEKOR s.r.o. <span class="small muted">(<span class="sk">líder skupiny 4 firiem</span><span class="en">one of a 4-firm group</span>)</span></td><td><span class="sk">maloobchod s pohonnými hmotami</span><span class="en">fuel retail</span></td><td class="n">15,7 mil. € (2024)</td><td class="n">447,8 mil. €</td><td class="n">≈ 29×</td></tr>
+      <tr><td>AVA-stav, s.r.o.</td><td><span class="sk">špecializované stavebné práce</span><span class="en">specialised construction</span></td><td class="n">—</td><td class="n">24,8 mil. €</td><td class="n"></td></tr>
+      <tr><td>IN VEST s.r.o.</td><td><span class="sk">výstavba budov</span><span class="en">building construction</span></td><td class="n">89,0 mil. € (2025)</td><td class="n">259,1 mil. €</td><td class="n">≈ 2,9×</td></tr>
+      <tr><td>SWINPET s.r.o.</td><td><span class="sk">predaj na trhoch, prenájom</span><span class="en">market stalls, rentals</span></td><td class="n">84 tis. € (2025)</td><td class="n">4,5 mil. €</td><td class="n">≈ 53×</td></tr>
+    </tbody>
+  </table></div>
+  <ul class="small" style="margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:6px;max-width:72ch">
+    <li><span class="sk"><strong>BEKOR a AVA-stav</strong> majú toho istého jediného vlastníka a konateľa, Alexandra Gyurkovicsa, a <strong>rovnakú adresu</strong> (Puškinova 700/90, Galanta). AVA-stav vyhral onkologický pavilón ÚVN v apríli 2025, päť mesiacov pred zmluvou s BEKORom na Prešov.</span><span class="en"><strong>BEKOR and AVA-stav</strong> have the same sole owner and director, Alexander Gyurkovics, and <strong>the same address</strong> (Puškinova 700/90, Galanta). AVA-stav won ÚVN's oncology pavilion in April 2025, five months before BEKOR's Prešov contract.</span></li>
+    <li><span class="sk">BEKOR sa do tendra prihlásil ako „malý podnik". V rokoch 2021 a 2022 sa spolu s Doprastavom súdil s Úradom pre verejné obstarávanie o iný tender.</span><span class="en">BEKOR declared itself a "small enterprise" in the tender. In 2021–2022 it litigated, together with Doprastav, against the Public Procurement Office over a different tender.</span></li>
+    <li><span class="sk">IN VEST vlastní IN GROUP, a.s. zo Šale. Koneční užívatelia výhod: Ing. arch. Pavol Kollár, Ing. Dušan Malárik a Ing. Ivan Khandl. Pre ÚVN už predtým stavala chirurgiu (2024) a parkovací dom (2026).</span><span class="en">IN VEST is owned by IN GROUP, a.s. of Šaľa. Beneficial owners: Ing. arch. Pavol Kollár, Ing. Dušan Malárik and Ing. Ivan Khandl. It had already built the surgery wing (2024) and car park (2026) for ÚVN.</span></li>
+  </ul>
+</section>
+
+<section id="swinpet">
+  <div class="sec-head"><h2><span class="num">07</span> <span class="sk">SWINPET a MARPET: čo pribudlo</span><span class="en">SWINPET and MARPET: what's new</span></h2><span class="tag new"><span class="sk">nové</span><span class="en">new</span></span></div>
+  <p class="small muted"><span class="sk">Prepojenie SWINPETu a MARPETu cez Mariána Petrika a to, že SWINPET použil ako referenciu pavilón MARPETu, publikovali Demokrati. Tieto súvislosti sme v médiách nenašli:</span><span class="en">The link between SWINPET and MARPET through Marián Petrik, and SWINPET's use of MARPET's pavilion as a reference, were published by Demokrati. We did not find the following in the media:</span></p>
+  <ol class="tl">
+    <li><span class="d">01/2025</span><div><span class="sk">SWINPET sa registruje v RPVS, dva mesiace pred zmluvou MARPET na pavilón.</span><span class="en">SWINPET registers in RPVS, two months before MARPET's pavilion contract.</span></div></li>
+    <li><span class="d">03/2025</span><div><span class="sk">Zmluva MARPET v CRZ: 1 654 165,50 €. Víťazná ponuka 1 285 170 € s DPH by bola 1 580 759 €, teda <strong>zmluva je asi o 73 tis. € vyššia</strong>.</span><span class="en">MARPET's contract in CRZ: €1,654,165.50. The winning bid of €1,285,170 plus VAT would be €1,580,759, so <strong>the contract is about €73k higher</strong>.</span></div></li>
+    <li><span class="d">2025</span><div><span class="sk">MARPET (hotel a realitná činnosť) má zisk 936 tis. € pri tržbách 3,05 mil. €, teda maržu 31 %. O rok skôr mal zisk 133 tis. €.</span><span class="en">MARPET (hotel and real estate) reports a €936k profit on €3.05m revenue, a 31% margin. A year earlier its profit was €133k.</span></div></li>
+    <li><span class="d">11–12/2025</span><div><span class="sk">Spoluvlastník SWINPETu Ing. Štefan Petrik odchádza a Marián Petrik sa stáva jediným vlastníkom.</span><span class="en">SWINPET co-owner Ing. Štefan Petrik leaves; Marián Petrik becomes sole owner.</span></div></li>
+    <li><span class="d">07/2026</span><div><span class="sk">Štefan Petrik vstupuje do firmy polpet s.r.o. s rovnakým sídlom ako SWINPET.</span><span class="en">Štefan Petrik joins polpet s.r.o., registered at the same address as SWINPET.</span></div></li>
+    <li><span class="d">09/2026</span><div><span class="sk">MARPET po ôsmich rokoch aktualizuje RPVS a mení oprávnenú osobu na rovnakú advokátsku kanceláriu, akú má SWINPET (ILLEŠ).</span><span class="en">After eight years, MARPET updates RPVS and switches its verifying lawyer to the same firm as SWINPET (ILLEŠ).</span></div></li>
+  </ol>
+</section>
+
+<section id="zname">
+  <div class="sec-head"><h2><span class="sk">Čo už médiá publikovali</span><span class="en">What the media already published</span></h2><span class="tag known"><span class="sk">známe</span><span class="en">known</span></span></div>
+  <div class="tbl"><table>
+    <thead><tr><th><span class="sk">Fakt</span><span class="en">Fact</span></th><th><span class="sk">Potvrdené v registroch</span><span class="en">Confirmed in registers</span></th><th><span class="sk">Zdroj</span><span class="en">Source</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="sk">Konzorcium BEKOR, WHB, Magyar Építő, Confector</span><span class="en">BEKOR, WHB, Magyar Építő, Confector consortium</span></td><td>✓</td><td><a href="https://spravy.pravda.sk/domace/clanok/808093-zvrat-pri-presovskej-nemocnici-za-448-milionov-konzorcium-vyhodilo-bekor-vystavbu-chce-zachranit/">Pravda</a>, <a href="https://standard.sk/1214140/konzorcium-chce-dokoncit-nemocnicu-v-presove-aj-po-stopke-vystavby">Standard</a></td></tr>
+      <tr><td><span class="sk">Čerpanie zábezpeky 11 mil. € a Vojenská polícia na stavenisku</span><span class="en">€11m performance bond drawn; Military Police on site</span></td><td>✓</td><td><a href="https://www.sme.sk/domov/c/na-stavbe-nemocnice-v-presove-budu-zrejme-musiet-zburat-dalsie-stlpy-pripustil-kalinak-s-krizkom">SME</a>, <a href="https://dennikn.sk/5307199/kalinak-ma-problem-s-presovskou-nemocnicou-stavba-stoji-strazia-ju-vojenski-policajti/">Denník N</a></td></tr>
+      <tr><td><span class="sk">IN VEST bez súťaže za 259 mil. €, subdodávatelia STRABAG, Skanska, Metrostav, HORNEX</span><span class="en">IN VEST without a tender for €259m; subcontractors STRABAG, Skanska, Metrostav, HORNEX</span></td><td><span class="sk">✓ oznámenie o výsledku vo Vestníku chýba</span><span class="en">✓ no award notice in the journal</span></td><td><a href="https://www.sme.sk/domov/c/mohol-kalinak-vybrat-firmy-na-hrubu-stavbu-presovskej-nemocnice-bez-sutaze-je-to-ucelove-vravi-expert">SME</a>, <a href="https://www.ta3.com/clanok/1050111/kto-pochybil-pri-stavbe-nemocnice-v-presove-firma-bekor-odmieta-vinu-a-ukazuje-na-madarskeho-lidra-konzorcia">TA3</a></td></tr>
+      <tr><td><span class="sk">BEKOR ako „pumpári z Galanty"</span><span class="en">BEKOR as "pump operators from Galanta"</span></td><td>✓</td><td><a href="https://www.sme.sk/domov/c/tender-na-presovsku-nemocnicu-vyhrali-pumpari-z-galanty-halu-v-trencine-stavali-dlho-a-zvysovali-cenu">SME</a></td></tr>
+      <tr><td><span class="sk">Chirurgia IN VEST o 60 % drahšia než ponuka</span><span class="en">IN VEST surgery wing 60% above its bid</span></td><td><span class="sk">✓ 11,78 mil. € v CRZ oproti ponuke 7,33 mil. € s DPH</span><span class="en">✓ €11.78m in CRZ vs €7.33m bid incl. VAT</span></td><td><a href="https://zastavmekorupciu.sk/nezaradene/kalinakov-manazer-zvlastne-obstaral-nielen-nemocnicu-v-presove/">Zastavme korupciu</a></td></tr>
+      <tr><td><span class="sk">Onkológia: vylúčená najnižšia ponuka, vyhral AVA-stav</span><span class="en">Oncology: lowest bid excluded, AVA-stav won</span></td><td>✓</td><td><a href="https://zastavmekorupciu.sk/nezaradene/kalinakov-manazer-zvlastne-obstaral-nielen-nemocnicu-v-presove/">Zastavme korupciu</a></td></tr>
+      <tr><td><span class="sk">SWINPET: 1 zamestnanec, vianočné trhy, referencia na pavilón MARPET</span><span class="en">SWINPET: 1 employee, Christmas markets, MARPET pavilion reference</span></td><td>✓</td><td><a href="https://www.startitup.sk/od-zemiakovych-placiek-k-vojenskej-nemocnici-demokrati-upozornuju-na-statnu-zakazku-pre-firmu-s-jednym-zamestnancom/">Startitup</a>, <a href="https://www.sme.sk/domov/c/zviditelnila-sa-v-kauze-predrazenej-ciganskej-teraz-kalinakovi-opravuje-nemocnicu-hoci-neponukla-najnizsiu-cenu">SME</a></td></tr>
+      <tr><td><span class="sk">ÚVO: oznámenie víťaza bez zdôvodnenia, víťaz nezmenený</span><span class="en">ÚVO: winner announced without justification; winner unchanged</span></td><td>—</td><td><a href="https://spravy.stvr.sk/2025/08/tender-na-nemocnicu-v-presove-preveril-urad-pre-verejne-obstaravanie-vyhovel-namietke-neuspesneho-uchadzaca/">STVR</a>, <a href="https://standard.sk/1008528/uvo-pripomienkoval-tender-nemocnice-v-presove-vitaz-vsak-ostal-povodny/">Standard</a></td></tr>
+      <tr><td><span class="sk">Trestné stíhanie pre všeobecné ohrozenie</span><span class="en">Criminal investigation for endangering public safety</span></td><td>—</td><td><a href="https://www.presovak.sk/clanky/14178/necakany-zvrat-v-suvislosti-s-vystavbou-presovskej-nemocnice-policia-vedie-trestne-stihanie">Prešovák</a></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="otazky">
+  <div class="sec-head"><h2><span class="sk">Otvorené otázky</span><span class="en">Open questions</span></h2></div>
+  <ol class="flags">
+    <li><span class="sk">Prečo boli v troch stavebných súťažiach ÚVN vylúčené najnižšie ponuky a kto ich podal?</span><span class="en">Why were the lowest bids excluded in three ÚVN construction tenders, and who submitted them?</span></li>
+    <li><span class="sk">Prečo sa zmluva s BEKORom (447,8 mil. €) líši od víťaznej ponuky vo Vestníku (451,1 mil. €)?</span><span class="en">Why does BEKOR's contract (€447.8m) differ from the winning bid in the journal (€451.1m)?</span></li>
+    <li><span class="sk">Prečo zo šiestich záujemcov o tender na Prešov podali ponuku len dvaja?</span><span class="en">Why did only two of the six applicants for the Prešov tender submit a bid?</span></li>
+    <li><span class="sk">Kto je „GD2" a kto zaplatil za opravu jeho spodnej stavby?</span><span class="en">Who is "GD2" and who paid to fix its substructure?</span></li>
+    <li><span class="sk">Aké výsledky priniesli nezávislé skúšky betónu, ktoré BEKORu povolil súd?</span><span class="en">What did the independent concrete tests permitted by the court show?</span></li>
+    <li><span class="sk">Ako ÚVN vyberá externého obstarávateľa a podlieha jeho práca nezávislej kontrole?</span><span class="en">How does ÚVN select its external procurement agent, and is its work independently reviewed?</span></li>
+  </ol>
+</section>
+
+<footer class="small muted">
+  <span class="sk">Registre: Vestník verejného obstarávania (ÚVO, CC BY 4.0), Centrálny register zmlúv (Úrad vlády SR, CC BY 4.0), Register právnických osôb (MV SR, CC BY 4.0), Register partnerov verejného sektora, Register účtovných závierok (CC0), Finančná správa SR (CC BY 4.0), rozhodnutia súdov z obcan.justice.sk (3Cob/90/2026, 74Cb/52/2026). Stránka uvádza fakty z verejných registrov a tvrdenia strán súdneho sporu. Nejde o tvrdenie, že došlo k trestnému činu alebo porušeniu zákona. ÚVN a ministerstvo obrany tvrdia, že obstarávanie prebehlo v súlade so zákonom. Adresy fyzických osôb sú zámerne vynechané.</span>
+  <span class="en">Registers: Public Procurement Journal (ÚVO, CC BY 4.0), Central Register of Contracts (Government Office, CC BY 4.0), Register of Legal Entities (Ministry of Interior, CC BY 4.0), Register of Public Sector Partners, Register of Financial Statements (CC0), Slovak Tax Authority (CC BY 4.0), court decisions from obcan.justice.sk (3Cob/90/2026, 74Cb/52/2026). This page presents facts from public registers and claims made by parties to litigation. It does not allege that any crime or breach of law occurred. ÚVN and the Ministry of Defence state that procurement complied with the law. Personal addresses are deliberately omitted.</span>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  const root=document.getElementById('root');
+  const btns=document.querySelectorAll('.seg button');
+  function set(l){
+    root.classList.remove('lang-sk','lang-en');root.classList.add('lang-'+l);
+    document.documentElement.lang=l;
+    btns.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.lang===l)));
+    try{localStorage.setItem('uvn-lang',l)}catch(e){}
+  }
+  btns.forEach(b=>b.addEventListener('click',()=>set(b.dataset.lang)));
+  let l='sk';
+  if(location.hash==='#en') l='en';
+  else{try{const s=localStorage.getItem('uvn-lang');if(s==='en'||s==='sk')l=s}catch(e){}}
+  set(l);
+})();
+</script>
+
+</body></html>
