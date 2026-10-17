@@ -358,6 +358,12 @@ async def test_details_refresh_only_when_due(built):
     assert ix.procurements_due(open_age=sync.OPEN_AGE, closed_age=sync.CLOSED_AGE, final=sync.FINAL) == []
     ix.replace_procurements([{**parse.procurement_row(PROCUREMENTS[0]), "updated_ms": MS_2026_04_09 + 1}, parse.procurement_row(PROCUREMENTS[1])])
     assert [i for i, _ in ix.procurements_due(open_age=sync.OPEN_AGE, closed_age=sync.CLOSED_AGE, final=sync.FINAL)] == [106502]
+    # Re-checks by age are capped per run; new and changed ones are not.
+    ix.db.execute("UPDATE procurements SET detail_fetched = 0 WHERE id = 106600")
+    due = ix.procurements_due(open_age=sync.OPEN_AGE, closed_age=sync.CLOSED_AGE, final=sync.FINAL, recheck=0)
+    assert [i for i, _ in due] == [106502]
+    due = ix.procurements_due(open_age=sync.OPEN_AGE, closed_age=sync.CLOSED_AGE, final=sync.FINAL, recheck=1)
+    assert [i for i, _ in due] == [106502, 106600]
     # The detail fetched earlier is kept through a list reload.
     assert ix.procurement(106502)["contracts"]
     assert json.dumps(ix.procurement(106600))

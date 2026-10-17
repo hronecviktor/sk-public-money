@@ -6,8 +6,9 @@
 2. Procurement details, one request each: which projects a procurement belongs to, its contracts
    and their main suppliers, CPV, procedure and bids. The first run fetches all of them (about
    13 000, some 4 hours at one request a second; it can be stopped and resumed). Later runs fetch
-   those that are new or changed, and refresh the rest by age, since a contract can be added
-   without the procurement's own change date moving.
+   those that are new or changed, plus at most 300 re-checks of details older than 30 days (open
+   procurements) or 180 days (finished ones), since a contract can be added without the
+   procurement's own change date moving.
 3. Suppliers: the contracts and invoices name suppliers by IDs of a separate register with no list,
    so each new supplier is fetched once and cached.
 """
@@ -27,8 +28,10 @@ from .index import EUIndex
 
 # Procurement statuses after which contracts rarely change.
 FINAL = ("Ukončené", "Stiahnuté", "Zrušené")
-OPEN_AGE = 7 * 86400
-CLOSED_AGE = 90 * 86400
+OPEN_AGE = 30 * 86400
+CLOSED_AGE = 180 * 86400
+# Details re-checked by age per run, on top of the new and changed ones.
+RECHECK_PER_RUN = 300
 # A list that comes back with fewer records than the API counts is not stored.
 MIN_COMPLETE = 0.98
 MAX_FAILURES = 5
@@ -67,7 +70,10 @@ async def sync_lists(index: EUIndex, client: ITMSClient, say, *, invoices: bool 
 
 
 async def sync_details(index: EUIndex, client: ITMSClient, say, *, limit: int | None = None, everything: bool = False) -> int:
-    due = index.procurements_due(open_age=0 if everything else OPEN_AGE, closed_age=0 if everything else CLOSED_AGE, final=FINAL)
+    if everything:
+        due = index.procurements_due(open_age=0, closed_age=0, final=FINAL)
+    else:
+        due = index.procurements_due(open_age=OPEN_AGE, closed_age=CLOSED_AGE, final=FINAL, recheck=RECHECK_PER_RUN)
     due = due[:limit] if limit is not None else due
     say(f"procurement details: {len(due)} to fetch")
     started, failures = time.monotonic(), 0

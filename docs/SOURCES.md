@@ -275,8 +275,9 @@ sk-public-money-sync eu --max-details 2000 # spread the first detail pass over s
 Every run reloads the lists in full (about 150 requests): the API documents a `modifiedSince` filter
 but ignores it. Procurement details then come one request each, since only the detail links a
 procurement to its projects and contracts: about 13,000 on the first run (some 4 hours), then those
-that are new or changed, plus a refresh of open procurements after a week and finished ones after 90
-days (a contract can be added without the procurement's change date moving). Suppliers and some
+that are new or changed, plus at most 300 re-checks per run of details older than 30 days (open
+procurements) or 180 days (finished ones), since a contract can be added without the procurement's
+change date moving. A weekly run thus makes a few hundred detail requests. Suppliers and some
 buyers are records of a separate register with no list (`dodavatelobstaravatel`), so each new one is
 fetched once and cached: about 4,000 on the first run. The index takes about 60 MB. The tools do not
 top it up themselves; they say how old it is.

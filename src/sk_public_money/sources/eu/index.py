@@ -231,20 +231,23 @@ class EUIndex:
 
     # --- sync bookkeeping ------------------------------------------------------------------------
 
-    def procurements_due(self, *, open_age: float, closed_age: float, final: tuple[str, ...]) -> list[tuple[int, int | None]]:
-        """(id, list updatedAt) of procurements whose detail is missing, older than their list record,
-        or older than open_age (closed_age for final statuses: contracts can be added without the
-        procurement's updatedAt changing). Never-fetched first, then oldest."""
+    def procurements_due(
+        self, *, open_age: float, closed_age: float, final: tuple[str, ...], recheck: int | None = None,
+    ) -> list[tuple[int, int | None]]:
+        """(id, list updatedAt) of procurements whose detail is missing or older than their list
+        record, then at most `recheck` (None: all) whose detail is older than open_age (closed_age for
+        final statuses), oldest first: contracts can be added without the procurement's updatedAt
+        changing, so details are re-checked slowly by age."""
         now = time.time()
-        out = []
+        new, stale = [], []
         for pid, updated, blob, d_updated, fetched in self.db.execute(
             "SELECT id, updated_ms, data, detail_updated_ms, detail_fetched FROM procurements ORDER BY detail_fetched IS NOT NULL, detail_fetched, id"
         ):
-            status = unpack(blob).get("status")
-            age = closed_age if status in final else open_age
-            if fetched is None or (updated or 0) > (d_updated or 0) or now - fetched > age:
-                out.append((pid, updated))
-        return out
+            if fetched is None or (updated or 0) > (d_updated or 0):
+                new.append((pid, updated))
+            elif now - fetched > (closed_age if unpack(blob).get("status") in final else open_age):
+                stale.append((pid, updated))
+        return new + (stale if recheck is None else stale[:recheck])
 
     def unknown_suppliers(self) -> list[int]:
         """dodavatelobstaravatel IDs referenced by contracts, buyers and invoices but not cached yet;
