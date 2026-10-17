@@ -76,6 +76,7 @@ def test_kinds_and_categories():
     assert parse.category_of("OV_OR_PODANIE_XML") == "register"
     assert parse.category_of("OV_B_OZNAMENIA_SPRAVCOV") == "insolvency"
     assert parse.category_of("OV_ZMLUVA") is None
+    assert parse.category_of("OV_OR_PODANIE_XML_ZBL_ZOZNAM") is None
     assert parse.category_of("OV_STATNA_POMOC_A_INE_PROGRAMY_PODPORY") is None
 
 
@@ -116,6 +117,22 @@ def test_old_register_filing_takes_ico_from_text():
     r = parse.parse(15, "R1-OV_OR_PODANIE-v-1.xml", OR_OLD, "2017-01-02", "1/2017")
     assert r["category"] == "register" and r["title"] == "Výmazy"
     assert r["companies"] == [{"ico": "01234567", "name": "Fiktívna Firma s.r.o."}]
+    assert r["text"] == "DEŇ VÝMAZU: 29.12.2016" and r["details"] is None  # the entry itself is in RPO
+
+
+def test_register_keeps_deletion_and_deposited_deeds():
+    deleted = OR_OLD.replace("DEŇ VÝMAZU: 29.12.2016", "Fiktívna Firma s.r.o. bola vymazaná z obchodného registra vrátane "
+                             "všetkých údajov. Deň výmazu zapísanej osoby 31.08.2017.\nĎALŠIE PRÁVNE SKUTOČNOSTI\n"
+                             "ZRUŠENIE SPOLOČNOSTI A PRÁVNY DÔVOD ZRUŠENIA\nSpoločnosť sa zrušuje uznesením valného zhromaždenia.")
+    r = parse.parse(16, "R1-OV_OR_PODANIE-v-1.xml", deleted, "2017-09-02", "170/2017")
+    assert r["text"] == ("bola vymazaná z obchodného registra vrátane všetkých údajov. Deň výmazu zapísanej osoby "
+                         "31.08.2017 Dôvod zrušenia: Spoločnosť sa zrušuje uznesením valného zhromaždenia.")
+    zbl = OR_OLD.replace("<TypKod>vy</TypKod><TypNazov>Výmazy</TypNazov>", "<TypKod>ZBL</TypKod><TypNazov>Nové zápisy</TypNazov>").replace(
+        "ODDIEL: Sro", "Spoločnosť Fiktívna Firma s.r.o., IČO: 01 234 567, uložila tieto listiny do zbierky listín:\n"
+                       "-Účtovná závierka 2009\nDátum doručenia: 30.06.2010\n-Zmluva o prevode obchodného podielu\nODDIEL: Sro")
+    r = parse.parse(17, "Z1-OV_OR_PODANIE_ZBL-v-1.xml", zbl, "2010-07-02", "1/2010")
+    assert r["title"] == "uloženie listín do zbierky listín (deeds filed)"
+    assert r["text"] == "Uložené listiny: Účtovná závierka 2009; Zmluva o prevode obchodného podielu"
 
 
 # --- dump and sync -----------------------------------------------------------------------------

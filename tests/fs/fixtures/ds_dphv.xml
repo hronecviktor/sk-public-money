@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ZoznamVymazanychPlatitelovDPH>
+  <DatumAktualizacieZoznamu>17102026</DatumAktualizacieZoznamu>
+  <DS_DPHV>
+    <ITEM>
+      <IC_DPH>SK1099999006</IC_DPH>
+      <NAZOV>Mária Vzorová</NAZOV>
+      <OBEC>Košice - mestská časť Staré Mesto</OBEC>
+      <PSC>04001</PSC>
+      <ADRESA>Neexistujúca 12</ADRESA>
+      <ROK_PORUSENIA>525</ROK_PORUSENIA>
+      <DAT_ZVEREJNENIA>25.02.2021</DAT_ZVEREJNENIA>
+      <DAT_VYMAZU>11.02.2022</DAT_VYMAZU>
+      <ICO>99999006</ICO>
+    </ITEM>
+    <ITEM>
+      <IC_DPH>SK2120999007</IC_DPH>
+      <NAZOV>GAMA TEST s. r. o.</NAZOV>
+      <OBEC>Žilina</OBEC>
+      <PSC>01001</PSC>
+      <ADRESA>Fiktívna 9</ADRESA>
+      <ROK_PORUSENIA>2026</ROK_PORUSENIA>
+      <DAT_ZVEREJNENIA>01.09.2026</DAT_ZVEREJNENIA>
+      <DAT_VYMAZU>03.10.2026</DAT_VYMAZU>
+      <ICO>99999007</ICO>
+    </ITEM>
+  </DS_DPHV>
+</ZoznamVymazanychPlatitelovDPH>

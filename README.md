@@ -20,6 +20,10 @@ obstarávania, firmy, ich skutočných vlastníkov a účtovné závierky. Asist
 | **REPLIK**: register insolvenčných konaní | Konkurzy, reštrukturalizácie, oddlženia a likvidácie súdom: dlžník, správca, súd, stav a verejné oznamy súdu a správcu (od októbra 2025 nahradil Register úpadcov aj s jeho históriou) | Verejné SOAP API Ministerstva spravodlivosti SR (replik-ws.justice.sk) | `insolvency_*` |
 | **Obchodný vestník** | Oznámenia o firmách od polovice 2016: likvidácie a výzvy veriteľom, zlúčenia, rozdelenia a zmeny právnej formy, zníženia základného imania, podania do obchodného registra, konkurzy (do septembra 2025) | Datahub [Slovensko.Digital](https://ekosystem.slovensko.digital) (týždenný dump a sync API), v lokálnom indexe | `ov_*` |
 | **RÚZ**: Register účtovných závierok | Účtovné závierky: tržby, výsledok hospodárenia, aktíva a vlastné imanie po rokoch | Otvorené API [registeruz.sk](https://www.registeruz.sk) | `ruz_*` |
+| **Finančná správa SR** | Registrácia pre DPH, index daňovej spoľahlivosti, platitelia DPH s dôvodom na zrušenie registrácie a vymazaní, vyrubená daň z príjmov právnických osôb a daňová strata po rokoch, nadmerné odpočty DPH, daňoví dlžníci | Otvorené dáta [opendata.financnasprava.sk](https://opendata.financnasprava.sk) (zoznamy v lokálnom indexe) | `fs_*` |
+| **Súdy**: rozhodnutia a sudcovia | Rozhodnutia všeobecných súdov (asi 4,7 milióna, s textom z PDF), v ktorých vystupuje firma s daným IČO; sudcovia a ich majetkové priznania | Pilotné API Ministerstva spravodlivosti SR ([obcan.justice.sk](https://obcan.justice.sk)) a [Súdna rada SR](https://www.sudnarada.gov.sk) | `court_*` |
+| **PPA**: poľnohospodárske dotácie | Kto dostal peniaze zo spoločnej poľnohospodárskej politiky (EPZF a EPFRV) a z národného spolufinancovania, koľko, na aké opatrenie a v ktorej obci; za posledné dva finančné roky | Zoznamy prijímateľov, ktoré zverejňuje [Pôdohospodárska platobná agentúra](https://www.apa.sk/o-nas/zverejnovane-udaje/prehlad-prijimatelia-pomoci-z-epzf-epfrv) (XLSX, v lokálnom indexe) | `ppa_*` |
+| **Financovanie politických strán** | Pohyby na transparentných účtoch strán, kandidátov a kampaní v Slovenskej sporiteľni; výročné správy strán od roku 2015 s osobitnými evidenciami darov, pôžičiek a členských príspevkov | API [transparentných účtov Slovenskej sporiteľne](https://www.slsp.sk/sk/ludia/transparentne-ucty); výročné správy na [minv.sk](https://www.minv.sk/?vyrocnespravyps) (PDF, väčšinou skeny, ktoré asistent číta ako obrázky) | `party_*` |
 
 Ako sú registre prepojené:
 
@@ -41,6 +45,8 @@ Príklady otázok pre asistenta:
 - „Firma vyhrala zákazku za 5 miliónov eur. Kedy vznikla a aké mala tržby v posledných rokoch?“
 - „Čo presne je v prílohe tejto zmluvy?“
 - „Ktoré zmluvy včera zverejnilo ministerstvo zdravotníctva?“
+- „S kým sa táto firma súdila a ako súd rozhodol?“
+- „Koľko poľnohospodárskych dotácií dostali firmy zo skupiny Agrofert a na aké opatrenia?“
 
 | Nástroj | Čo robí |
 | --- | --- |
@@ -60,10 +66,27 @@ Príklady otázok pre asistenta:
 | `ruz_search_entity` | Hľadá účtovné jednotky podľa názvu, IČO alebo DIČ |
 | `ruz_get_entity` | Účtovná jednotka so zoznamom všetkých jej závierok |
 | `ruz_get_financials` | Tržby, výnosy, výsledok hospodárenia, aktíva a vlastné imanie po rokoch, s uvedením riadku výkazu, z ktorého pochádzajú |
+| `fs_get_taxpayer` | Daňový subjekt podľa IČO: registrácia pre DPH, index daňovej spoľahlivosti, zoznamy na zrušenie registrácie a vymazaných platiteľov, daň z príjmov a daňová strata po rokoch, posledné nadmerné odpočty DPH |
+| `fs_search_debtors` | Hľadá v zozname daňových dlžníkov podľa mena (zoznam nemá IČO) |
+| `fs_list_flagged` | Vymazaní platitelia DPH, platitelia s dôvodom na zrušenie registrácie alebo menej spoľahliví podľa dátumu a miesta |
+| `court_search_decisions` | Hľadá súdne rozhodnutia podľa IČO alebo slov, súdu, sudcu, právnej oblasti a dátumu |
+| `court_get_decision` | Rozhodnutie podľa ID alebo ECLI: súd, sudca, spisová značka, povaha, citované predpisy a text z PDF |
+| `court_judge` | Sudca: súd, funkcia, stav a jeho majetkové priznania od roku 2013, ktoré vie aj prečítať |
+| `court_disqualified` | Register diskvalifikácií: osoby, ktoré nesmú byť štatutármi firiem, s adresou, spisovou značkou a obdobím zákazu |
+| `ppa_search_beneficiary` | Poľnohospodárske dotácie prijímateľa podľa mena alebo IČO (cez názov v RPO): sumy po fondoch a opatreniach, obec, materská spoločnosť |
+| `ppa_top` | Najväčší prijímatelia za finančný rok, podľa opatrenia, obce alebo druhu prijímateľa |
+| `party_account_transactions` | Pohyby na transparentnom účte v Slovenskej sporiteľni podľa IBAN alebo názvu účtu, s filtrom protistrany, dátumu, sumy a smeru |
+| `party_annual_reports` | Výročné správy strany alebo roka: odkaz na PDF, opravená verzia, nedostatky, ktoré strany sú naskenované |
+| `party_read_report` | Strany výročnej správy: textové strany ako text, naskenované ako obrázky, bez zadaných strán náhľady na nájdenie evidencií |
 
 Na čo si dať pozor:
 
 - **Rovnaké meno ešte neznamená tú istú osobu.** Porovnajte dátum narodenia (RPVS) alebo adresu (RPO).
+- **Súdne rozhodnutia sa hľadajú podľa IČO fulltextom:** IČO môže patriť inej strane sporu alebo byť
+  náhodné číslo, preto si pozrite úryvok. Fyzické osoby sú v rozhodnutiach anonymizované.
+- **Štatutári v RPO sa automaticky porovnávajú s registrom diskvalifikácií** podľa mena (a adresy, ak
+  sa zhoduje). Zhoda mena nie je dôkaz; register sa ukladá lokálne a obnovuje raz denne
+  (`sk-public-money-sync court` stiahne aj obdobia zákazov vopred).
 - **Hodnota rámcovej dohody je maximum,** nie suma, ktorá sa naozaj zaplatila. Hodnota 0 znamená, že
   obstarávateľ ju nezverejnil.
 - **TED obsahuje len zákazky nad limitmi EÚ.** Podlimitné zákazky a zákazky s nízkymi hodnotami sú
@@ -74,6 +97,7 @@ Na čo si dať pozor:
 - **Niektoré odpovede trvajú niekoľko sekúnd:** portály obmedzujú počet požiadaviek a niektoré API sú
   pomalé (vyhľadávanie v RPO 5–30 s, prvé načítanie veľkej firmy v RÚZ až 30 s). CRZ má večer
   pravidelnú údržbu, počas ktorej nie je dostupný.
+- **Zoznam daňových dlžníkov nemá IČO,** dlžníci sa hľadajú len podľa mena; porovnajte adresu.
 - **Vyhľadávanie mien nerozlišuje veľké a malé písmená ani diakritiku:** „Siroky“ nájde Široký,
   Siroký aj Široky.
 
@@ -108,19 +132,48 @@ Ak klient `uvx` nenájde, zadajte celú cestu, ktorú vypíše `which uvx` (na W
 `uvx --refresh --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-mcp`
 (ukončite ho cez Ctrl+C) a reštartom klienta.
 
-**Index Vestníka verejného obstarávania** (voliteľný, ale bez neho nástroje `uvo_*` hľadajú len
-v TED, teda len zákazky nad limitmi EÚ):
+### Prvé spustenie
+
+Väčšina nástrojov funguje hneď po pripojení: CRZ, RPVS, RPO, RÚZ, TED, súdne rozhodnutia
+a transparentné účty, aj insolvenčný register REPLIK, sa pýtajú priamo portálov a výročné správy strán sa sťahujú, až keď ich asistent
+číta. Niektoré registre sa však nedajú prehľadávať cez internet, dajú sa len stiahnuť celé,
+preto si ich server ukladá do lokálneho indexu. Kým index nie je postavený, nástroj to povie aj
+s príkazom, ktorý ho postaví.
+
+Všetky indexy postavíte, a neskôr aktualizujete, jedným príkazom:
 
 ```sh
-uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync uvo
+uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync all
 ```
 
-Prvé spustenie stiahne všetky čísla Vestníka od októbra 2023: asi 770 súborov, spolu približne 7 GB,
-čo trvá okolo 45 minút. Index potom zaberá asi 300 MB a stiahnuté súbory, uložené komprimované, ďalších
-0,75 GB. Príkaz sa dá prerušiť a spustiť znova; stiahne len to, čo chýba. Ďalej sa index dopĺňa sám:
-nástroje každých 6 hodín skontrolujú nové čísla a stiahnu ich.
+Príkaz ide od najrýchlejších zdrojov po najpomalšie. Dá sa prerušiť a spustiť znova (stiahne len to,
+čo chýba) a jeden zlyhaný zdroj nezastaví ostatné. Jeden index postavíte cez
+`sk-public-money-sync <zdroj>`, niektoré vynecháte cez `sk-public-money-sync all --skip uvo`.
 
-Index a ďalšie údaje sa ukladajú do `~/.cache/sk-public-money`, alebo do priečinka v premennej
+| Zdroj | Pre nástroje | Prvé spustenie | Miesto na disku | Ako sa aktualizuje |
+| --- | --- | --- | --- | --- |
+| `party` | `party_annual_reports` a `party_read_report` (zoznam si pri prvom použití postavia samy) | asi 20 sekúnd | menej ako 1 MB | zoznam najnovších rokov si nástroje obnovia samy raz týždenne |
+| `ppa` | `ppa_*` (bez indexu nefungujú) | menej ako minúta | asi 20 MB | znova spustiť, keď PPA zverejní nový rok |
+| `fs` | `fs_*` (bez indexu nefungujú) | asi 15 minút, sťahuje asi 0,7 GB (história dane z príjmov a DPH od júna 2018, odkedy ju Finančná správa archivuje) | asi 0,75 GB | spúšťať denne; malé denné zoznamy si nástroje doplnia samy |
+| `court` | `court_disqualified` a kontrola štatutárov v RPO (fungujú aj bez neho) | asi 20 minút | menej ako 1 MB | zoznam si nástroje obnovia samy raz denne |
+| `uvo` | `uvo_*` pod limitmi EÚ (bez indexu len TED) | asi minúta (hotový index, 155 MB); zo zdroja asi 45 minút a 7 GB | asi 330 MB | nové čísla si nástroje doplnia samy každých 6 hodín |
+| `ov` | `ov_search_notices` (bez indexu nefunguje) | OV_BUILD_SK | OV_DISK_SK | zmeny si nástroje doplnia samy každých 6 hodín (najviac 5 strán), väčší odstup dobehne `sk-public-money-sync ov` |
+
+Pomalé zdroje sa pri prvom spustení nestavajú od nuly: príkaz stiahne hotový index z
+[GitHub release `indexes`](https://github.com/hronecviktor/sk-public-money/releases/tag/indexes),
+skontroluje ho a doplní len to, čo pribudlo odvtedy. Bez neho, len zo zdrojov, ich postaví
+`sk-public-money-sync all --no-bootstrap`. Vtedy je prvé spustenie pomalé zámerne: server dodržiava
+pravidlá portálov pre roboty a posiela požiadavky s odstupom, a index Vestníka si navyše nechá
+stiahnuté čísla (0,75 GB) na prípadné prestavanie, ak nepridáte `--no-keep-raw`.
+
+Aby boli údaje čerstvé, spúšťajte `all` pravidelne, napríklad každú noc cez cron (s celou cestou
+k `uvx`, ktorú vypíše `which uvx`):
+
+```sh
+0 4 * * * /home/<vy>/.local/bin/uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync all
+```
+
+Indexy a ďalšie údaje sa ukladajú do `~/.cache/sk-public-money`, alebo do priečinka v premennej
 prostredia `SK_PUBLIC_MONEY_CACHE_DIR`.
 
 ### Zdroje údajov a licencie
@@ -135,6 +188,11 @@ licencie:
 - RÚZ: [CC0](https://creativecommons.org/publicdomain/zero/1.0/)
 - TED: bezplatné opätovné použitie s uvedením zdroja (Úrad pre publikácie EÚ)
 - RPVS: otvorené údaje Ministerstva spravodlivosti SR
+- Finančná správa SR: CC BY 4.0 (index daňovej spoľahlivosti CC0), „Zdroj údajov: Finančná správa SR - https://opendata.financnasprava.sk/“
+- Súdne rozhodnutia a sudcovia (Ministerstvo spravodlivosti SR) a majetkové priznania sudcov (Súdna rada SR): licencia nie je zverejnená
+- PPA: licencia nie je uvedená; zoznamy zverejňuje Pôdohospodárska platobná agentúra podľa čl. 98
+  nariadenia (EÚ) 2021/2116
+- Transparentné účty Slovenskej sporiteľne a výročné správy strán (minv.sk): licencia ani podmienky použitia nie sú zverejnené
 - REPLIK: verejné API Ministerstva spravodlivosti SR, licencia nie je zverejnená
 - Obchodný vestník: Datahub Slovensko.Digital podľa [podmienok používania datasetov](https://ekosystem.slovensko.digital/podmienky); údaje majú len informatívny charakter, server ich skracuje a upravuje
 
@@ -160,6 +218,10 @@ can search and read them, and combine data from several registers in one answer.
 | **REPLIK**: Insolvency register | Bankruptcies, restructurings, personal debt relief and court-ordered liquidations: debtor, trustee, court, status, and the public notices of court and trustee (replaced Register úpadcov in October 2025, with its history) | The Ministry of Justice's public SOAP API (replik-ws.justice.sk) | `insolvency_*` |
 | **Obchodný vestník**: Commercial Bulletin | Notices about companies since mid-2016: liquidations and calls to creditors, mergers, splits and conversions, capital reductions, commercial register entries, bankruptcies (until September 2025) | [Slovensko.Digital](https://ekosystem.slovensko.digital)'s Datahub (weekly dump and sync API), in a local index | `ov_*` |
 | **RÚZ**: Register of Financial Statements | Financial statements: revenue, profit, assets and equity by year | The open API of [registeruz.sk](https://www.registeruz.sk) | `ruz_*` |
+| **Finančná správa SR**: the tax authority | VAT registration, tax reliability index, VAT payers facing cancellation and struck off, corporate income tax assessed and tax loss by year, VAT excess deductions, tax debtors | Open data at [opendata.financnasprava.sk](https://opendata.financnasprava.sk) (lists kept in a local index) | `fs_*` |
+| **Courts**: decisions and judges | Decisions of the general courts (about 4.7 million, with text from the PDF) that mention a company's IČO; judges and their asset declarations | The Ministry of Justice's pilot API ([obcan.justice.sk](https://obcan.justice.sk)) and the [Judicial Council](https://www.sudnarada.gov.sk) | `court_*` |
+| **PPA**: farm subsidies | Who got money from the Common Agricultural Policy (EAGF and EAFRD) and national co-financing, how much, under which measure and in which municipality; the last two financial years | The beneficiary lists published by the [Agricultural Paying Agency](https://www.apa.sk/o-nas/zverejnovane-udaje/prehlad-prijimatelia-pomoci-z-epzf-epfrv) (XLSX, in a local index) | `ppa_*` |
+| **Political-party financing** | Movements on the transparent accounts of parties, candidates and campaigns at Slovenská sporiteľňa; parties' annual reports since 2015 with their registers of gifts, loans and membership fees | The [Slovenská sporiteľňa transparent-account](https://www.slsp.sk/sk/ludia/transparentne-ucty) API; annual reports on [minv.sk](https://www.minv.sk/?vyrocnespravyps) (PDFs, mostly scans, which the assistant reads as images) | `party_*` |
 
 How the registers connect:
 
@@ -182,6 +244,8 @@ Example questions for the assistant:
   years?"
 - "What exactly is in this contract's attachment?"
 - "Which contracts did the Ministry of Health publish yesterday?"
+- "Who has this company been in court with, and how did the court decide?"
+- "How much farm subsidy did the Agrofert group's companies get, and under which measures?"
 
 | Tool | What it does |
 | --- | --- |
@@ -201,10 +265,27 @@ Example questions for the assistant:
 | `ruz_search_entity` | Finds accounting entities by name, IČO or DIČ |
 | `ruz_get_entity` | An accounting entity with the list of all its statements |
 | `ruz_get_financials` | Revenue, income, profit, assets and equity by year, each with the report row it came from |
+| `fs_get_taxpayer` | A taxpayer by IČO: VAT registration, tax reliability index, VAT cancellation and struck-off lists, corporate income tax and tax loss by year, latest VAT excess deductions |
+| `fs_search_debtors` | Searches the tax debtor list by name (the list has no IČO) |
+| `fs_list_flagged` | VAT payers struck off or facing cancellation, or rated less reliable, by date and place |
+| `court_search_decisions` | Searches court decisions by IČO or words, court, judge, legal area and date |
+| `court_get_decision` | A decision by ID or ECLI: court, judge, case number, outcome, cited laws and the text of its PDF |
+| `court_judge` | A judge: court, function, status, and their asset declarations since 2013, which it can also read |
+| `court_disqualified` | The register of disqualified persons: people banned from company boards, with address, case number and ban period |
+| `ppa_search_beneficiary` | A beneficiary's farm subsidies by name or IČO (via its name in RPO): amounts by fund and measure, municipality, parent company |
+| `ppa_top` | The largest beneficiaries in a financial year, by measure, municipality or kind of beneficiary |
+| `party_account_transactions` | Movements on a Slovenská sporiteľňa transparent account by IBAN or account name, filtered by counterparty, date, amount and direction |
+| `party_annual_reports` | A party's or a year's annual reports: PDF link, corrected version, deficiencies, which pages are scans |
+| `party_read_report` | Pages of an annual report: text pages as text, scanned pages as images; without pages, thumbnails to find the registers |
 
 Things to watch out for:
 
 - **The same name doesn't mean the same person.** Compare birth dates (RPVS) or addresses (RPO).
+- **Court decisions are found by IČO in their full text:** the number may belong to another party or
+  be an unrelated figure, so check the snippet. People are anonymised in decisions.
+- **Directors in RPO are checked against the register of disqualified persons automatically,** by
+  name (and address when it matches). A matching name is not proof; the register is kept locally and
+  refreshed daily (`sk-public-money-sync court` also fetches the ban periods in advance).
 - **A framework agreement's value is a maximum,** not what was actually paid. A value of 0 means the
   buyer didn't disclose it.
 - **TED only covers contracts above the EU thresholds.** Below-threshold and low-value contracts are
@@ -215,6 +296,7 @@ Things to watch out for:
 - **Some answers take several seconds:** the portals limit request rates and some APIs are slow
   (RPO searches 5–30 s, the first look at a large company in RÚZ up to 30 s). CRZ has regular evening
   maintenance, during which it's unavailable.
+- **The tax debtor list has no IČO,** so debtors are matched by name only; compare the address.
 - **Name searches ignore case and diacritics:** "Siroky" finds Široký, Siroký and Široky.
 
 ### Installation
@@ -248,20 +330,48 @@ If the client can't find `uvx`, give the full path that `which uvx` prints (on W
 `uvx --refresh --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-mcp` once
 (stop it with Ctrl+C) and restart the client.
 
-**The procurement journal index** (optional, but without it the `uvo_*` tools search only TED, so
-only contracts above the EU thresholds):
+### First run
+
+Most tools work as soon as the server is connected: CRZ, RPVS, RPO, RÚZ, TED, court decisions,
+transparent accounts and the REPLIK insolvency register ask the portals directly, and parties' annual reports are downloaded only when
+the assistant reads one. Some registers can't be searched online, only downloaded whole, so the server
+keeps them in a local index. Until an index is built, its tools say so, with the command that builds
+it.
+
+One command builds every index, and later keeps them up to date:
 
 ```sh
-uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync uvo
+uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync all
 ```
 
-The first run downloads every Vestník issue since October 2023: about 770 files, roughly 7 GB in
-total, which takes around 45 minutes. The index then takes about 300 MB, and the downloaded files,
-kept compressed, another 0.75 GB. The command can be stopped and run again; it fetches only what's
-missing. After that the index tops itself up: every 6 hours the tools check for new issues and fetch
-them.
+It goes from the quickest source to the slowest. It can be stopped and run again (it fetches only
+what's missing), and one failing source doesn't stop the others. `sk-public-money-sync <source>`
+builds a single index, and `sk-public-money-sync all --skip uvo` leaves some out.
 
-The index and other data are stored in `~/.cache/sk-public-money`, or in the folder set in the
+| Source | For the tools | First run | Disk space | How it stays current |
+| --- | --- | --- | --- | --- |
+| `party` | `party_annual_reports` and `party_read_report` (they build the list themselves on first use) | about 20 seconds | under 1 MB | the tools refresh the newest years themselves once a week |
+| `ppa` | `ppa_*` (they don't work without it) | under a minute | about 20 MB | run again when PPA publishes a new year |
+| `fs` | `fs_*` (they don't work without it) | about 15 minutes, downloads about 0.7 GB (corporate tax and VAT history since June 2018, where the tax authority's archive starts) | about 0.75 GB | run daily; the tools update the small daily lists themselves |
+| `court` | `court_disqualified` and the director check in RPO (both work without it too) | about 20 minutes | under 1 MB | the tools refresh the list themselves once a day |
+| `uvo` | `uvo_*` below the EU thresholds (without it, TED only) | about a minute (prebuilt index, 155 MB); from the source about 45 minutes and 7 GB | about 330 MB | the tools fetch new issues themselves every 6 hours |
+| `ov` | `ov_search_notices` (it doesn't work without it) | OV_BUILD_EN | OV_DISK_EN | the tools fetch changes themselves every 6 hours (at most 5 pages); `sk-public-money-sync ov` catches up a longer gap |
+
+The slow sources aren't built from scratch on the first run: the command downloads a prebuilt index
+from the [GitHub release `indexes`](https://github.com/hronecviktor/sk-public-money/releases/tag/indexes),
+checks it, and fetches only what's been added since. `sk-public-money-sync all --no-bootstrap` builds
+them from the sources alone instead. That first run is slow on purpose: the server follows each
+portal's rules for robots and spaces out its requests, and the Vestník index also keeps the downloaded
+issues (0.75 GB) for a rebuild unless you add `--no-keep-raw`.
+
+To keep the data fresh, run `all` regularly, for example nightly from cron (with the full path to
+`uvx` that `which uvx` prints):
+
+```sh
+0 4 * * * /home/<you>/.local/bin/uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync all
+```
+
+Indexes and other data are stored in `~/.cache/sk-public-money`, or in the folder set in the
 `SK_PUBLIC_MONEY_CACHE_DIR` environment variable.
 
 ### Data sources and licences
@@ -276,6 +386,11 @@ licences:
 - RÚZ: [CC0](https://creativecommons.org/publicdomain/zero/1.0/)
 - TED: free reuse with attribution (Publications Office of the EU)
 - RPVS: open data of the Ministry of Justice of the Slovak Republic
+- Finančná správa SR: CC BY 4.0 (the tax reliability index CC0), "Zdroj údajov: Finančná správa SR - https://opendata.financnasprava.sk/"
+- Court decisions and judges (Ministry of Justice) and judges' asset declarations (Judicial Council of the Slovak Republic): no licence published
+- PPA: no licence stated; the lists are published by the Agricultural Paying Agency under Article 98
+  of Regulation (EU) 2021/2116
+- Slovenská sporiteľňa transparent accounts and the parties' annual reports (minv.sk): no licence or terms of use published
 - REPLIK: public API of the Ministry of Justice of the Slovak Republic; no licence is published
 - Obchodný vestník: Slovensko.Digital Datahub under its [dataset terms](https://ekosystem.slovensko.digital/podmienky); the data are informative only, and the server shortens and restructures them
 

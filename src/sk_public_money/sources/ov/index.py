@@ -38,7 +38,7 @@ class OVIndex:
 
     def add(self, record: dict, *, replace_links: bool = False) -> None:
         """Store one parsed notice (no commit). replace_links drops IČO links of an earlier version."""
-        body = zlib.compress(json.dumps({k: record[k] for k in BODY_KEYS}, ensure_ascii=False, separators=(",", ":")).encode(), 6)
+        body = zlib.compress(json.dumps({k: record[k] for k in BODY_KEYS if record.get(k)}, ensure_ascii=False, separators=(",", ":")).encode(), 6)
         self.db.execute(
             "INSERT OR REPLACE INTO notices (id, date, issue, category, kind, body) VALUES (?, ?, ?, ?, ?, ?)",
             (record["id"], record["date"], record["issue"], record["category"], record["kind"], body),

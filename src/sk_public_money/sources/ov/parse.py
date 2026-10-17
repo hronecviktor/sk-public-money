@@ -52,7 +52,7 @@ TITLE_TAGS = ("TypZverejnenia", "NaZaklade", "ZbierkaListinTyp", "DruhPodania", 
               "ZverejnenieOznamenia", "PodanieTyp")
 TEXT_MIN = 200  # a leaf this long is free text, not a field
 TEXT_IN_TEXT = re.compile(r"IČO\s*:?\s*((?:\d[  ]?){6,8})(?!\d)")
-LIMITS = {"register": (600, 400), "insolvency": (1000, 600)}  # (text, details) characters
+LIMITS = {"register": (300, 0), "insolvency": (1000, 600)}  # (text, details) characters
 DEFAULT_LIMITS = (2000, 1200)
 _PARSER = etree.XMLParser(resolve_entities=False, no_network=True, huge_tree=True, recover=True)
 
@@ -64,6 +64,8 @@ def kind_of(file_name: str | None) -> str | None:
 
 def category_of(kind: str | None) -> str | None:
     if not kind:
+        return None
+    if kind.endswith("ZBL_ZOZNAM"):  # bulk lists of ~200 companies that filed deeds, no content
         return None
     return next((name for name, pattern in CATEGORIES if pattern.search(kind)), None)
 
@@ -77,6 +79,24 @@ def normalize_ico(value: str | None) -> str | None:
     if not digits.isdigit() or not 6 <= len(digits) <= 8 or set(digits) == {"0"}:
         return None
     return digits.zfill(8)
+
+
+DELETED = re.compile(r"bola vymazaná[^.]*\.|Deň výmazu[^\n]*?\d{1,2}\.\s?\d{1,2}\.\s?\d{4}", re.I)
+DISSOLVED = re.compile(r"PRÁVNY DÔVOD ZRUŠENIA\s*:?\s*\n?([^\n]{3,300})")
+
+
+def register_summary(kind: str, text: str) -> str | None:
+    """The part of a register filing worth keeping: deposited documents, or why it was deleted."""
+    if not text:
+        return None
+    if "uložila tieto listiny" in text or "ZBL" in kind:
+        docs = [line.lstrip("- ").strip() for line in text.splitlines() if line.startswith("-")]
+        return "Uložené listiny: " + "; ".join(docs) if docs else None
+    parts = [m.group(0).strip() for m in DELETED.finditer(text)]
+    reason = DISSOLVED.search(text)
+    if reason:
+        parts.append("Dôvod zrušenia: " + reason.group(1).strip())
+    return " ".join(parts) or None
 
 
 def _local(el) -> str:
@@ -172,8 +192,12 @@ def parse(raw_id: int, file_name: str, content: str | None, published: str, issu
         return None
 
     text_limit, details_limit = LIMITS.get(category, DEFAULT_LIMITS)
-    if category == "register" and root.get("typZmeny"):
-        details = []  # full register extracts: see RPO for the content
+    if category == "register":
+        # Register filings repeat the whole entry; keep only what says what happened (the
+        # register's history itself is in RPO). That keeps ~2.5 million filings small.
+        text, details = register_summary(kind, text), []
+        if "ZBL" in kind and title in (None, "Nové zápisy"):
+            title = "uloženie listín do zbierky listín (deeds filed)"
     detail_text = "; ".join(details)
     return {
         "id": raw_id,

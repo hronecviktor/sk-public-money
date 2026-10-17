@@ -41,9 +41,45 @@ async def test_download_streams_to_disk_and_checks_the_start(tmp_path):
 
 
 def test_sync_command_names_the_sources(capsys):
-    with pytest.raises(SystemExit, match=r"sources: .*\buvo\b"):
+    with pytest.raises(SystemExit, match=r"sources: (\w+, )*uvo\b"):
         sync.main([])
     with pytest.raises(SystemExit) as exc:
         sync.main(["uvo", "--help"])
     assert exc.value.code == 0
     assert "sk-public-money-sync uvo" in capsys.readouterr().out
+
+
+def test_sync_all_runs_every_source_and_reports_failures(monkeypatch, capsys):
+    ran = []
+
+    class Fake:
+        def __init__(self, name, fail=None):
+            self.name, self.fail = name, fail
+
+        def main(self, argv):
+            ran.append((self.name, argv))
+            if self.fail == "exit":
+                raise SystemExit(1)
+            if self.fail == "error":
+                raise RuntimeError("portal down")
+            if self.fail == "exit0":
+                raise SystemExit(0)
+
+    fakes = {"a": Fake("a"), "b": Fake("b", "error"), "c": Fake("c", "exit0"), "d": Fake("d", "exit")}
+    monkeypatch.setattr(sync, "SOURCES", {name: name for name in fakes})
+    monkeypatch.setattr(sync.importlib, "import_module", lambda name: fakes[name])
+    with pytest.raises(SystemExit) as exc:
+        sync.main(["all", "--skip", "c"])
+    assert exc.value.code == 1
+    assert ran == [("a", []), ("b", []), ("d", [])]
+    err = capsys.readouterr().err
+    assert "a: ok" in err and "b: failed: RuntimeError: portal down" in err and "d: failed (exit 1)" in err
+
+    ran.clear()
+    fakes = {"a": Fake("a"), "c": Fake("c", "exit0")}
+    monkeypatch.setattr(sync, "SOURCES", {name: name for name in fakes})
+    sync.main(["all"])  # everything ok: no exit
+    assert [name for name, _ in ran] == ["a", "c"]
+
+    with pytest.raises(SystemExit):
+        sync.main(["all", "--skip", "nope"])

@@ -69,6 +69,7 @@ Things to know:
 - A dissolved organization is shown as it was on the day before its dissolution (`shown_as_of`), since RPO ends its people and capital then.
 - For foreign companies RPO stores no IČO ("Neuvedené") and a placeholder founding date of 1800-01-01; both come out as `null`.
 - Data lags the source registers by up to a day.
+- Current directors and procurists (`rpo_get_organization`) and every role found by `rpo_search_person` are checked against the register of disqualified persons from the court source. A match adds a `disqualified` flag, matched by name and strengthened by address where it matches; see the courts section below.
 
 ### RÚZ: Register účtovných závierok ([registeruz.sk](https://www.registeruz.sk))
 
@@ -143,6 +144,148 @@ Things to know:
 - Corrected notices and reports ("Oprava: …") are indexed as their own records next to the original, labelled in `kind`; they are not merged into it.
 - Three issues are missing from the index because data.slovensko.sk lacks them: 202/2023 has no usable download link, and the datasets titled 144/2024 and 145/2025 are byte-identical copies of 145/2024 and 144/2025. The sync reports them on every run. All other issues since 201/2023 (17 October 2023) are indexed.
 
+### Finančná správa SR: the tax authority ([opendata.financnasprava.sk](https://opendata.financnasprava.sk))
+
+The tax authority publishes lists of taxpayers as zipped XML files at
+`https://report.financnasprava.sk/<list>.zip`, no key needed. They have no search API, so
+`sk-public-money-sync fs` downloads them into a local index and deletes the zips. The lists used:
+
+| List | What it holds | Updated |
+| --- | --- | --- |
+| `ds_dphs` | VAT register: IČ DPH, kind of registration (§ 4 payer, § 4b VAT group, § 5 foreign person, § 7 / § 7a registered but not a payer), registration date, payer from, date of a change of kind | daily |
+| `ds_iz_ran` | Index daňovej spoľahlivosti: vysoko spoľahlivý, spoľahlivý, menej spoľahlivý, by DIČ | daily |
+| `ds_dphz` | VAT payers with reasons to cancel their registration (§ 52(6) daňového poriadku), with the year of the breach and publication date | daily |
+| `ds_dphv` | VAT payers struck off (§ 52(8)), with the date struck off | daily |
+| `ds_dsdd` | Tax debtors: name, address, amount owed. **No IČO or DIČ.** | monthly |
+| `ds_dppos` | Corporate income tax per tax period: tax assessed, additional tax assessed, tax loss | quarterly |
+| `ds_dphno` | VAT excess deduction (nadmerný odpočet) or own tax liability per VAT period | quarterly |
+
+| Tool | What it does |
+| --- | --- |
+| `fs_get_taxpayer` | Everything on one taxpayer by IČO (or DIČ, IČ DPH): VAT registrations, reliability index, cancellation and struck-off entries, corporate income tax per period (with the list it came from), VAT returns (latest 12 rows, or all with `vat_history`), the VAT group it represents (matched by the group's name), and debtor list entries with exactly the same name (`matched_by: name`). |
+| `fs_search_debtors` | Searches the debtor list by words of the name (word starts, no case or diacritics), optionally by place and minimum debt; largest debts first; every result `matched_by: name`. |
+| `fs_list_flagged` | Lists struck-off VAT payers (by date struck off), VAT payers with reasons to cancel (by publication date), or taxpayers rated menej spoľahlivý (by name), optionally by place. |
+Building the index:
+
+```sh
+sk-public-money-sync fs                       # all lists, with the quarterly archives (default --since 2016-01-01)
+sk-public-money-sync fs --since 2024-01-01    # a first build with less history
+sk-public-money-sync fs --lists ds_dphs,ds_iz_ran --force
+```
+
+The first run downloads about 0.7 GB (the two archives have 33 files each: up to 7 MB of corporate
+tax, 14–18 MB of VAT returns) and takes about 15 minutes; the index is about 0.75 GB, most of it the
+VAT returns (19.6 million rows; corporate tax 2.7 million). Each further run asks each file's Last-Modified and downloads only changed lists. The tools check the
+two small daily VAT flag lists every 6 hours and update them inline; they name any other list that is
+older than usual and suggest the sync command.
+
+Things to know:
+
+- **Corporate income tax builds up from quarterly files.** The current `ds_dppos.zip` holds the returns processed in the latest quarter (mostly the previous tax year, plus late returns for older years); older quarters are in an [archive](https://www.financnasprava.sk/sk/elektronicke-sluzby/verejne-sluzby/zoznamy/archiv-vybranych-informacnych/zoznam-subjektov-s-vyskou-dane) back to the list of 30 June 2018, the oldest published (the default `--since 2016-01-01` takes the whole archive; the first lists also carry late returns for 2017 and earlier periods). The index keeps every published row with the date of its list (`list_of`); a period that appears in several lists (e.g. a later row with only the additional tax after a supplementary return) shows each row as published. A missing year may be in an older file (`--since`) or was never published.
+- **VAT returns build up the same way** from the current `ds_dphno.zip` and its [archive](https://www.financnasprava.sk/sk/elektronicke-sluzby/verejne-sluzby/zoznamy/archiv-vybranych-informacnych/zoznam-danovych-subjektov-dph), which also starts with the list of 30 June 2018: each quarterly file holds the returns filed that quarter, with late returns for older periods. Every row is kept with its list date; a period published in several lists (e.g. after a corrective return) shows each, with `list_of`. `fs_get_taxpayer` shows the latest 12 rows, `vat_history=true` all of them. Periods read `2026-03` (month) or `2026-Q1` (quarter).
+- **VAT groups:** a company in a VAT group (e.g. Slovnaft) is not in the VAT register itself; the group is, named "Skupina DPH zastupovaná: <representative>", and files the VAT returns. `fs_get_taxpayer` links the group by that name for its representative. The lists do not name the other members.
+- **The debtor list has no identifiers.** Matches are by name only; compare the address. `fs_get_taxpayer` shows debtor entries only when the cleaned name is identical.
+- Names are cleaned of padding inside their quotes (`" CCL s.r.o. "` becomes `"CCL s.r.o."`); the quotes stay. Dates are converted from DD.MM.YYYY and DDMMYYYY. Some IČOs have 12 digits (organisational units: IČO + 4 digits) and are kept whole. A handful of violation years are nonsense (0, 25, 525) and are passed on as published text. Archive files up to 2023 are Windows-1250, newer ones UTF-8.
+- Natural persons (sole traders, people registered for VAT, debtors) appear with name and address as published.
+- Data: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), "Zdroj údajov: Finančná správa SR - https://opendata.financnasprava.sk/"; the reliability index file says CC0.
+
+### Courts: decisions and judges ([obcan.justice.sk](https://obcan.justice.sk), [sudnarada.gov.sk](https://www.sudnarada.gov.sk))
+
+The Ministry of Justice publishes every decision of the general courts (*rozhodnutie*: judgments,
+orders, payment orders; about 4.7 million since around 2000) and its register of judges through the
+ISU ("Infosúd") API, which is labelled *pilot*. The Judicial Council (Súdna rada) publishes judges'
+yearly asset declarations (*majetkové priznania*, 2013 onwards, about 13,000 PDFs).
+
+| Tool | What it does |
+| --- | --- |
+| `court_search_decisions` | Finds decisions by IČO or words, court, judge, legal area (*oblasť* or *podoblasť*) and date, newest first. Each hit has court, judge, case number, form and text snippets with the match marked «like this», plus counts by area, form and court type. |
+| `court_get_decision` | A decision by guid or ECLI: nature (*povaha*: confirmed, overturned, …), legal area, cited laws with Slov-Lex links and the PDF link. With `text=true` it downloads the PDF and returns its text page by page. |
+| `court_judge` | Finds judges by name (court, function, status, `judge_id` for the decision search) and lists their asset declarations from Súdna rada. With `declaration_url` it reads one declaration: real estate, movables, income from the office, debts and declared conflicts. |
+| `court_disqualified` | Searches the register of disqualified persons (*register diskvalifikácií*) by name, or shows one record by ID: address, decision date, court or tax office, case number, note, ban period and whether it is in force today. |
+
+Things to know:
+
+- The API has no full text of decisions, only search snippets. The text comes from the PDF, which robots.txt of obcan.justice.sk disallows (`/content`); the user decided PDFs may be fetched one at a time on demand. Decisions from 2009 and declarations from 2017 checked so far have a text layer; a PDF without one is reported with a note.
+- Decisions anonymise people (*A. B., nar. XX.X.XXXX*); companies keep their name and IČO.
+- An IČO search is a full-text search, run twice: for `31322832` and for the phrase `"31 322 832"` (leading zeros dropped, so `"604 381"` also finds `00 604 381`). The results are merged, and `matching` gives the count for each spelling. The number may belong to another party, or be an amount, so the result says `matched_by` and each hit carries its snippet. Merged IČO results can be paged through the newest 500 only.
+- Text search stems words and requires all of them; quotes make a phrase. Operators like `OR` are not supported (the backend fails on them, reported as a bad query).
+- Judges' asset declarations are listed on Súdna rada's website, which matches a single surname without diacritics. The tool searches by the last word of the name first, then the others, and keeps declarations whose name contains every word given. They are matched to judges **by name only** (`asset_declarations_matched_by`), and list the court where the judge served that year.
+- Not used: court hearings (*pojednávania*, no parties).
+
+The register of disqualified persons and the automatic check:
+
+- The register lists people a court (in criminal cases) or a tax office (through the Commercial Register court, *CbVyl*) has banned from being a company's statutory body or procurist. It is small (about 1,000 records), so a local SQLite copy is kept in the cache (`court/disqualified.sqlite`, about 0.7 MB). The list (name, address, decision date, sometimes the court) takes two requests and is re-read when the copy is a day old; records the register drops are dropped from the copy. The ban period, case number and note are only in each record's detail, which is fetched when a record is shown or matched and kept for 30 days. `sk-public-money-sync court` fetches all details in advance (about 17 minutes at one request per second).
+- The register has no IČO, birth date or IFO in practice (the IFO field is empty), so people are matched **by name**: all words of both names, ignoring case, diacritics, titles and word order (`name_match: exact`), or one name with an extra word such as a second given name (`partial`).
+- `rpo_get_organization` checks its current statutory body members and procurists; `rpo_search_person` checks every role it returns. A match adds a `disqualified` list to that person with the record ID (for `court_disqualified`), the register's name and address, `address_comparison` (same address, same town, different) and `matched_by` (`name`, `name and town` or `name and address`), the ban period and `ban_active`. When the register can't be reached the check uses the old copy and says so in `disqualification_check`; without any copy it is skipped with a note.
+
+### PPA: Pôdohospodárska platobná agentúra (farm subsidies)
+
+Who received money from the Common Agricultural Policy: the EAGF (*EPZF*: direct payments, market
+measures) and the EAFRD (*EPFRV*: rural development) with its national co-financing. PPA publishes
+one list per EU financial year (16 October to 15 October; FY2025 = payments from 16 October 2024 to
+15 October 2025) as XLSX on
+[its website](https://www.apa.sk/o-nas/zverejnovane-udaje/prehlad-prijimatelia-pomoci-z-epzf-epfrv),
+under Article 98 of Regulation (EU) 2021/2116, which keeps each list public for two years. The lists
+have no search and change their download link with every upload, so they are kept in a local index.
+
+| Tool | What it does |
+| --- | --- |
+| `ppa_search_beneficiary` | Finds beneficiaries by name (also by the name of a parent company), or by IČO: the company's current and former names are looked up in RPO and beneficiaries with exactly such a name are returned, with `seat_obec_matches` comparing the obec to the seat in RPO. Each result is one beneficiary in one financial year: total, EPZF, EPFRV and co-financing, the obce, the parent company, and the amounts by measure code with the CAP specific objectives. |
+| `ppa_top` | Ranks beneficiaries of a financial year (default the newest) by what they received, overall or only under a measure code (`I.6`, or a group such as `V`), in an obec, or of one kind (natural person, entity, anonymised), with the number of beneficiaries and their sum. |
+
+Building the index:
+
+```sh
+sk-public-money-sync ppa                  # both listed years: ~16 MB download, ~20 s, ~20 MB index
+sk-public-money-sync ppa --reindex        # download and index every listed year again
+sk-public-money-sync ppa --keep-delisted  # keep years PPA no longer publishes
+```
+
+A year is downloaded again only when its link changes, and each XLSX is deleted once indexed. Years
+PPA stops publishing are dropped from the index, so it holds what PPA publishes. The tools say when
+the index was last checked more than 45 days ago.
+
+Things to know:
+
+- **No IČO.** The lists give a name, for people a first name and surname, the obec, and for members of a group the parent company with its VAT or tax number as typed. `ico` is filled only when you search by IČO, and then only because the name matches (`matched_by: name`). Many sole traders appear under their own name without a surname column (`kind: entity`).
+- **Anonymised recipients.** Recipients of EUR 1,250 or less a year are published as a numeric code (`kind: anonymised`). Where a small obec would identify a person, PPA gives the okres (FY2024: "Okres Komárno"); the `obec` filters match both.
+- **Per operation rows.** Each beneficiary's operations are followed by a subtotal row; the index sums the operations and checks them against the subtotal (both years match to the cent: FY2025 16,589 beneficiaries, EUR 1,105,157,155.72; FY2024 16,037, EUR 708,644,192.44). Recoveries are negative amounts.
+- **Measure codes** follow Annex IX of Implementing Regulation (EU) 2022/128: I.x direct payments under the CAP Strategic Plan, II.x direct payments under the old rules, III.x sectoral interventions, IV.x market measures, V.x rural development 2023–2027, VI.x the 2014–2022 Rural Development Programme. Some operations have no code ("(prázdne)"; FY2025: 266 operations, EUR 64.1 million), and FY2024 uses II.11 (6,584 operations, net EUR −2.7 million, mostly recoveries), which the 2024 version of Annex IX does not list; both are shown without a label.
+- **Layouts differ by year.** FY2024 has (always empty) start and end date columns and repeats the name on the subtotal row; FY2025's sheet is titled "FY 2024" and joins a person's name on the subtotal row. Columns are found by their header and the year by the title row. A beneficiary whose name is spelt differently across its operations is shown under the subtotal's spelling with the others in `also_named`.
+- PPA's older search for FY2021–2022 (archiv.apa.sk) is not used.
+- No licence is stated for the lists. www.apa.sk has no robots.txt and publishes no limits; the sync makes three requests, 2 s apart.
+
+### Political-party financing (party_* tools)
+
+Two sources: the transparent accounts parties and candidates must run their campaigns through
+(*transparentný účet*), and the annual reports (*výročné správy*) every party files with the State
+Commission for Elections and Control of Financing of Political Parties (Štátna komisia pre voľby a
+kontrolu financovania politických strán), published on [minv.sk](https://www.minv.sk/?vyrocnespravyps).
+
+| Tool | What it does |
+| --- | --- |
+| `party_account_transactions` | Movements on a [Slovenská sporiteľňa transparent account](https://www.slsp.sk/sk/ludia/transparentne-ucty), newest first: date, signed amount in EUR (negative = paid out), counterparty name, note, payment type, variable and specific symbol. The account is given by IBAN or by words of its name; several matching accounts are listed to pick from. Filters: counterparty name, dates, a minimum amount and direction (in/out). |
+| `party_annual_reports` | The annual reports of a party (all years) or of a year (all parties), 2015 onwards: party as listed, PDF link, whether the file is a corrected version (`_f`) or was marked as deficient (`*`), renames, and the year's notes (when the page was updated, which parties filed no report). Once a report has been read, also its coverage: page count, text pages, scanned pages, and the text pages that mention each register. |
+| `party_read_report` | Reads pages of one report. Pages with a real text layer come back as text (pypdf layout mode, which keeps table columns apart); scanned pages come back as grayscale JPEG images (130 dpi by default, 80–200) for the model to read, at most 6 per call (3 above 150 dpi), optionally turned for tables scanned sideways. Without pages it returns the coverage and thumbnail sheets of 24 pages per call (12 to a sheet, labelled with page numbers), so the model can find the register tables and then read them. With `ocr=true` and `tesseract` installed with Slovak (`slk`), scanned pages come back as tesseract text, labelled as such; otherwise as images. |
+
+Annual reports:
+
+- The registers the law asks for (zákon č. 85/2005 Z. z., § 30 ods. 2) are usually lettered: **F** loans and credits (*pôžičky, úvery*), **G** gifts and other free benefits (*dary, iné bezodplatné plnenia*), **J** membership fees above twice the minimum wage (*členské príspevky*), **K** overdue liabilities, often to suppliers named with IČO. They name natural persons with address, sole traders and companies with IČO, amounts, dates and often the donor's IBAN; these are returned as published. Every party lays them out its own way.
+- **Most reports are scans.** A survey of all 2022–2024 reports (156) found 9, 5 and 6 reports per year with any text page, and register entries as text in only about 10 of them. Every large party's registers (PS, SaS, HLAS, Republika, KDH, SNS, Demokrati) are images. So the model reads them from page images; numbers read from an image should be checked against it, and the output says so.
+- Some scanners add an OCR layer (invisible text under the image). These layers are badly garbled (IBANs like `2L34195t0`, dates like `15.!.2024`), so such pages count as scans (`scanner_ocr_pages`) and the layer is not used.
+- `sk-public-money-sync party` lists the reports: the overview page and one index page per year, about a dozen requests 1.5 s apart, 20 s in all, an index of under 1 MB. The tools build the listing themselves the first time and refresh the newest two years when it is a week old. Where a party has both a report and a corrected version, only the corrected one is listed.
+- PDFs (1–35 MB) are downloaded only when `party_read_report` reads them, one at a time, and deleted an hour later. Their coverage is kept in the index, so `party_annual_reports` shows it from then on.
+- `text_pages_mentioning` comes from text pages only; on a scanned report the thumbnails and the contents page (*obsah*) are the way to the registers.
+- No licence or terms of use are published for the reports.
+
+Transparent accounts:
+
+- The bank's list (about 1 200 accounts) mixes parties, candidates, campaigns and charities and has no field that says which is which; the name usually tells ("SMER-SD spojené voľby 2026"). The list is fetched in three requests and cached for a day; account names are matched locally ignoring case and diacritics.
+- Turnovers name the counterparty as the bank shows it, with no IBAN or IČO, so results filtered by counterparty say `matched_by: name`. The bank's counterparty search ignores case and diacritics and matches anywhere in the name; it does not search notes.
+- The running balance is not published per movement; the account's current balance is.
+- Small negative movements described as *Transakčná daň* are the bank's transaction tax on a payment.
+- Only Slovenská sporiteľňa is covered. Parties also hold transparent accounts at ČSOB, VÚB, Tatra banka and Fio, which are not.
+
 ### REPLIK: insolvency register ([replik-ws.justice.sk](https://replik-ws.justice.sk/ru-verejnost-ws/konanieService.wsdl))
 
 The Ministry of Justice's *Register predinsolvenčných, likvidačných a insolvenčných konaní* records
@@ -180,7 +323,7 @@ Things to know:
 - Datahub's parsed OV tables are not used: `likvidator_issues` stops in 2017 and `or_podanie_issues` in 2019. The server parses the raw XML of every form itself, so all years are read the same way.
 - A notice's subject companies are the IČO fields outside role blocks (trustee, petitioner, liquidator, partner, creditor). IČOs written with spaces are normalised. Other companies named in a merger, capital or liquidation text are indexed too, but as `mentioned_only`. Old register filings (2016–2018) are plain text; IČO and name are read from it.
 - Notices about people without an IČO (personal bankruptcy, trustees' notices about individuals) are not kept. Insolvency notices are kept only up to 30 September 2025, when REPLIK took over; use `insolvency_*` for those.
-- Texts are cut (2,000 characters; insolvency 1,000; register filings 600). Full commercial register extracts (2019 and later) are reduced to their type (new entry, change, deletion); see `rpo_get_organization` for the content. Each notice links its Datahub source record.
+- Texts are cut (2,000 characters; insolvency 1,000). Register filings are about 90 % of the notices (about 2.5 million since 2011) and repeat the whole register entry, so only what says what happened is kept: the type (new entry, change, deletion, deeds filed), the company, the deletion sentence and reason, and the list of deeds filed (e.g. *Zmluva o prevode obchodného podielu*). What changed on a date is in `rpo_get_organization` with history. Bulk lists of companies that filed deeds (`*_ZBL_ZOZNAM`, ~200 companies each, no content) are not kept. Each notice links its Datahub source record.
 - Licence: Datahub's [dataset terms](https://ekosystem.slovensko.digital/podmienky) (from 1 March 2024) allow extraction and reuse. They require that changes be stated with their date, and they say the data are *informative only and not legally binding* (*informatívny charakter*). Every result says so, with the index build date.
 
 ## Being a polite robot
@@ -192,9 +335,14 @@ Each source has its own throttle:
 - **RPO** uses the [REST API documented by MV SR](https://rpo.minv.sk/rpo-api-doc.html) at `api.statistics.sk/rpo/v1`, which needs no key and publishes no limits. Requests are spaced 0.5 s apart anyway. A detail takes about a second, while searches take 5–30 s.
 - **data.slovensko.sk** (Vestník issues) publishes no limits and its robots.txt allows everything. The sync fetches one issue at a time, 2 s apart. The data are licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) by ÚVO.
 - **TED** uses its [Search API](https://docs.ted.europa.eu/api/latest/index.html), which needs no key and publishes no rate limit; requests are spaced 0.5 s apart. Notice XML is cached for good, since published notices never change (a correction is a new notice). TED data may be reused free of charge with attribution (Commission Decision 2011/833/EU). ÚVO's own website disallows robots in its robots.txt and is not used.
+- **Finančná správa** publishes no limits; its robots.txt is missing (404) and its servers sit behind an F5 firewall that sometimes resets a transfer. The sync spaces requests 2 s apart and retries a reset download twice. The tools send at most two HEAD requests and two small downloads every 6 hours.
+- **Courts:** the ISU API publishes no limits or licence, and its robots.txt does not cover `/pilot/api`; requests are spaced 1 s apart, and page numbers are 1-based. Decision PDFs and asset declarations are fetched one at a time when a tool asks for text, and the last few are kept in memory, not on disk. Súdna rada publishes no robots.txt. No licence is published for either source.
 - **REPLIK** uses its public SOAP API (integration manual *Integračná príručka – endpoint pre verejnosť*, v1.0.12), which needs no registration in production and publishes no limits or licence. Requests are spaced 1 s apart; pages hold at most 100 results; notice lists take 2–8 s.
 - **Datahub** (Obchodný vestník): the dump is one streamed download from S3. The sync API allows 60 requests per minute (`x-ratelimit-limit`); requests are spaced 1.1 s apart.
 - **RÚZ** uses its [open API](https://www.registeruz.sk/cruz-public/home/api), which needs no key and publishes no limits; robots.txt only disallows the XLS exports. Requests are spaced 0.5 s apart. Every statement and report is a separate request, so the first look at a large filer takes 10–30 s. Statements and reports are then cached for 3 days, and report templates (which RÚZ never changes) for good. RÚZ data are licensed [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
+- **PPA** lists are XLSX files on www.apa.sk, which has no robots.txt and publishes no limits or licence. The sync fetches the page and the changed files only, 2 s apart.
+- **Slovenská sporiteľňa** transparent accounts use the unauthenticated JSON API behind its web page (`api.slsp.sk/ta-accounts`, `api.slsp.sk/ta-turnovers`). It serves no robots.txt and no terms of use or licence were found, so requests are spaced at least 1 s apart and pages kept small (50 movements by default).
+- **minv.sk** (party annual reports): robots.txt disallows only `/?poslat-stranku`, and no limits are published. Listing pages and PDFs are fetched 1.5 s apart, PDFs one at a time and only when a report is read.
 
 CRZ daily exports and attachments are cached in `~/.cache/sk-public-money`, or in
 `$SK_PUBLIC_MONEY_CACHE_DIR` when it's set. CRZ export data is licensed

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ZoznamDanovychDlznikov>
+  <DatumAktualizacieZoznamu>30092026</DatumAktualizacieZoznamu>
+  <DS_DSDD>
+    <ITEM>
+      <NAZOV_SUBJEKTU>&quot; ALFA TEST s.r.o.&quot;</NAZOV_SUBJEKTU>
+      <CIASTKA>7603.08</CIASTKA>
+      <ULICA_CISLO>Fiktívna 1/A</ULICA_CISLO>
+      <PSC>01001</PSC>
+      <OBEC>Žilina</OBEC>
+    </ITEM>
+    <ITEM>
+      <NAZOV_SUBJEKTU>Jozef Široký</NAZOV_SUBJEKTU>
+      <CIASTKA>515.40</CIASTKA>
+      <ULICA_CISLO> 141</ULICA_CISLO>
+      <PSC>94636</PSC>
+      <OBEC>Kravany nad Dunajom</OBEC>
+    </ITEM>
+    <ITEM>
+      <NAZOV_SUBJEKTU>Jozef Siroky</NAZOV_SUBJEKTU>
+      <CIASTKA>198.36</CIASTKA>
+      <ULICA_CISLO>ul. Testowa 69</ULICA_CISLO>
+      <PSC>30-504</PSC>
+      <OBEC>KRAKÓW, PL</OBEC>
+    </ITEM>
+  </DS_DSDD>
+</ZoznamDanovychDlznikov>
