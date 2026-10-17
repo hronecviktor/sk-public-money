@@ -1,18 +1,19 @@
-"""Tools for Slovak court data: decisions and judges from the Ministry of Justice (obcan.justice.sk)
-and judges' asset declarations from Súdna rada (sudnarada.gov.sk)."""
+"""Tools for Slovak court data: decisions and judges from the Ministry of Justice (obcan.justice.sk),
+judges' asset declarations from Súdna rada (sudnarada.gov.sk) and the register of disqualified persons."""
 
 from __future__ import annotations
 
 import re
-from datetime import date
+from datetime import date, datetime
 from typing import Annotated
 
 from pydantic import Field
 
+from ... import localdb
 from ...app import READ_ONLY, mcp, user_errors
 from ...text import fold
 from ..crz.pdf import extract_text
-from . import parse
+from . import disqualified, parse
 from .client import CourtClient
 
 MAX_WINDOW = 500  # the API's largest page; IČO searches merge two result lists within it
@@ -218,3 +219,48 @@ async def court_judge(
             out["asset_declarations_note"] = f"Only the first {len(rows)} of {total} declarations matching '{fragment}' were checked; give a longer name."
     out["sources"] = "Ministerstvo spravodlivosti SR (obcan.justice.sk) and Súdna rada SR (sudnarada.gov.sk); no licence published"
     return out
+
+
+@mcp.tool(annotations=READ_ONLY)
+@user_errors
+async def court_disqualified(
+    name: Annotated[str | None, Field(description="Person's name or surname, in any case and with or without diacritics; every word must match the start of a name word.")] = None,
+    record_id: Annotated[str | None, Field(description="Instead of a name: a record ID such as diskvalifikacia_1400, from a 'disqualified' flag in RPO results.")] = None,
+    active_only: Annotated[bool, Field(description="Only bans in force today.")] = False,
+    limit: Annotated[int, Field(ge=1, le=50)] = 20,
+) -> dict:
+    """The register of disqualified persons (register diskvalifikácií): people banned by a court or
+    tax office from statutory bodies of companies (konateľ, predstavenstvo, prokurista). Each record
+    gives name, address, decision date, court, case number, the ban period and whether it is in force
+    today. Matched by name only; the register has no birth dates."""
+    if not name and not record_id:
+        raise ValueError("Give a name or a record_id.")
+    db = disqualified.open_db()
+    try:
+        note = await disqualified.ensure_fresh(db, client())
+        if record_id:
+            rows = db.execute("SELECT * FROM disqualified WHERE id = ?", (record_id.strip(),)).fetchall()
+            if not rows:
+                raise LookupError(f"No record {record_id} in the register of disqualified persons; it may have been removed.")
+        else:
+            rows = disqualified.search(db, name)
+        total = len(rows)
+        # Without active_only only the shown records need their detail (ban period).
+        wanted = rows if active_only else rows[:limit]
+        await disqualified.fetch_details(db, client(), [r["id"] for r in wanted])
+        ids = [r["id"] for r in wanted]
+        fresh = {r["id"]: r for r in db.execute(f"SELECT * FROM disqualified WHERE id IN ({','.join('?' * len(ids))})", ids)} if ids else {}
+        records = [disqualified.record(fresh[i]) for i in ids if i in fresh]
+        if active_only:
+            records = [r for r in records if r.get("ban_active")]
+            total = len(records)
+        out: dict = {"matching": total, "records": records[:limit], "has_more": total > limit, "matched_by": "name"}
+        last = localdb.get_meta(db, "list")
+        if last:
+            out["register_copy_from"] = datetime.fromtimestamp(float(last)).strftime("%Y-%m-%d %H:%M")
+        if note:
+            out["note"] = note
+        out["sources"] = "Ministerstvo spravodlivosti SR, register diskvalifikácií (obcan.justice.sk); no licence published"
+        return out
+    finally:
+        db.close()
