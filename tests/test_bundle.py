@@ -89,6 +89,7 @@ def test_sync_starts_from_the_snapshot_unless_told_not_to(cache, monkeypatch):
     monkeypatch.setattr(sync.importlib, "import_module", lambda name: Fake())
     sync.main(["uvo", "--since", "2026-01-01"])
     sync.main(["uvo", "--no-bootstrap"])
-    sync.main(["all", "--no-bootstrap", "--skip", "ppa,fs,court"])
-    sync.main(["all", "--skip", "ppa,fs,court"])
+    others = ",".join(name for name in sync.SOURCES if name != "uvo")
+    sync.main(["all", "--no-bootstrap", "--skip", others])
+    sync.main(["all", "--skip", others])
     assert calls == ["uvo", ("main", ["--since", "2026-01-01"]), ("main", []), ("main", []), "uvo", ("main", [])]
