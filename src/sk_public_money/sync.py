@@ -13,6 +13,7 @@ SOURCES = {
     "fs": "sk_public_money.sources.fs.sync",
     "uvo": "sk_public_money.sources.uvo.sync",
     "ppa": "sk_public_money.sources.ppa.sync",
+    "court": "sk_public_money.sources.court.sync",
 }
 
 

@@ -69,6 +69,7 @@ Príklady otázok pre asistenta:
 | `court_search_decisions` | Hľadá súdne rozhodnutia podľa IČO alebo slov, súdu, sudcu, právnej oblasti a dátumu |
 | `court_get_decision` | Rozhodnutie podľa ID alebo ECLI: súd, sudca, spisová značka, povaha, citované predpisy a text z PDF |
 | `court_judge` | Sudca: súd, funkcia, stav a jeho majetkové priznania od roku 2013, ktoré vie aj prečítať |
+| `court_disqualified` | Register diskvalifikácií: osoby, ktoré nesmú byť štatutármi firiem, s adresou, spisovou značkou a obdobím zákazu |
 | `ppa_search_beneficiary` | Poľnohospodárske dotácie prijímateľa podľa mena alebo IČO (cez názov v RPO): sumy po fondoch a opatreniach, obec, materská spoločnosť |
 | `ppa_top` | Najväčší prijímatelia za finančný rok, podľa opatrenia, obce alebo druhu prijímateľa |
 
@@ -77,6 +78,9 @@ Na čo si dať pozor:
 - **Rovnaké meno ešte neznamená tú istú osobu.** Porovnajte dátum narodenia (RPVS) alebo adresu (RPO).
 - **Súdne rozhodnutia sa hľadajú podľa IČO fulltextom:** IČO môže patriť inej strane sporu alebo byť
   náhodné číslo, preto si pozrite úryvok. Fyzické osoby sú v rozhodnutiach anonymizované.
+- **Štatutári v RPO sa automaticky porovnávajú s registrom diskvalifikácií** podľa mena (a adresy, ak
+  sa zhoduje). Zhoda mena nie je dôkaz; register sa ukladá lokálne a obnovuje raz denne
+  (`sk-public-money-sync court` stiahne aj obdobia zákazov vopred).
 - **Hodnota rámcovej dohody je maximum,** nie suma, ktorá sa naozaj zaplatila. Hodnota 0 znamená, že
   obstarávateľ ju nezverejnil.
 - **TED obsahuje len zákazky nad limitmi EÚ.** Podlimitné zákazky a zákazky s nízkymi hodnotami sú
@@ -245,6 +249,7 @@ Example questions for the assistant:
 | `court_search_decisions` | Searches court decisions by IČO or words, court, judge, legal area and date |
 | `court_get_decision` | A decision by ID or ECLI: court, judge, case number, outcome, cited laws and the text of its PDF |
 | `court_judge` | A judge: court, function, status, and their asset declarations since 2013, which it can also read |
+| `court_disqualified` | The register of disqualified persons: people banned from company boards, with address, case number and ban period |
 | `ppa_search_beneficiary` | A beneficiary's farm subsidies by name or IČO (via its name in RPO): amounts by fund and measure, municipality, parent company |
 | `ppa_top` | The largest beneficiaries in a financial year, by measure, municipality or kind of beneficiary |
 
@@ -253,6 +258,9 @@ Things to watch out for:
 - **The same name doesn't mean the same person.** Compare birth dates (RPVS) or addresses (RPO).
 - **Court decisions are found by IČO in their full text:** the number may belong to another party or
   be an unrelated figure, so check the snippet. People are anonymised in decisions.
+- **Directors in RPO are checked against the register of disqualified persons automatically,** by
+  name (and address when it matches). A matching name is not proof; the register is kept locally and
+  refreshed daily (`sk-public-money-sync court` also fetches the ban periods in advance).
 - **A framework agreement's value is a maximum,** not what was actually paid. A value of 0 means the
   buyer didn't disclose it.
 - **TED only covers contracts above the EU thresholds.** Below-threshold and low-value contracts are

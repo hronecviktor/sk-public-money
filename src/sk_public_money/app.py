@@ -30,7 +30,11 @@ trader, public body and association by IČO: names over time, seat, legal form, 
 dissolution, statutory body (konateľ, predstavenstvo), stakeholders (spoločník, akcionár, dozorná
 rada, prokurista), capital, predecessors and successors. RPO has no birth dates and no beneficial
 owners. Data lags the source registers by up to a day. Searches ignore case and diacritics; the API
-is slow (searches 5-30 s). CC BY 4.0 by MV SR.
+is slow (searches 5-30 s). Current directors and procurists (rpo_get_organization) and the roles
+found by rpo_search_person carry a 'disqualified' flag when their name is in the register of
+disqualified persons: matched by name only (strengthened when the address or town matches, as said
+in matched_by), with the ban period and whether it is active; court_disqualified shows the record.
+CC BY 4.0 by MV SR.
 
 RÚZ, Register účtovných závierok (ruz_* tools): financial statements of companies, sole traders,
 non-profits and public bodies. ruz_get_financials reads revenue, profit, assets and equity per year and
@@ -60,8 +64,10 @@ from the Ministry of Justice's pilot API (obcan.justice.sk), and judges' yearly 
 from Súdna rada. People who are parties are anonymised in decisions; companies keep name and IČO.
 court_search_decisions by IČO is a full-text match (both 31322832 and 31 322 832 spellings): check
 the snippet, the number may belong to another party. Decision text comes only from the PDF
-(court_get_decision text=true). Asset declarations are matched to judges by name. No licence is
-published for either source.
+(court_get_decision text=true). Asset declarations are matched to judges by name.
+court_disqualified searches the register of disqualified persons (people banned by a court or tax
+office from company statutory bodies; ~1000 records, kept in a local copy refreshed daily) by name,
+with address, case and ban period; it has no birth dates. No licence is published for these sources.
 
 PPA, Pôdohospodárska platobná agentúra (ppa_* tools): farm and rural-development subsidies of the
 Common Agricultural Policy per beneficiary and EU financial year (FY2025 = 16 Oct 2024 to 15 Oct

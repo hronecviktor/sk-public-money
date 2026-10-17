@@ -6,6 +6,8 @@ import pytest
 
 from sk_public_money.http import SourceUnavailable
 from sk_public_money.sources.rpo import client as client_mod
+from sk_public_money.sources.court import client as court_client
+from sk_public_money.sources.court import tools as court_tools
 from sk_public_money.sources.rpo import parse, tools
 
 SK = {"value": "Slovenská republika", "code": "703", "codelistCode": "CL000086"}
@@ -282,6 +284,8 @@ async def test_search_person_verifies_namesakes_locally(api):
     assert result["checked"] == 3
     # Iná Firma has a Ján and a Vzorová-Vzorový, but not one person with both names.
     assert [r["organization"]["ico"] for r in result["results"]] == ["01234567", "07654321"]
+    # Ján Vzorový is also in the (mocked) register of disqualified persons.
+    assert result["results"][1]["roles"][0].pop("disqualified")[0]["record_id"] == "diskvalifikacia_42"
     assert result["results"][1]["roles"][0] == {
         "kind": "statutory_body", "role": "Konateľ", "name": "Ján Vzorový",
         "address": "Lipová 3, 94901 Nitra", "valid_from": "2005-01-01", "valid_to": None,
@@ -350,3 +354,38 @@ async def test_search_organization_ranks_by_relevance(monkeypatch):
     assert [o["rpo_id"] for o in result["organizations"]] == [5, 2, 1, 7, 6, 3, 4]
     assert result["organizations"][3]["matched_former_name"] == "Fiktívne Železiarne Horná Ves, a.s."
     assert result["organizations"][4]["matched_former_name"] == "Fiktívne Železiarne Horná Ves, š.p."
+
+
+# The register of disqualified persons, checked by rpo_get_organization and rpo_search_person.
+REGISTER = [{"registreGuid": "diskvalifikacia_42", "meno": "Ján Vzorový", "adresa": "Lipová 3, 94901 Nitra", "datumRozhodnutia": "01.02.2024"}]
+REGISTER_DETAIL = {"registreGuid": "diskvalifikacia_42", "meno": "Ján Vzorový", "adresa": "Lipová 3, 94901 Nitra",
+                   "datumRozhodnutia": "01.02.2024", "spisovaZnacka": "1T 1/2024", "vylucenieOd": "01.02.2024", "vylucenieDo": "01.02.2099"}
+
+
+@pytest.fixture(autouse=True)
+def register(monkeypatch, tmp_path):
+    """Keep the disqualification check offline, with its index in a temporary cache."""
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/diskvalifikacia"):
+            return httpx.Response(200, json={"numFound": 1, "diskvalifikaciaList": REGISTER})
+        if request.url.path.endswith("/diskvalifikacia_42"):
+            return httpx.Response(200, json=REGISTER_DETAIL)
+        return httpx.Response(404, json={"message": "not found"})
+
+    monkeypatch.setenv("SK_PUBLIC_MONEY_CACHE_DIR", str(tmp_path))
+    monkeypatch.setattr(court_client, "INTERVAL", 0)
+    monkeypatch.setattr(court_tools, "_client", court_client.CourtClient(http=httpx.AsyncClient(transport=httpx.MockTransport(handler))))
+
+
+@pytest.mark.anyio
+async def test_get_organization_flags_disqualified_director(api):
+    org = (await tools.rpo_get_organization(ico="1234567"))["organizations"][0]
+
+    director = org["statutory_bodies"][0]
+    assert director["name"] == "Ján Vzorový"
+    assert director["disqualified"] == [{
+        "record_id": "diskvalifikacia_42", "matched_by": "name and address", "name_match": "exact",
+        "register_name": "Ján Vzorový", "register_address": "Lipová 3, 94901 Nitra", "address_comparison": "same address",
+        "ban_from": "2024-02-01", "ban_to": "2099-02-01", "ban_active": True, "decision_date": "2024-02-01", "court": None,
+    }]
+    assert all("disqualified" not in p for p in org["statutory_bodies"][1:] + org["stakeholders"])
