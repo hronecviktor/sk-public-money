@@ -160,9 +160,13 @@ def handler(calls: list):
         if path == "uctovnydoklad" and "projektId" in params:
             return httpx.Response(200, json={"offset": 0, "limit": -1, "size": 3, "results": INVOICES})
         if path in LISTS:
-            rows = sorted(LISTS[path], key=lambda r: r["id"])
-            rows = [r for r in rows if r["id"] >= int(params.get("minId", 0))]  # inclusive, like the real API
-            page = rows[: int(params["limit"])]
+            if path == "subjekt":  # sorted by name whatever the parameters say, like the real API
+                rows = sorted(LISTS[path], key=lambda r: r["nazov"])
+            else:
+                rows = sorted(LISTS[path], key=lambda r: r["id"])
+                rows = [r for r in rows if r["id"] >= int(params.get("minId", 0))]  # inclusive, like the real API
+            start = int(params.get("offset", 0))
+            page = rows[start : start + int(params["limit"])]
             key = "result" if path == "verejneobstaravanie" else "results"
             return httpx.Response(200, json={"offset": 0, "limit": int(params["limit"]), "size": len(rows), key: page})
         if path == "verejneobstaravanie/id/106502":
@@ -217,10 +221,11 @@ def test_procurement_detail_parse():
 
 
 @pytest.mark.anyio
-async def test_sync_pages_with_inclusive_min_id(built):
-    pages = [p for path, p in built if path == "subjekt"]
-    # 4 subjects in pages of 2: minId 0, then last id + 1, then an empty last page.
-    assert [p["minId"] for p in pages] == ["0", "100065", "100301"]
+async def test_sync_pages_by_min_id_or_offset(built):
+    # 2 projects in pages of 2: minId 0, then the last ID + 1 (minId is inclusive), an empty page.
+    assert [p["minId"] for path, p in built if path == "projekt"] == ["0", "25683"]
+    # Subjects come sorted by name, so they are paged by offset.
+    assert [p.get("offset", p.get("minId")) for path, p in built if path == "subjekt"] == ["0", "2", "4"]
     ix = index_mod.EUIndex()
     c = ix.counts()
     assert c["projects"] == 2 and c["applications"] == 2 and c["procurements_with_detail"] == 2

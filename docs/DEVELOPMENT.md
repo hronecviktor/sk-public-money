@@ -42,3 +42,4 @@ The tests run offline:
 - **RPO:** a mocked REST API with fictional organizations and people.
 - **ÚVO:** fictional TED notices in both XML formats and a fictional Vestník issue in `tests/uvo/fixtures`, and mocked TED and data.slovensko.sk APIs.
 - **RÚZ:** real report templates in `tests/ruz/fixtures` with fictional entities and amounts, and a mocked API.
+- **ITMS21+ (EU funds):** a mocked API with fictional organisations and projects in the shape of real records.

@@ -126,7 +126,7 @@ async def run(
         await sync_lists(index, client, say, invoices=invoices)
         if details:
             await sync_details(index, client, say, limit=max_details, everything=everything)
-        await sync_suppliers(index, client, say)
+            await sync_suppliers(index, client, say)
         index.rebuild_procurement_text()
         index.set_meta("synced_at", str(time.time()))
         say(f"done: {index.counts()}")
@@ -142,7 +142,7 @@ async def run(
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="sk-public-money-sync eu", description="Build or refresh the local index of EU funds 2021-2027 from ITMS21+.")
-    parser.add_argument("--no-details", action="store_true", help="only reload the lists, fetch no procurement details")
+    parser.add_argument("--no-details", action="store_true", help="only reload the lists: no procurement details, no new suppliers")
     parser.add_argument("--max-details", type=int, help="fetch at most this many procurement details in this run")
     parser.add_argument("--all-details", action="store_true", help="fetch every procurement detail again, not only new, changed and old ones")
     parser.add_argument("--no-invoices", action="store_true", help="skip the invoice list (about 75 000 records)")

@@ -143,6 +143,59 @@ Things to know:
 - Corrected notices and reports ("Oprava: …") are indexed as their own records next to the original, labelled in `kind`; they are not merged into it.
 - Three issues are missing from the index because data.slovensko.sk lacks them: 202/2023 has no usable download link, and the datasets titled 144/2024 and 145/2025 are byte-identical copies of 145/2024 and 144/2025. The sync reports them on every run. All other issues since 201/2023 (17 October 2023) are indexed.
 
+### EU funds 2021–2027: ITMS21+ ([itms21.sk](https://www.itms21.sk))
+
+ITMS21+ is the monitoring system of EU funds in Slovakia for the 2021–2027 period. Its
+[open-data API](https://api.itms21.sk/public/v1/openapi.json) covers seven programmes: Program
+Slovensko (PSK, ERDF/CF/JTF/ESF+), fisheries (PRH), Interreg VI-A Slovakia–Austria and
+Slovakia–Czechia, and the home-affairs funds AMIF, ISF and BMVI. It has projects, grant applications
+(*žiadosť o NFP*, ŽoNFP), payment claims (*žiadosť o platbu*, ŽoP), the procurements recipients ran for
+their projects with the signed contracts, and the invoices and other documents claimed in projects.
+
+Not covered: projects of 2014–2020 (ITMS2014+, whose open-data API at opendata.itms2014.sk refuses
+this client with HTTP 403) and the Recovery and Resilience Plan (*Plán obnovy*), which has its own
+system.
+
+The API filters projects and claims only by its own subject IDs and has no supplier filter for
+procurements, so its lists are kept in a local index:
+
+| Tool | What it does |
+| --- | --- |
+| `eu_search_projects` | Searches projects (or grant applications, or both) by IČO as recipient (for applications the applicant) or partner, by words in code, name or organisation names, and by programme. Returns 20 per page with recipient and partners (IČO), status, contracted total, dates, the CRZ link of the funding contract, and the payment claims filed with the amounts claimed. |
+| `eu_get_project` | Reads one project live: recipient, partners and provider (IČO), programme, call, amounts contracted, paid to the recipient and by funding source, dates, description, indicators, amendments, the project's suppliers (IČO), its invoices summed by supplier, and from the index its procurements with contracts and main suppliers and its payment claims. |
+| `eu_search_procurements` | Searches procurements by IČO as buyer or as main supplier of a contract, by words (including buyer and supplier names) or by project, newest first: buyer, status, estimated value, procedure, CPV, tenders received, Vestník reference, projects, contracts with number, date, amount and main supplier. With a supplier IČO, it also sums the invoices that supplier billed to EU projects, by recipient. |
+
+Building the index:
+
+```sh
+sk-public-money-sync eu                    # lists (~5 min), then procurement details and suppliers
+sk-public-money-sync eu --no-details       # only reload the lists
+sk-public-money-sync eu --max-details 2000 # spread the first detail pass over several runs
+```
+
+Every run reloads the lists in full (about 150 requests): the API documents a `modifiedSince` filter
+but ignores it. Procurement details then come one request each, since only the detail links a
+procurement to its projects and contracts: about 13,000 on the first run (some 4 hours), then those
+that are new or changed, plus a refresh of open procurements after a week and finished ones after 90
+days (a contract can be added without the procurement's change date moving). Suppliers and some
+buyers are records of a separate register with no list (`dodavatelobstaravatel`), so each new one is
+fetched once and cached: about 4,000 on the first run. The index takes about 60 MB. The tools do not
+top it up themselves; they say how old it is.
+
+Things to know:
+
+- Organisations are matched by IČO. Suppliers are matched by the main supplier of each contract only
+  (*hlavný dodávateľ*); other members of a consortium are not indexed.
+- Payment claims show the amount the recipient claimed (*nárokovaná suma*) and whether the claim was
+  paid; how much was approved is not in the list. `eu_get_project` gives the total paid to the
+  recipient (*poskytnuté prostriedky*).
+- Invoices: about 75,000, each with its owner (the recipient), supplier and amount. The list does not
+  say which project an invoice belongs to; `eu_get_project` reads a project's invoices live. Internal
+  documents (flat rates, payroll) name the recipient itself as the supplier and are left out of the
+  supplier sums.
+- Natural persons (sole traders, individual recipients) are returned as the register publishes them.
+- No licence or rate limit is published for the API. Requests are spaced 1 s apart.
+
 ## Being a polite robot
 
 Each source has its own throttle:
@@ -153,6 +206,7 @@ Each source has its own throttle:
 - **data.slovensko.sk** (Vestník issues) publishes no limits and its robots.txt allows everything. The sync fetches one issue at a time, 2 s apart. The data are licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) by ÚVO.
 - **TED** uses its [Search API](https://docs.ted.europa.eu/api/latest/index.html), which needs no key and publishes no rate limit; requests are spaced 0.5 s apart. Notice XML is cached for good, since published notices never change (a correction is a new notice). TED data may be reused free of charge with attribution (Commission Decision 2011/833/EU). ÚVO's own website disallows robots in its robots.txt and is not used.
 - **RÚZ** uses its [open API](https://www.registeruz.sk/cruz-public/home/api), which needs no key and publishes no limits; robots.txt only disallows the XLS exports. Requests are spaced 0.5 s apart. Every statement and report is a separate request, so the first look at a large filer takes 10–30 s. Statements and reports are then cached for 3 days, and report templates (which RÚZ never changes) for good. RÚZ data are licensed [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
+- **ITMS21+** uses its [open-data API](https://api.itms21.sk/public/v1/openapi.json), which needs no key and publishes no limits or licence. Requests are spaced 1 s apart, one at a time. Lists are read in pages of 1000 records.
 
 CRZ daily exports and attachments are cached in `~/.cache/sk-public-money`, or in
 `$SK_PUBLIC_MONEY_CACHE_DIR` when it's set. CRZ export data is licensed

@@ -46,20 +46,27 @@ class ITMSClient(ThrottledClient):
         return data
 
     async def pages(self, entity: str, params: dict | None = None) -> AsyncIterator[tuple[list[dict], int]]:
-        """Every record of a list, oldest ID first, as (page of records, total count) pairs. Pages by
-        minId, so records added meanwhile are picked up and none are skipped. The total is the first
-        page's: with minId, the API counts only the records from there on."""
-        min_id, page, total = 0, self.page, None
+        """Every record of a list as (page of records, total count) pairs. Lists sorted by ID are paged
+        by minId, so records added meanwhile are picked up and none are skipped; the subjekt list sorts
+        by name whatever the parameters say, so lists like it are paged by offset, and records seen
+        twice are dropped. The total is the first page's: with minId, the API counts only the records
+        from there on."""
+        min_id, offset, page, total, by_id = 0, 0, self.page, None, None
+        seen: set[int] = set()
         while True:
-            data = await self.get_json(entity, {**(params or {}), "limit": page, "ascending": "true", "minId": min_id})
+            where = {"minId": min_id} if by_id is not False else {"offset": offset}
+            data = await self.get_json(entity, {**(params or {}), "limit": page, "ascending": "true", **where})
             rows = data.get("results", data.get("result")) or []
-            if rows and min(r["id"] for r in rows) < min_id:
-                raise SourceUnavailable(f"api.itms21.sk ignored minId on {entity}; the sync cannot page it.")
-            total = data.get("size") or 0 if total is None else total
-            yield rows, total
+            total = (data.get("size") or 0) if total is None else total
+            if by_id is None:
+                ids = [r["id"] for r in rows]
+                by_id = ids == sorted(set(ids))
+            fresh = [r for r in rows if r["id"] not in seen]
+            seen.update(r["id"] for r in fresh)
+            yield fresh, total
             if len(rows) < page:
                 return
-            min_id = max(r["id"] for r in rows) + 1
+            min_id, offset = max(r["id"] for r in rows) + 1, offset + len(rows)
 
     async def project(self, ref: int | str) -> dict:
         """A project's detail by ID or code (e.g. 401501F545)."""

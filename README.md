@@ -18,6 +18,7 @@ obstarávania, firmy, ich skutočných vlastníkov a účtovné závierky. Asist
 | **RPVS**: Register partnerov verejného sektora | Koneční užívatelia výhod (skutoční vlastníci) firiem, ktoré dostávajú verejné peniaze, s dátumom narodenia; oprávnené osoby a verejní funkcionári | Otvorené API [rpvs.gov.sk](https://rpvs.gov.sk/rpvs) | `rpvs_*` |
 | **RPO**: Register právnických osôb | Totožnosť každej firmy, živnostníka, inštitúcie a združenia podľa IČO: názvy v čase, sídlo, štatutári, spoločníci, kapitál, vznik a zánik, právni predchodcovia a nástupcovia | API Ministerstva vnútra SR ([rpo.minv.sk](https://rpo.minv.sk)) | `rpo_*` |
 | **RÚZ**: Register účtovných závierok | Účtovné závierky: tržby, výsledok hospodárenia, aktíva a vlastné imanie po rokoch | Otvorené API [registeruz.sk](https://www.registeruz.sk) | `ruz_*` |
+| **EÚ fondy 2021–2027**: ITMS21+ | Projekty spolufinancované z EÚ, žiadosti o NFP, žiadosti o platbu, obstarávania prijímateľov so zmluvami a dodávateľmi, faktúry k projektom | Otvorené API [ITMS21+](https://www.itms21.sk) (v lokálnom indexe) | `eu_*` |
 
 Ako sú registre prepojené:
 
@@ -58,6 +59,9 @@ Príklady otázok pre asistenta:
 | `ruz_search_entity` | Hľadá účtovné jednotky podľa názvu, IČO alebo DIČ |
 | `ruz_get_entity` | Účtovná jednotka so zoznamom všetkých jej závierok |
 | `ruz_get_financials` | Tržby, výnosy, výsledok hospodárenia, aktíva a vlastné imanie po rokoch, s uvedením riadku výkazu, z ktorého pochádzajú |
+| `eu_search_projects` | Hľadá projekty a žiadosti o NFP z EÚ fondov 2021–2027 podľa IČO prijímateľa alebo partnera, slov a programu; so zazmluvnenou a nárokovanou sumou |
+| `eu_get_project` | Celý projekt: prijímateľ, partneri, sumy (aj vyplatená), zmluva v CRZ, ukazovatele, dodávatelia, faktúry, obstarávania so zmluvami a žiadosti o platbu |
+| `eu_search_procurements` | Hľadá obstarávania prijímateľov EÚ fondov podľa IČO obstarávateľa alebo hlavného dodávateľa a slov; pri dodávateľovi aj faktúry, ktoré fakturoval do projektov |
 
 Na čo si dať pozor:
 
@@ -121,6 +125,18 @@ nástroje každých 6 hodín skontrolujú nové čísla a stiahnu ich.
 Index a ďalšie údaje sa ukladajú do `~/.cache/sk-public-money`, alebo do priečinka v premennej
 prostredia `SK_PUBLIC_MONEY_CACHE_DIR`.
 
+**Index EÚ fondov 2021–2027** (potrebný pre nástroje `eu_*`):
+
+```sh
+uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync eu
+```
+
+Zoznamy (projekty, žiadosti, obstarávania, faktúry) sa stiahnu za asi 5 minút a vyhľadávanie funguje
+hneď potom. Detaily obstarávaní (zmluvy, dodávatelia, prepojenie na projekty) sa sťahujú po jednom,
+prvýkrát asi 13 000 požiadaviek, teda okolo 5 hodín. Príkaz sa dá prerušiť a spustiť znova. Index sa
+sám nedopĺňa: spúšťajte príkaz pravidelne (napríklad raz za týždeň); ďalšie behy stiahnu len zoznamy
+a zmenené detaily.
+
 ### Zdroje údajov a licencie
 
 Kód servera je pod licenciou [0BSD](LICENSE): ktokoľvek ho môže používať, kopírovať, upravovať a šíriť
@@ -133,6 +149,7 @@ licencie:
 - RÚZ: [CC0](https://creativecommons.org/publicdomain/zero/1.0/)
 - TED: bezplatné opätovné použitie s uvedením zdroja (Úrad pre publikácie EÚ)
 - RPVS: otvorené údaje Ministerstva spravodlivosti SR
+- ITMS21+: licencia nie je zverejnená, Ministerstvo investícií, regionálneho rozvoja a informatizácie SR
 
 Server dodržiava pravidlá jednotlivých portálov pre automatizovaný prístup a požiadavky na ne posiela
 s odstupom. Podrobnosti o každom zdroji sú v [docs/SOURCES.md](docs/SOURCES.md) a o vývoji
@@ -154,6 +171,7 @@ can search and read them, and combine data from several registers in one answer.
 | **RPVS**: Register of Public Sector Partners | Beneficial owners of companies that receive public money, with birth dates; authorized persons and public officials | The open API of [rpvs.gov.sk](https://rpvs.gov.sk/rpvs) | `rpvs_*` |
 | **RPO**: Register of Legal Entities | The identity of every company, sole trader, public body and association by IČO: names over time, seat, directors, partners, capital, founding and dissolution, predecessors and successors | The Ministry of Interior's API ([rpo.minv.sk](https://rpo.minv.sk)) | `rpo_*` |
 | **RÚZ**: Register of Financial Statements | Financial statements: revenue, profit, assets and equity by year | The open API of [registeruz.sk](https://www.registeruz.sk) | `ruz_*` |
+| **EU funds 2021–2027**: ITMS21+ | EU co-financed projects, grant applications, payment claims, recipients' procurements with contracts and suppliers, invoices billed to projects | The open API of [ITMS21+](https://www.itms21.sk) (in a local index) | `eu_*` |
 
 How the registers connect:
 
@@ -195,6 +213,9 @@ Example questions for the assistant:
 | `ruz_search_entity` | Finds accounting entities by name, IČO or DIČ |
 | `ruz_get_entity` | An accounting entity with the list of all its statements |
 | `ruz_get_financials` | Revenue, income, profit, assets and equity by year, each with the report row it came from |
+| `eu_search_projects` | Searches EU-funded projects and grant applications of 2021–2027 by IČO of recipient or partner, words and programme, with contracted and claimed amounts |
+| `eu_get_project` | A project in full: recipient, partners, amounts (including paid out), CRZ contract, indicators, suppliers, invoices, procurements with contracts, and payment claims |
+| `eu_search_procurements` | Searches procurements of EU fund recipients by IČO of buyer or main supplier and words; for a supplier also the invoices it billed to projects |
 
 Things to watch out for:
 
@@ -258,6 +279,18 @@ them.
 The index and other data are stored in `~/.cache/sk-public-money`, or in the folder set in the
 `SK_PUBLIC_MONEY_CACHE_DIR` environment variable.
 
+**The EU funds 2021–2027 index** (needed by the `eu_*` tools):
+
+```sh
+uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync eu
+```
+
+The lists (projects, applications, procurements, invoices) load in about 5 minutes, and searches work
+right after. Procurement details (contracts, suppliers, links to projects) are fetched one by one: the
+first time about 13,000 requests, around 5 hours. The command can be stopped and run again. The index
+does not top itself up: run the command regularly (say weekly); later runs reload the lists and fetch
+only changed details.
+
 ### Data sources and licences
 
 The server's code is licensed under [0BSD](LICENSE): anyone may use, copy, modify and distribute it
@@ -270,6 +303,7 @@ licences:
 - RÚZ: [CC0](https://creativecommons.org/publicdomain/zero/1.0/)
 - TED: free reuse with attribution (Publications Office of the EU)
 - RPVS: open data of the Ministry of Justice of the Slovak Republic
+- ITMS21+: no licence published, Ministry of Investments, Regional Development and Informatisation
 
 The server follows each portal's rules for automated access and spaces out its requests. Details on
 each source are in [docs/SOURCES.md](docs/SOURCES.md), and on development in
