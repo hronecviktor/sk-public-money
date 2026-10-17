@@ -245,7 +245,7 @@ async def top_up(index: OVIndex, client: DatahubClient, *, max_pages: int | None
     """Fetch changed raw issues since the index's cursor. Returns counts and whether it caught up."""
     since = index.get_meta("cursor_since")
     if not since:
-        raise LookupError("The OV index has no sync cursor; build it with sk-public-money-sync ov.")
+        raise LookupError(f"The OV index has no sync cursor; build it with {localdb.sync_command('ov')}.")
     last_id = int(index.get_meta("cursor_last_id") or 0)
     pages = kept = 0
     more = True

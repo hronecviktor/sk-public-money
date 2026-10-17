@@ -32,7 +32,7 @@ def index() -> index_mod.OVIndex:
     if _index is None:
         if not index_mod.exists():
             raise FileNotFoundError(
-                "The Obchodný vestník index has not been built. Build it once with `sk-public-money-sync ov` "
+                f"The Obchodný vestník index has not been built. Build it once with {localdb.sync_command('ov')} "
                 "(streams a 4.2 GB dump from Slovensko.Digital's Datahub; the index takes about 1 GB)."
             )
         _index = index_mod.OVIndex()
@@ -62,7 +62,7 @@ async def _refresh(idx: index_mod.OVIndex) -> str | None:
     except SourceUnavailable as exc:
         return f"Could not top up the index ({exc}); results may miss the newest notices."
     if not result["caught_up"]:
-        return "The index is behind the Vestník; run `sk-public-money-sync ov` to catch up."
+        return f"The index is behind the Vestník; run {localdb.sync_command('ov')} to catch up."
     return None
 
 
