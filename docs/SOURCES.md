@@ -117,9 +117,9 @@ notice that is also in the index (the same eForms notice ID) is left out. Each r
 Building the Vestník index:
 
 ```sh
-sk-public-money-uvo-sync              # every issue since October 2023: ~770 downloads, ~7 GB, ~45 min
-sk-public-money-uvo-sync --since 2026-01-01
-sk-public-money-uvo-sync --reindex    # parse again from the kept files, e.g. after an update
+sk-public-money-sync uvo              # every issue since October 2023: ~770 downloads, ~7 GB, ~45 min
+sk-public-money-sync uvo --since 2026-01-01
+sk-public-money-sync uvo --reindex    # parse again from the kept files, e.g. after an update
 ```
 
 Each issue is streamed straight into a gzip file; progress lines carry timestamps, so the output can

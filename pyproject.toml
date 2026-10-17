@@ -23,6 +23,8 @@ dev = ["pytest>=8", "respx>=0.21"]
 
 [project.scripts]
 sk-public-money-mcp = "sk_public_money.server:main"
+sk-public-money-sync = "sk_public_money.sync:main"
+# Kept for existing setups; the same as sk-public-money-sync uvo.
 sk-public-money-uvo-sync = "sk_public_money.sources.uvo.sync:main"
 
 [tool.hatch.version]

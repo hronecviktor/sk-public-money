@@ -5,7 +5,7 @@ IČO 31797903) with a JSON download. Its SPARQL endpoint finds them; data.sloven
 rate limit and its robots.txt allows everything, so issues are fetched one at a time with a pause.
 JSON issues start with 201/2023 (17 October 2023), when ÚVO moved to eForms.
 
-The full backfill (about 770 issues, 7 GB) runs from the command line: sk-public-money-uvo-sync.
+The full backfill (about 770 issues, 7 GB) runs from the command line: sk-public-money-sync uvo.
 The tools only top up the newest few issues when the index is stale.
 """
 
@@ -196,7 +196,7 @@ async def refresh(index: VestnikIndex, catalogue: CatalogueClient, *, limit: int
         return {"vestnik_update": f"Could not update the Vestník index: {exc}"}
     index.set_meta("checked_at", str(time.time()))
     if len(todo) > limit:
-        return {"vestnik_update": f"{len(todo) - limit} more new Vestník issues are not indexed yet; run sk-public-money-uvo-sync."}
+        return {"vestnik_update": f"{len(todo) - limit} more new Vestník issues are not indexed yet; run sk-public-money-sync uvo."}
     return None
 
 
@@ -254,14 +254,14 @@ async def backfill(
     return failed
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Download Vestník verejného obstarávania issues into the local index.")
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(prog="sk-public-money-sync uvo", description="Download Vestník verejného obstarávania issues into the local index.")
     parser.add_argument("--since", default=FIRST_ISSUE_DATE, help=f"first publication date to fetch, YYYY-MM-DD (default {FIRST_ISSUE_DATE})")
     parser.add_argument("--keep-raw", action=argparse.BooleanOptionalAction, default=True,
                         help="keep each issue gzipped (about 1 MB each) so the index can be rebuilt without downloading again")
     parser.add_argument("--interval", type=float, default=INTERVAL, help=f"seconds between downloads (default {INTERVAL})")
     parser.add_argument("--reindex", action="store_true", help="parse every issue again (from the kept raw files where present), e.g. after an update of this program")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     logging.basicConfig(level=logging.WARNING, format="%(message)s", stream=sys.stderr)
     logging.getLogger("httpx").setLevel(logging.WARNING)
     asyncio.run(backfill(args.since, args.keep_raw, max(args.interval, 0.5), reindex=args.reindex))

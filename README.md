@@ -110,7 +110,7 @@ Ak klient `uvx` nenájde, zadajte celú cestu, ktorú vypíše `which uvx` (na W
 v TED, teda len zákazky nad limitmi EÚ):
 
 ```sh
-uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-uvo-sync
+uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync uvo
 ```
 
 Prvé spustenie stiahne všetky čísla Vestníka od októbra 2023: asi 770 súborov, spolu približne 7 GB,
@@ -246,7 +246,7 @@ If the client can't find `uvx`, give the full path that `which uvx` prints (on W
 only contracts above the EU thresholds):
 
 ```sh
-uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-uvo-sync
+uvx --from git+https://github.com/hronecviktor/sk-public-money sk-public-money-sync uvo
 ```
 
 The first run downloads every Vestník issue since October 2023: about 770 files, roughly 7 GB in

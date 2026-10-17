@@ -26,7 +26,14 @@ Each source lives in `src/sk_public_money/sources/<source>/`:
 
 To add a source, create the same three files and import its `tools` module in `server.py`. A source
 can have more modules where it needs them: ÚVO adds `vestnik.py` (the Vestník parser), `index.py`
-(the local SQLite index) and `sync.py` (the `sk-public-money-uvo-sync` command).
+(the local SQLite index) and `sync.py` (run as `sk-public-money-sync uvo`).
+
+A source that needs a local index keeps it in the cache directory and uses `localdb.py`:
+`db_path()`, `connect()` with a meta table, `is_due()`/`mark_done()` for refresh intervals, and
+`ensure_free_space()` before a large download. `ThrottledClient._download()` streams a large file to
+disk. Its `sync.py` has `main(argv)` and a line in the `SOURCES` table of `sync.py` at the package
+root, so `sk-public-money-sync <source>` builds or tops up its index. Delete raw downloads once they
+are indexed unless the source needs them to re-index.
 
 The tests run offline:
 
