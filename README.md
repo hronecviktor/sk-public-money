@@ -18,6 +18,7 @@ obstarávania, firmy, ich skutočných vlastníkov a účtovné závierky. Asist
 | **RPVS**: Register partnerov verejného sektora | Koneční užívatelia výhod (skutoční vlastníci) firiem, ktoré dostávajú verejné peniaze, s dátumom narodenia; oprávnené osoby a verejní funkcionári | Otvorené API [rpvs.gov.sk](https://rpvs.gov.sk/rpvs) | `rpvs_*` |
 | **RPO**: Register právnických osôb | Totožnosť každej firmy, živnostníka, inštitúcie a združenia podľa IČO: názvy v čase, sídlo, štatutári, spoločníci, kapitál, vznik a zánik, právni predchodcovia a nástupcovia | API Ministerstva vnútra SR ([rpo.minv.sk](https://rpo.minv.sk)) | `rpo_*` |
 | **REPLIK**: register insolvenčných konaní | Konkurzy, reštrukturalizácie, oddlženia a likvidácie súdom: dlžník, správca, súd, stav a verejné oznamy súdu a správcu (od októbra 2025 nahradil Register úpadcov aj s jeho históriou) | Verejné SOAP API Ministerstva spravodlivosti SR (replik-ws.justice.sk) | `insolvency_*` |
+| **Obchodný vestník** | Oznámenia o firmách od polovice 2016: likvidácie a výzvy veriteľom, zlúčenia, rozdelenia a zmeny právnej formy, zníženia základného imania, podania do obchodného registra, konkurzy (do septembra 2025) | Datahub [Slovensko.Digital](https://ekosystem.slovensko.digital) (týždenný dump a sync API), v lokálnom indexe | `ov_*` |
 | **RÚZ**: Register účtovných závierok | Účtovné závierky: tržby, výsledok hospodárenia, aktíva a vlastné imanie po rokoch | Otvorené API [registeruz.sk](https://www.registeruz.sk) | `ruz_*` |
 
 Ako sú registre prepojené:
@@ -135,6 +136,7 @@ licencie:
 - TED: bezplatné opätovné použitie s uvedením zdroja (Úrad pre publikácie EÚ)
 - RPVS: otvorené údaje Ministerstva spravodlivosti SR
 - REPLIK: verejné API Ministerstva spravodlivosti SR, licencia nie je zverejnená
+- Obchodný vestník: Datahub Slovensko.Digital podľa [podmienok používania datasetov](https://ekosystem.slovensko.digital/podmienky); údaje majú len informatívny charakter, server ich skracuje a upravuje
 
 Server dodržiava pravidlá jednotlivých portálov pre automatizovaný prístup a požiadavky na ne posiela
 s odstupom. Podrobnosti o každom zdroji sú v [docs/SOURCES.md](docs/SOURCES.md) a o vývoji
@@ -156,6 +158,7 @@ can search and read them, and combine data from several registers in one answer.
 | **RPVS**: Register of Public Sector Partners | Beneficial owners of companies that receive public money, with birth dates; authorized persons and public officials | The open API of [rpvs.gov.sk](https://rpvs.gov.sk/rpvs) | `rpvs_*` |
 | **RPO**: Register of Legal Entities | The identity of every company, sole trader, public body and association by IČO: names over time, seat, directors, partners, capital, founding and dissolution, predecessors and successors | The Ministry of Interior's API ([rpo.minv.sk](https://rpo.minv.sk)) | `rpo_*` |
 | **REPLIK**: Insolvency register | Bankruptcies, restructurings, personal debt relief and court-ordered liquidations: debtor, trustee, court, status, and the public notices of court and trustee (replaced Register úpadcov in October 2025, with its history) | The Ministry of Justice's public SOAP API (replik-ws.justice.sk) | `insolvency_*` |
+| **Obchodný vestník**: Commercial Bulletin | Notices about companies since mid-2016: liquidations and calls to creditors, mergers, splits and conversions, capital reductions, commercial register entries, bankruptcies (until September 2025) | [Slovensko.Digital](https://ekosystem.slovensko.digital)'s Datahub (weekly dump and sync API), in a local index | `ov_*` |
 | **RÚZ**: Register of Financial Statements | Financial statements: revenue, profit, assets and equity by year | The open API of [registeruz.sk](https://www.registeruz.sk) | `ruz_*` |
 
 How the registers connect:
@@ -274,6 +277,7 @@ licences:
 - TED: free reuse with attribution (Publications Office of the EU)
 - RPVS: open data of the Ministry of Justice of the Slovak Republic
 - REPLIK: public API of the Ministry of Justice of the Slovak Republic; no licence is published
+- Obchodný vestník: Slovensko.Digital Datahub under its [dataset terms](https://ekosystem.slovensko.digital/podmienky); the data are informative only, and the server shortens and restructures them
 
 The server follows each portal's rules for automated access and spaces out its requests. Details on
 each source are in [docs/SOURCES.md](docs/SOURCES.md), and on development in

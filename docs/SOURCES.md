@@ -164,6 +164,25 @@ Things to know:
 - Trustees' notices are HTML and are returned as plain text. Each notice's text is cut at 6,000 characters when several are read and at 60,000 for a single notice; cut texts are marked `truncated`. Attachments are listed by name only.
 - A proceeding's detail has no status; the tool takes it from the search results. Voluntary liquidations of companies are not in REPLIK: they are announced in the Obchodný vestník.
 
+### Obchodný vestník: Commercial Bulletin ([Datahub](https://ekosystem.slovensko.digital/sluzby/datahub))
+
+The Ministry of Justice's Obchodný vestník publishes what companies and courts must announce. The
+server reads it from Slovensko.Digital's Datahub, which keeps every notice since June 2016 as the
+portal's original XML, and keeps a local index of the notices that concern a company by IČO.
+
+| Tool | What it does |
+| --- | --- |
+| `ov_search_notices` | Notices about an IČO, newest first, optionally of one kind and since a date: liquidation (entering liquidation, call to creditors, liquidators as published), dissolution (merger, split, conversion, dissolution), capital (capital reduction, capital funds), register (commercial register entries: new, change, deletion), insolvency (konkurz and trustee notices until September 2025) and other notices and corrections. Each has date, issue, title, the companies concerned, and shortened text and details. |
+
+Things to know:
+
+- **Build:** `sk-public-money-sync ov` streams Datahub's weekly Postgres dump (`ov.sql.gz`, about 4.2 GB) and reads its COPY blocks on the fly; the dump is never stored. The same rows would take about 42,000 requests to the sync API (60 per minute, about 12 hours). Later runs, and the tool every 6 hours (at most 5 pages inline), fetch changes from the `raw_issues` sync API by its since/last_id cursor.
+- Datahub's parsed OV tables are not used: `likvidator_issues` stops in 2017 and `or_podanie_issues` in 2019. The server parses the raw XML of every form itself, so all years are read the same way.
+- A notice's subject companies are the IČO fields outside role blocks (trustee, petitioner, liquidator, partner, creditor). IČOs written with spaces are normalised. Other companies named in a merger, capital or liquidation text are indexed too, but as `mentioned_only`. Old register filings (2016–2018) are plain text; IČO and name are read from it.
+- Notices about people without an IČO (personal bankruptcy, trustees' notices about individuals) are not kept. Insolvency notices are kept only up to 30 September 2025, when REPLIK took over; use `insolvency_*` for those.
+- Texts are cut (2,000 characters; insolvency 1,000; register filings 600). Full commercial register extracts (2019 and later) are reduced to their type (new entry, change, deletion); see `rpo_get_organization` for the content. Each notice links its Datahub source record.
+- Licence: Datahub's [dataset terms](https://ekosystem.slovensko.digital/podmienky) (from 1 March 2024) allow extraction and reuse. They require that changes be stated with their date, and they say the data are *informative only and not legally binding* (*informatívny charakter*). Every result says so, with the index build date.
+
 ## Being a polite robot
 
 Each source has its own throttle:
@@ -174,6 +193,7 @@ Each source has its own throttle:
 - **data.slovensko.sk** (Vestník issues) publishes no limits and its robots.txt allows everything. The sync fetches one issue at a time, 2 s apart. The data are licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) by ÚVO.
 - **TED** uses its [Search API](https://docs.ted.europa.eu/api/latest/index.html), which needs no key and publishes no rate limit; requests are spaced 0.5 s apart. Notice XML is cached for good, since published notices never change (a correction is a new notice). TED data may be reused free of charge with attribution (Commission Decision 2011/833/EU). ÚVO's own website disallows robots in its robots.txt and is not used.
 - **REPLIK** uses its public SOAP API (integration manual *Integračná príručka – endpoint pre verejnosť*, v1.0.12), which needs no registration in production and publishes no limits or licence. Requests are spaced 1 s apart; pages hold at most 100 results; notice lists take 2–8 s.
+- **Datahub** (Obchodný vestník): the dump is one streamed download from S3. The sync API allows 60 requests per minute (`x-ratelimit-limit`); requests are spaced 1.1 s apart.
 - **RÚZ** uses its [open API](https://www.registeruz.sk/cruz-public/home/api), which needs no key and publishes no limits; robots.txt only disallows the XLS exports. Requests are spaced 0.5 s apart. Every statement and report is a separate request, so the first look at a large filer takes 10–30 s. Statements and reports are then cached for 3 days, and report templates (which RÚZ never changes) for good. RÚZ data are licensed [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
 
 CRZ daily exports and attachments are cached in `~/.cache/sk-public-money`, or in
