@@ -143,6 +143,23 @@ Things to know:
 - Corrected notices and reports ("Oprava: …") are indexed as their own records next to the original, labelled in `kind`; they are not merged into it.
 - Three issues are missing from the index because data.slovensko.sk lacks them: 202/2023 has no usable download link, and the datasets titled 144/2024 and 145/2025 are byte-identical copies of 145/2024 and 144/2025. The sync reports them on every run. All other issues since 201/2023 (17 October 2023) are indexed.
 
+### Political-party financing (party_* tools)
+
+Parties and candidates must run their campaigns through a transparent account (*transparentný účet*),
+whose every movement the bank publishes.
+
+| Tool | What it does |
+| --- | --- |
+| `party_account_transactions` | Movements on a [Slovenská sporiteľňa transparent account](https://www.slsp.sk/sk/ludia/transparentne-ucty), newest first: date, signed amount in EUR (negative = paid out), counterparty name, note, payment type, variable and specific symbol. The account is given by IBAN or by words of its name; several matching accounts are listed to pick from. Filters: counterparty name, dates, a minimum amount and direction (in/out). |
+
+Things to know:
+
+- The bank's list (about 1 200 accounts) mixes parties, candidates, campaigns and charities and has no field that says which is which; the name usually tells ("SMER-SD spojené voľby 2026"). The list is fetched in three requests and cached for a day; account names are matched locally ignoring case and diacritics.
+- Turnovers name the counterparty as the bank shows it, with no IBAN or IČO, so results filtered by counterparty say `matched_by: name`. The bank's counterparty search ignores case and diacritics and matches anywhere in the name; it does not search notes.
+- The running balance is not published per movement; the account's current balance is.
+- Small negative movements described as *Transakčná daň* are the bank's transaction tax on a payment.
+- Only Slovenská sporiteľňa is covered. Parties also hold transparent accounts at ČSOB, VÚB, Tatra banka and Fio, which are not.
+
 ## Being a polite robot
 
 Each source has its own throttle:
@@ -153,6 +170,7 @@ Each source has its own throttle:
 - **data.slovensko.sk** (Vestník issues) publishes no limits and its robots.txt allows everything. The sync fetches one issue at a time, 2 s apart. The data are licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) by ÚVO.
 - **TED** uses its [Search API](https://docs.ted.europa.eu/api/latest/index.html), which needs no key and publishes no rate limit; requests are spaced 0.5 s apart. Notice XML is cached for good, since published notices never change (a correction is a new notice). TED data may be reused free of charge with attribution (Commission Decision 2011/833/EU). ÚVO's own website disallows robots in its robots.txt and is not used.
 - **RÚZ** uses its [open API](https://www.registeruz.sk/cruz-public/home/api), which needs no key and publishes no limits; robots.txt only disallows the XLS exports. Requests are spaced 0.5 s apart. Every statement and report is a separate request, so the first look at a large filer takes 10–30 s. Statements and reports are then cached for 3 days, and report templates (which RÚZ never changes) for good. RÚZ data are licensed [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
+- **Slovenská sporiteľňa** transparent accounts use the unauthenticated JSON API behind its web page (`api.slsp.sk/ta-accounts`, `api.slsp.sk/ta-turnovers`). It serves no robots.txt and no terms of use or licence were found, so requests are spaced at least 1 s apart and pages kept small (50 movements by default).
 
 CRZ daily exports and attachments are cached in `~/.cache/sk-public-money`, or in
 `$SK_PUBLIC_MONEY_CACHE_DIR` when it's set. CRZ export data is licensed

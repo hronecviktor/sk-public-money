@@ -47,6 +47,12 @@ spending; a value of 0 means undisclosed. Identifiers are labelled ico, dic (DI�
 ico is null when the notice gives no Slovak IČO. Vestník data CC BY 4.0 by ÚVO; TED data may be reused
 with attribution.
 
+Political-party financing (party_* tools): party_account_transactions reads transparent accounts
+(transparentný účet) at Slovenská sporiteľňa: every movement with date, signed amount (negative = paid
+out), counterparty name as the bank shows it, note and variable symbol, but no counterparty IBAN or
+IČO. The account list mixes parties, candidates, campaigns and charities; accounts at other banks
+(ČSOB, VÚB, Tatra banka, Fio) are not covered. No licence or terms of use are published.
+
 People named in these registers are often private individuals; a matching name is not proof of the
 same person.
 """
