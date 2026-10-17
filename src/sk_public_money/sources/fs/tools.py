@@ -6,7 +6,6 @@ Everything comes from the local index built by sk-public-money-sync fs (see sync
 
 from __future__ import annotations
 
-import re
 from datetime import date
 from typing import Annotated, Literal
 
@@ -20,7 +19,7 @@ from .index import LISTS, FSIndex, default_path
 PAGE_SIZE = 20
 VAT_RETURNS = 12
 NO_INDEX = ("The Finančná správa index has not been built yet. Build it with: sk-public-money-sync fs "
-            "(downloads about 170 MB in 2-3 minutes; the index takes about 220 MB).")
+            "(downloads about 0.7 GB in about 15 minutes; the index takes about 0.75 GB).")
 LICENCE = "Zdroj údajov: Finančná správa SR - https://opendata.financnasprava.sk/ (CC BY 4.0)"
 # What a DRUH_REG_DPH means (zákon o DPH 222/2004 Z. z.).
 VAT_KINDS = {
@@ -99,13 +98,14 @@ def _drop_empty(row: dict) -> dict:
 @user_errors
 async def fs_get_taxpayer(
     ico: Annotated[str, Field(description="IČO (up to 8 digits, spaces allowed); a DIČ (10 digits) or IČ DPH (SK + 10 digits) works too.")],
+    vat_history: Annotated[bool, Field(description="Every VAT return row indexed (lists since June 2018) instead of the latest 12.")] = False,
 ) -> dict:
     """What the Slovak tax authority (Finančná správa) publishes about a taxpayer: VAT registration
     (kind and dates), index daňovej spoľahlivosti (vysoko spoľahlivý / spoľahlivý / menej
     spoľahlivý), presence on the lists of VAT payers with reasons to cancel their registration and of
-    VAT payers struck off, corporate income tax assessed and tax loss per tax period, the latest VAT
-    returns' excess deduction (nadmerný odpočet) or own tax liability, and tax debtor list entries with
-    the same name (matched by name only). Amounts in EUR."""
+    VAT payers struck off, corporate income tax assessed and tax loss per tax period, VAT returns'
+    excess deduction (nadmerný odpočet) or own tax liability per period, and tax debtor list entries
+    with the same name (matched by name only). Amounts in EUR."""
     want_ico, want_dic = _identifier(ico)
     ix = index()
     out: dict = {}
@@ -162,18 +162,21 @@ async def fs_get_taxpayer(
         out["corporate_income_tax_note"] = ("A period listed more than once was published in several quarterly lists (list_of): "
                                             "a later row may carry only an additional assessment after a supplementary return. "
                                             "Amounts are as published in each list; do not add them up blindly.")
-    returns = sorted(ix.vat_returns(dics), key=lambda r: _period_key(r["period"]), reverse=True) if dics else []
-    out["vat_returns"] = [
-        _drop_empty({**({"dic": r["dic"]} if many else {}), "period": r["period"],
-                     "excess_deduction": parse.eur(r["excess"]) or None, "own_tax_liability": parse.eur(r["own"]) or None})
-        for r in returns[:VAT_RETURNS]
-    ]
-    if len(returns) > VAT_RETURNS:
-        out["vat_returns_note"] = f"{len(returns) - VAT_RETURNS} older periods not shown."
+    returns = ix.vat_returns(dics) if dics else []
+    shown = returns if vat_history else returns[:VAT_RETURNS]
+    out["vat_returns"] = _vat_rows(shown, many)
+    notes = []
+    if len(returns) > len(shown):
+        notes.append(f"{len(returns) - len(shown)} older rows not shown; vat_history=true lists them all.")
+    if any("list_of" in r for r in out["vat_returns"]):
+        notes.append("A period with list_of was published in several quarterly lists (e.g. after a corrective return); "
+                     "amounts are as published in each.")
+    if notes:
+        out["vat_returns_note"] = " ".join(notes)
     groups = ix.vat_groups_led_by([s["name"] for s in subjects if s.get("name")])
     if groups:
         group_dics = [g["dic"] for g in groups]
-        group_returns = sorted(ix.vat_returns(group_dics), key=lambda r: _period_key(r["period"]), reverse=True)
+        group_returns = ix.vat_returns(group_dics)
         out["vat_group_represented"] = {
             "matched_by": "name",
             "groups": [
@@ -182,11 +185,7 @@ async def fs_get_taxpayer(
                                                   for v in ix.vat_registrations(None, [g["dic"]])]})
                 for g in groups
             ],
-            "group_vat_returns": [
-                _drop_empty({"dic": r["dic"], "period": r["period"], "excess_deduction": parse.eur(r["excess"]) or None,
-                             "own_tax_liability": parse.eur(r["own"]) or None})
-                for r in group_returns[:VAT_RETURNS // 2]
-            ],
+            "group_vat_returns": _vat_rows(group_returns if vat_history else group_returns[:VAT_RETURNS // 2], True),
             "note": "This taxpayer represents a VAT group (matched by the group's name): the group registers and files VAT "
                     "for all its members. The lists do not name the other members.",
         }
@@ -201,19 +200,28 @@ async def fs_get_taxpayer(
     cit = ix.cit_coverage()
     if cit:
         out["corporate_tax_coverage"] = (f"tax periods ending {cit['periods_to'][0]} to {cit['periods_to'][1]}, from the quarterly lists "
-                                         f"since {cit['oldest_list']}; a period missing here may be in an older list (sync --since).")
-    out["vat_returns_coverage"] = "Only the latest quarterly VAT list: returns filed in that quarter, with late returns for older periods."
+                                         f"since {cit['oldest_list']} (the published archive starts with the list of 2018-06-30); a period missing here "
+                                         "was not published in these lists.")
+    vat = ix.vat_returns_coverage()
+    if vat:
+        out["vat_returns_coverage"] = (f"from the quarterly lists {vat['lists'][0]} to {vat['lists'][1]} (the published archive starts "
+                                       "with the list of 2018-06-30); each holds the returns filed that quarter, with late returns for older periods.")
     out.update(_stale(ix))
     out["source"] = LICENCE
     return {k: v for k, v in out.items() if v not in ([], None)}
 
 
-def _period_key(period: str) -> tuple:
-    """'2026-03' and '2026-Q1' sort by their last month."""
-    m = re.fullmatch(r"(\d{4})-(?:(\d{2})|Q([1-4]))", period or "")
-    if not m:
-        return (0, 0)
-    return (int(m.group(1)), int(m.group(2)) if m.group(2) else int(m.group(3)) * 3)
+def _vat_rows(rows: list[dict], with_dic: bool) -> list[dict]:
+    """VAT return rows for output; list_of only where a period was published more than once."""
+    seen: dict[tuple, int] = {}
+    for r in rows:
+        seen[(r["dic"], r["period"])] = seen.get((r["dic"], r["period"]), 0) + 1
+    return [
+        _drop_empty({**({"dic": r["dic"]} if with_dic else {}), "period": r["period"],
+                     "excess_deduction": parse.eur(r["excess"]) or None, "own_tax_liability": parse.eur(r["own"]) or None,
+                     **({"list_of": r["release"]} if seen[(r["dic"], r["period"])] > 1 else {})})
+        for r in rows
+    ]
 
 
 @mcp.tool(annotations=READ_ONLY)

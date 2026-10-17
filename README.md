@@ -146,7 +146,7 @@ Príkaz ide od najrýchlejších zdrojov po najpomalšie. Dá sa prerušiť a sp
 | Zdroj | Pre nástroje | Prvé spustenie | Miesto na disku | Ako sa aktualizuje |
 | --- | --- | --- | --- | --- |
 | `ppa` | `ppa_*` (bez indexu nefungujú) | menej ako minúta | asi 20 MB | znova spustiť, keď PPA zverejní nový rok |
-| `fs` | `fs_*` (bez indexu nefungujú) | niekoľko minút | niekoľko sto MB | spúšťať denne; malé denné zoznamy si nástroje doplnia samy |
+| `fs` | `fs_*` (bez indexu nefungujú) | asi 15 minút, sťahuje asi 0,7 GB (história dane z príjmov a DPH od júna 2018, odkedy ju Finančná správa archivuje) | asi 0,75 GB | spúšťať denne; malé denné zoznamy si nástroje doplnia samy |
 | `court` | `court_disqualified` a kontrola štatutárov v RPO (fungujú aj bez neho) | asi 20 minút | menej ako 1 MB | zoznam si nástroje obnovia samy raz denne |
 | `uvo` | `uvo_*` pod limitmi EÚ (bez indexu len TED) | asi minúta (hotový index, 155 MB); zo zdroja asi 45 minút a 7 GB | asi 330 MB | nové čísla si nástroje doplnia samy každých 6 hodín |
 
@@ -332,7 +332,7 @@ builds a single index, and `sk-public-money-sync all --skip uvo` leaves some out
 | Source | For the tools | First run | Disk space | How it stays current |
 | --- | --- | --- | --- | --- |
 | `ppa` | `ppa_*` (they don't work without it) | under a minute | about 20 MB | run again when PPA publishes a new year |
-| `fs` | `fs_*` (they don't work without it) | a few minutes | a few hundred MB | run daily; the tools update the small daily lists themselves |
+| `fs` | `fs_*` (they don't work without it) | about 15 minutes, downloads about 0.7 GB (corporate tax and VAT history since June 2018, where the tax authority's archive starts) | about 0.75 GB | run daily; the tools update the small daily lists themselves |
 | `court` | `court_disqualified` and the director check in RPO (both work without it too) | about 20 minutes | under 1 MB | the tools refresh the list themselves once a day |
 | `uvo` | `uvo_*` below the EU thresholds (without it, TED only) | about a minute (prebuilt index, 155 MB); from the source about 45 minutes and 7 GB | about 330 MB | the tools fetch new issues themselves every 6 hours |
 

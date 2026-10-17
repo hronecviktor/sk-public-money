@@ -46,6 +46,7 @@ def ix(tmp_path, monkeypatch):
     for name in LISTS:
         index.load(name, write_zip(tmp_path, name), last_modified="Sat, 17 Oct 2026 00:35:45 GMT")
     index.load("ds_dppos", write_zip(tmp_path, "ds_dppos_20230630"), archive=True)
+    index.load("ds_dphno", write_zip(tmp_path, "ds_dphno_20260630"), archive=True)
     index.set_meta("inline_checked_at", "9999999999")  # no inline download in tool tests
     monkeypatch.setattr(tools, "_index", index)
     yield index
@@ -131,10 +132,15 @@ async def test_get_taxpayer(ix):
     assert out["corporate_income_tax"][1] == {"period": "2022-01-01 – 2022-12-31", "tax_assessed": 0.0, "additional_tax_assessed": 250.0, "list_of": "2026-09-15"}
     assert out["corporate_income_tax"][2]["tax_loss"] == 3400.1 and out["corporate_income_tax"][2]["tax_assessed"] == 500.0
     assert "several quarterly lists" in out["corporate_income_tax_note"]
+    # Newest period first (a quarter sorts by its last month), a repeated period with its lists.
     assert out["vat_returns"] == [
-        {"period": "2026-03", "excess_deduction": 1522.86},
+        {"period": "2026-03", "excess_deduction": 1522.86, "list_of": "2026-09-15"},
+        {"period": "2026-03", "excess_deduction": 1400.0, "list_of": "2026-06-15"},
         {"period": "2026-Q1", "own_tax_liability": 517.25},
+        {"period": "2025-12", "excess_deduction": 100.0},
     ]
+    assert "several quarterly lists" in out["vat_returns_note"]
+    assert "2026-06-15 to 2026-09-15" in out["vat_returns_coverage"]
     debtors = out["tax_debtor_list"]
     assert debtors["matched_by"] == "name" and debtors["entries"][0]["debt"] == 7603.08
     assert out["lists_as_of"]["ds_iz_ran"] == "2026-10-16"
@@ -210,9 +216,11 @@ def portal(calls: list, *, flaky: set | None = None):
     def handler(request: httpx.Request) -> httpx.Response:
         url = str(request.url)
         calls.append((request.method, url))
-        if url == client_mod.ARCHIVE_PAGE:
-            links = "".join(f'<a href="https://report.financnasprava.sk/archiv/DS_DPPOS/ds_dppos_{d}.zip">x</a>' for d in ("20180630", "20230630"))
-            return httpx.Response(200, text=f"<html>{links}</html>")
+        for name, page in client_mod.ARCHIVE_PAGES.items():
+            if url == page:
+                links = "".join(f'<a href="https://report.financnasprava.sk/archiv/{name.upper()}/{name}_{d}.zip">x</a>'
+                                for d in ("20170630", "20230630", "20260630"))
+                return httpx.Response(200, text=f"<html>{links}</html>")
         name = url.rsplit("/", 1)[1].removesuffix(".zip")
         if not (FIXTURES / f"{name}.xml").exists():
             return httpx.Response(404)
@@ -233,20 +241,26 @@ async def test_sync_builds_skips_unchanged_and_retries(tmp_path, monkeypatch):
     current = "https://report.financnasprava.sk/ds_dphs.zip"
     make = lambda: client_mod.FSClient(http=httpx.AsyncClient(transport=portal(calls, flaky={current})), interval=0, retry_wait=0)  # noqa: E731
     out = io.StringIO()
-    failed = await sync.run(LISTS, "2023-01-01", out=out, client=make())
-    assert failed == []
+    failed = await sync.run(LISTS, "2018-01-01", out=out, client=make())
+    # The fixture portal lacks the 2023 VAT returns and 2026 corporate tax archive files.
+    assert sorted(f.split(":")[0] for f in failed) == ["ds_dphno 2023-06-30", "ds_dppos 2026-06-30"]
     gets = [u for m, u in calls if m == "GET"]
     assert gets.count(current) == 2  # reset once, then retried
-    assert not any("20180630" in u for u in gets)  # before --since
+    assert not any("20170630" in u for u in gets)  # before --since
     ix = FSIndex()
-    assert json.loads(ix.get_meta("dppos_archive")) == ["2023-06-30"]
+    assert json.loads(ix.get_meta("ds_dppos_archive")) == ["2023-06-30"]
+    assert json.loads(ix.get_meta("ds_dphno_archive")) == ["2026-06-30"]
     assert len(ix.cit(["2020999001"])) == 3
+    assert len(ix.vat_returns(["2020999001"])) == 4
     ix.close()
     assert not list((tmp_path / "fs" / "raw").glob("*"))  # zips deleted after indexing
 
     calls.clear()
-    await sync.run(LISTS, "2023-01-01", out=io.StringIO(), client=make())
-    assert [m for m, u in calls if "report." in u] == ["HEAD"] * len(LISTS)  # nothing changed
+    await sync.run(LISTS, "2018-01-01", out=io.StringIO(), client=make())
+    # Nothing changed: only HEAD requests, and another try at the archive files that failed.
+    gets = [u.rsplit("/", 1)[1] for m, u in calls if m == "GET" and "report." in u]
+    assert sorted(gets) == ["ds_dphno_20230630.zip", "ds_dppos_20260630.zip"]
+    assert [m for m, u in calls if "report." in u].count("HEAD") == len(LISTS)
 
 
 @pytest.mark.anyio
@@ -269,3 +283,42 @@ def test_sync_command_options(capsys):
     assert "--since" in capsys.readouterr().out
     with pytest.raises(SystemExit):
         sync.main(["--lists", "ds_nope"])
+
+
+@pytest.mark.anyio
+async def test_vat_history(ix):
+    out = await tools.fs_get_taxpayer("01234567", vat_history=True)
+    assert len(out["vat_returns"]) == 4 and "vat_returns_note" in out
+    group = (await tools.fs_get_taxpayer("99999004", vat_history=True))["vat_group_represented"]
+    assert group["group_vat_returns"][0]["period"] == "2026-05"
+
+
+def test_old_index_is_migrated(tmp_path):
+    import sqlite3
+
+    path = tmp_path / "old.sqlite"
+    db = sqlite3.connect(path)
+    db.executescript("""
+        CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
+        CREATE TABLE lists (name TEXT PRIMARY KEY, as_of TEXT, last_modified TEXT, records INTEGER, skipped INTEGER, indexed_at REAL);
+        CREATE TABLE vat_returns (dic TEXT, period TEXT, excess INTEGER, own INTEGER, PRIMARY KEY (dic, period)) WITHOUT ROWID;
+        INSERT INTO vat_returns VALUES ('2020999001', '2026-03', 1, 0);
+        INSERT INTO lists VALUES ('ds_dphno', '2026-09-15', 'x', 1, 0, 0), ('ds_dphs', '2026-10-17', 'x', 1, 0, 0);
+        INSERT INTO meta VALUES ('dppos_archive', '["2023-06-30"]');
+    """)
+    db.close()
+    ix = FSIndex(path)
+    assert ix.vat_returns(["2020999001"]) == []
+    assert set(ix.lists()) == {"ds_dphs"}  # the VAT returns list is fetched again by the next sync
+    assert ix.get_meta("ds_dppos_archive") == '["2023-06-30"]' and ix.get_meta("dppos_archive") is None
+    ix.close()
+
+
+def test_coverage_is_cached_until_a_quarterly_list_is_indexed(ix, tmp_path):
+    assert ix.coverage()["vat_returns"] == {"lists": ["2026-06-15", "2026-09-15"]}
+    assert ix.get_meta("coverage") is not None
+    ix.load("ds_dsdd", write_zip(tmp_path, "ds_dsdd"))
+    assert ix.get_meta("coverage") is not None  # a list without history leaves it alone
+    ix.load("ds_dppos", write_zip(tmp_path, "ds_dppos_20230630"), archive=True)
+    assert ix.get_meta("coverage") is None
+    assert ix.coverage()["cit"]["oldest_list"] == "2023-06-15"
