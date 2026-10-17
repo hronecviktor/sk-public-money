@@ -148,11 +148,14 @@ Príkaz ide od najrýchlejších zdrojov po najpomalšie. Dá sa prerušiť a sp
 | `ppa` | `ppa_*` (bez indexu nefungujú) | menej ako minúta | asi 20 MB | znova spustiť, keď PPA zverejní nový rok |
 | `fs` | `fs_*` (bez indexu nefungujú) | niekoľko minút | niekoľko sto MB | spúšťať denne; malé denné zoznamy si nástroje doplnia samy |
 | `court` | `court_disqualified` a kontrola štatutárov v RPO (fungujú aj bez neho) | asi 20 minút | menej ako 1 MB | zoznam si nástroje obnovia samy raz denne |
-| `uvo` | `uvo_*` pod limitmi EÚ (bez indexu len TED) | asi 45 minút, sťahuje asi 7 GB | asi 300 MB + 0,75 GB stiahnutých čísel | nové čísla si nástroje doplnia samy každých 6 hodín |
+| `uvo` | `uvo_*` pod limitmi EÚ (bez indexu len TED) | asi minúta (hotový index, 155 MB); zo zdroja asi 45 minút a 7 GB | asi 330 MB | nové čísla si nástroje doplnia samy každých 6 hodín |
 
-Spolu to zaberá asi 1,5 GB. Stiahnuté čísla Vestníka slúžia len na prestavanie indexu; bez nich ho
-postaví `sk-public-money-sync uvo --no-keep-raw`. Prvé spustenie je pomalé zámerne: server dodržiava
-pravidlá portálov pre roboty a posiela požiadavky s odstupom.
+Pomalé zdroje sa pri prvom spustení nestavajú od nuly: príkaz stiahne hotový index z
+[GitHub release `indexes`](https://github.com/hronecviktor/sk-public-money/releases/tag/indexes),
+skontroluje ho a doplní len to, čo pribudlo odvtedy. Bez neho, len zo zdrojov, ich postaví
+`sk-public-money-sync all --no-bootstrap`. Vtedy je prvé spustenie pomalé zámerne: server dodržiava
+pravidlá portálov pre roboty a posiela požiadavky s odstupom, a index Vestníka si navyše nechá
+stiahnuté čísla (0,75 GB) na prípadné prestavanie, ak nepridáte `--no-keep-raw`.
 
 Aby boli údaje čerstvé, spúšťajte `all` pravidelne, napríklad každú noc cez cron (s celou cestou
 k `uvx`, ktorú vypíše `which uvx`):
@@ -331,11 +334,14 @@ builds a single index, and `sk-public-money-sync all --skip uvo` leaves some out
 | `ppa` | `ppa_*` (they don't work without it) | under a minute | about 20 MB | run again when PPA publishes a new year |
 | `fs` | `fs_*` (they don't work without it) | a few minutes | a few hundred MB | run daily; the tools update the small daily lists themselves |
 | `court` | `court_disqualified` and the director check in RPO (both work without it too) | about 20 minutes | under 1 MB | the tools refresh the list themselves once a day |
-| `uvo` | `uvo_*` below the EU thresholds (without it, TED only) | about 45 minutes, downloads about 7 GB | about 300 MB + 0.75 GB of downloaded issues | the tools fetch new issues themselves every 6 hours |
+| `uvo` | `uvo_*` below the EU thresholds (without it, TED only) | about a minute (prebuilt index, 155 MB); from the source about 45 minutes and 7 GB | about 330 MB | the tools fetch new issues themselves every 6 hours |
 
-Together that's about 1.5 GB. The downloaded Vestník issues are only needed to rebuild the index;
-`sk-public-money-sync uvo --no-keep-raw` builds it without keeping them. The first run is slow on
-purpose: the server follows each portal's rules for robots and spaces out its requests.
+The slow sources aren't built from scratch on the first run: the command downloads a prebuilt index
+from the [GitHub release `indexes`](https://github.com/hronecviktor/sk-public-money/releases/tag/indexes),
+checks it, and fetches only what's been added since. `sk-public-money-sync all --no-bootstrap` builds
+them from the sources alone instead. That first run is slow on purpose: the server follows each
+portal's rules for robots and spaces out its requests, and the Vestník index also keeps the downloaded
+issues (0.75 GB) for a rebuild unless you add `--no-keep-raw`.
 
 To keep the data fresh, run `all` regularly, for example nightly from cron (with the full path to
 `uvx` that `which uvx` prints):

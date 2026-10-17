@@ -46,3 +46,23 @@ The tests run offline:
 - **Courts:** a mocked ISU API and Súdna rada list with fictional judges, companies and disqualified persons, and generated PDFs. The RPO tests mock the register of disqualified persons too, with the index in a temporary cache.
 - **RÚZ:** real report templates in `tests/ruz/fixtures` with fictional entities and amounts, and a mocked API.
 - **PPA:** workbooks built in the tests in both published layouts with fictional beneficiaries, the real download section of the PPA page in `tests/ppa/fixtures`, and a mocked RPO.
+
+## Prebuilt index snapshots
+
+Slow indexes whose data may be redistributed (`BUNDLED` in `bundle.py`: the Vestník, CC BY 4.0) are
+published as xz-compressed SQLite snapshots in the GitHub release tagged `indexes`. A sync of such a
+source whose index doesn't exist yet downloads the snapshot first, checks its SHA-256 and schema
+version, and then fetches only what's newer; any problem falls back to a full build.
+
+To publish fresh snapshots, build the indexes, then:
+
+```sh
+sk-public-money-sync bundle --out ../sk-public-money-bundle
+gh release upload indexes ../sk-public-money-bundle/*.sqlite.xz --clobber   # data first
+gh release upload indexes ../sk-public-money-bundle/manifest.json --clobber  # manifest last
+```
+
+The manifest names each file's hash, so a download during an upload fails the check and builds from
+the source instead of using a mismatched file. Bump a source's `SCHEMA_VERSION` when an index built by
+older code can't be topped up by newer code: clients then ignore older snapshots. Data with personal
+details or without a clear licence is not bundled (only what may be redistributed is).
