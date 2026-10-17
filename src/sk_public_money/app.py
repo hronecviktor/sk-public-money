@@ -47,6 +47,14 @@ spending; a value of 0 means undisclosed. Identifiers are labelled ico, dic (DI�
 ico is null when the notice gives no Slovak IČO. Vestník data CC BY 4.0 by ÚVO; TED data may be reused
 with attribution.
 
+Finančná správa SR, the tax authority (fs_* tools): its published lists, kept in a local index (built
+with sk-public-money-sync fs): VAT registration, index daňovej spoľahlivosti (tax reliability rating),
+VAT payers with reasons to cancel their registration (§ 52(6)) and struck off (§ 52(8)), corporate
+income tax assessed and tax loss per tax period (quarterly lists since 2023), VAT excess deduction or
+own liability per period (latest quarterly list only), and tax debtors. The debtor list has no IČO, so
+debtors are matched by name only (matched_by: name). Natural persons appear as published. Amounts in
+EUR. CC BY 4.0 (the reliability index CC0): Zdroj údajov: Finančná správa SR - https://opendata.financnasprava.sk/.
+
 Courts, súdy (court_* tools): decisions of Slovak general courts (~4.7M since about 2000) and judges,
 from the Ministry of Justice's pilot API (obcan.justice.sk), and judges' yearly asset declarations
 from Súdna rada. People who are parties are anonymised in decisions; companies keep name and IČO.

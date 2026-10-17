@@ -143,6 +143,27 @@ Things to know:
 - Corrected notices and reports ("Oprava: …") are indexed as their own records next to the original, labelled in `kind`; they are not merged into it.
 - Three issues are missing from the index because data.slovensko.sk lacks them: 202/2023 has no usable download link, and the datasets titled 144/2024 and 145/2025 are byte-identical copies of 145/2024 and 144/2025. The sync reports them on every run. All other issues since 201/2023 (17 October 2023) are indexed.
 
+### Finančná správa SR: the tax authority ([opendata.financnasprava.sk](https://opendata.financnasprava.sk))
+
+The tax authority publishes lists of taxpayers as zipped XML files at
+`https://report.financnasprava.sk/<list>.zip`, no key needed. They have no search API, so
+`sk-public-money-sync fs` downloads them into a local index and deletes the zips. The lists used:
+
+| List | What it holds | Updated |
+| --- | --- | --- |
+| `ds_dphs` | VAT register: IČ DPH, kind of registration (§ 4 payer, § 4b VAT group, § 5 foreign person, § 7 / § 7a registered but not a payer), registration date, payer from, date of a change of kind | daily |
+| `ds_iz_ran` | Index daňovej spoľahlivosti: vysoko spoľahlivý, spoľahlivý, menej spoľahlivý, by DIČ | daily |
+| `ds_dphz` | VAT payers with reasons to cancel their registration (§ 52(6) daňového poriadku), with the year of the breach and publication date | daily |
+| `ds_dphv` | VAT payers struck off (§ 52(8)), with the date struck off | daily |
+| `ds_dsdd` | Tax debtors: name, address, amount owed. **No IČO or DIČ.** | monthly |
+| `ds_dppos` | Corporate income tax per tax period: tax assessed, additional tax assessed, tax loss | quarterly |
+| `ds_dphno` | VAT excess deduction (nadmerný odpočet) or own tax liability per VAT period | quarterly |
+
+| Tool | What it does |
+| --- | --- |
+| `fs_get_taxpayer` | Everything on one taxpayer by IČO (or DIČ, IČ DPH): VAT registrations, reliability index, cancellation and struck-off entries, corporate income tax per period (with the list it came from), the latest 12 VAT periods, the VAT group it represents (matched by the group's name), and debtor list entries with exactly the same name (`matched_by: name`). |
+| `fs_search_debtors` | Searches the debtor list by words of the name (word starts, no case or diacritics), optionally by place and minimum debt; largest debts first; every result `matched_by: name`. |
+| `fs_list_flagged` | Lists struck-off VAT payers (by date struck off), VAT payers with reasons to cancel (by publication date), or taxpayers rated menej spoľahlivý (by name), optionally by place. |
 ### Courts: decisions and judges ([obcan.justice.sk](https://obcan.justice.sk), [sudnarada.gov.sk](https://www.sudnarada.gov.sk))
 
 The Ministry of Justice publishes every decision of the general courts (*rozhodnutie*: judgments,
@@ -183,6 +204,25 @@ have no search and change their download link with every upload, so they are kep
 Building the index:
 
 ```sh
+sk-public-money-sync fs                       # all lists; corporate tax archive since 2023
+sk-public-money-sync fs --since 2018-01-01    # add the corporate tax archive back to 2018
+sk-public-money-sync fs --lists ds_dphs,ds_iz_ran --force
+```
+
+The first run downloads about 170 MB and takes about 2–3 minutes; the index is about 220 MB.
+Each further run asks each file's Last-Modified and downloads only changed lists. The tools check the
+two small daily VAT flag lists every 6 hours and update them inline; they name any other list that is
+older than usual and suggest the sync command.
+
+Things to know:
+
+- **Corporate income tax builds up from quarterly files.** The current `ds_dppos.zip` holds the returns processed in the latest quarter (mostly the previous tax year, plus late returns for older years); older quarters are in an [archive](https://www.financnasprava.sk/sk/elektronicke-sluzby/verejne-sluzby/zoznamy/archiv-vybranych-informacnych/zoznam-subjektov-s-vyskou-dane) back to 2018. The index keeps every published row with the date of its list (`list_of`); a period that appears in several lists (e.g. a later row with only the additional tax after a supplementary return) shows each row as published. A missing year may be in an older file (`--since`) or was never published.
+- **VAT returns are only the latest quarter's file**: returns filed in that quarter, with late returns for older periods. Periods read `2026-03` (month) or `2026-Q1` (quarter).
+- **VAT groups:** a company in a VAT group (e.g. Slovnaft) is not in the VAT register itself; the group is, named "Skupina DPH zastupovaná: <representative>", and files the VAT returns. `fs_get_taxpayer` links the group by that name for its representative. The lists do not name the other members.
+- **The debtor list has no identifiers.** Matches are by name only; compare the address. `fs_get_taxpayer` shows debtor entries only when the cleaned name is identical.
+- Names are cleaned of padding inside their quotes (`" CCL s.r.o. "` becomes `"CCL s.r.o."`); the quotes stay. Dates are converted from DD.MM.YYYY and DDMMYYYY. Some IČOs have 12 digits (organisational units: IČO + 4 digits) and are kept whole. A handful of violation years are nonsense (0, 25, 525) and are passed on as published text. Archive files up to 2023 are Windows-1250, newer ones UTF-8.
+- Natural persons (sole traders, people registered for VAT, debtors) appear with name and address as published.
+- Data: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), "Zdroj údajov: Finančná správa SR - https://opendata.financnasprava.sk/"; the reliability index file says CC0.
 sk-public-money-sync ppa                  # both listed years: ~16 MB download, ~20 s, ~20 MB index
 sk-public-money-sync ppa --reindex        # download and index every listed year again
 sk-public-money-sync ppa --keep-delisted  # keep years PPA no longer publishes
@@ -211,6 +251,7 @@ Each source has its own throttle:
 - **RPO** uses the [REST API documented by MV SR](https://rpo.minv.sk/rpo-api-doc.html) at `api.statistics.sk/rpo/v1`, which needs no key and publishes no limits. Requests are spaced 0.5 s apart anyway. A detail takes about a second, while searches take 5–30 s.
 - **data.slovensko.sk** (Vestník issues) publishes no limits and its robots.txt allows everything. The sync fetches one issue at a time, 2 s apart. The data are licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) by ÚVO.
 - **TED** uses its [Search API](https://docs.ted.europa.eu/api/latest/index.html), which needs no key and publishes no rate limit; requests are spaced 0.5 s apart. Notice XML is cached for good, since published notices never change (a correction is a new notice). TED data may be reused free of charge with attribution (Commission Decision 2011/833/EU). ÚVO's own website disallows robots in its robots.txt and is not used.
+- **Finančná správa** publishes no limits; its robots.txt is missing (404) and its servers sit behind an F5 firewall that sometimes resets a transfer. The sync spaces requests 2 s apart and retries a reset download twice. The tools send at most two HEAD requests and two small downloads every 6 hours.
 - **Courts:** the ISU API publishes no limits or licence, and its robots.txt does not cover `/pilot/api`; requests are spaced 1 s apart, and page numbers are 1-based. Decision PDFs and asset declarations are fetched one at a time when a tool asks for text, and the last few are kept in memory, not on disk. Súdna rada publishes no robots.txt. No licence is published for either source.
 - **RÚZ** uses its [open API](https://www.registeruz.sk/cruz-public/home/api), which needs no key and publishes no limits; robots.txt only disallows the XLS exports. Requests are spaced 0.5 s apart. Every statement and report is a separate request, so the first look at a large filer takes 10–30 s. Statements and reports are then cached for 3 days, and report templates (which RÚZ never changes) for good. RÚZ data are licensed [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
 - **PPA** lists are XLSX files on www.apa.sk, which has no robots.txt and publishes no limits or licence. The sync fetches the page and the changed files only, 2 s apart.
