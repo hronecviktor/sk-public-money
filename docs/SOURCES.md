@@ -250,6 +250,37 @@ Things to know:
 - PPA's older search for FY2021–2022 (archiv.apa.sk) is not used.
 - No licence is stated for the lists. www.apa.sk has no robots.txt and publishes no limits; the sync makes three requests, 2 s apart.
 
+### Political-party financing (party_* tools)
+
+Two sources: the transparent accounts parties and candidates must run their campaigns through
+(*transparentný účet*), and the annual reports (*výročné správy*) every party files with the State
+Commission for Elections and Control of Financing of Political Parties (Štátna komisia pre voľby a
+kontrolu financovania politických strán), published on [minv.sk](https://www.minv.sk/?vyrocnespravyps).
+
+| Tool | What it does |
+| --- | --- |
+| `party_account_transactions` | Movements on a [Slovenská sporiteľňa transparent account](https://www.slsp.sk/sk/ludia/transparentne-ucty), newest first: date, signed amount in EUR (negative = paid out), counterparty name, note, payment type, variable and specific symbol. The account is given by IBAN or by words of its name; several matching accounts are listed to pick from. Filters: counterparty name, dates, a minimum amount and direction (in/out). |
+| `party_annual_reports` | The annual reports of a party (all years) or of a year (all parties), 2015 onwards: party as listed, PDF link, whether the file is a corrected version (`_f`) or was marked as deficient (`*`), renames, and the year's notes (when the page was updated, which parties filed no report). Once a report has been read, also its coverage: page count, text pages, scanned pages, and the text pages that mention each register. |
+| `party_read_report` | Reads pages of one report. Pages with a real text layer come back as text (pypdf layout mode, which keeps table columns apart); scanned pages come back as grayscale JPEG images (130 dpi by default, 80–200) for the model to read, at most 6 per call (3 above 150 dpi), optionally turned for tables scanned sideways. Without pages it returns the coverage and thumbnail sheets of 24 pages per call (12 to a sheet, labelled with page numbers), so the model can find the register tables and then read them. With `ocr=true` and `tesseract` installed with Slovak (`slk`), scanned pages come back as tesseract text, labelled as such; otherwise as images. |
+
+Annual reports:
+
+- The registers the law asks for (zákon č. 85/2005 Z. z., § 30 ods. 2) are usually lettered: **F** loans and credits (*pôžičky, úvery*), **G** gifts and other free benefits (*dary, iné bezodplatné plnenia*), **J** membership fees above twice the minimum wage (*členské príspevky*), **K** overdue liabilities, often to suppliers named with IČO. They name natural persons with address, sole traders and companies with IČO, amounts, dates and often the donor's IBAN; these are returned as published. Every party lays them out its own way.
+- **Most reports are scans.** A survey of all 2022–2024 reports (156) found 9, 5 and 6 reports per year with any text page, and register entries as text in only about 10 of them. Every large party's registers (PS, SaS, HLAS, Republika, KDH, SNS, Demokrati) are images. So the model reads them from page images; numbers read from an image should be checked against it, and the output says so.
+- Some scanners add an OCR layer (invisible text under the image). These layers are badly garbled (IBANs like `2L34195t0`, dates like `15.!.2024`), so such pages count as scans (`scanner_ocr_pages`) and the layer is not used.
+- `sk-public-money-sync party` lists the reports: the overview page and one index page per year, about a dozen requests 1.5 s apart, 20 s in all, an index of under 1 MB. The tools build the listing themselves the first time and refresh the newest two years when it is a week old. Where a party has both a report and a corrected version, only the corrected one is listed.
+- PDFs (1–35 MB) are downloaded only when `party_read_report` reads them, one at a time, and deleted an hour later. Their coverage is kept in the index, so `party_annual_reports` shows it from then on.
+- `text_pages_mentioning` comes from text pages only; on a scanned report the thumbnails and the contents page (*obsah*) are the way to the registers.
+- No licence or terms of use are published for the reports.
+
+Transparent accounts:
+
+- The bank's list (about 1 200 accounts) mixes parties, candidates, campaigns and charities and has no field that says which is which; the name usually tells ("SMER-SD spojené voľby 2026"). The list is fetched in three requests and cached for a day; account names are matched locally ignoring case and diacritics.
+- Turnovers name the counterparty as the bank shows it, with no IBAN or IČO, so results filtered by counterparty say `matched_by: name`. The bank's counterparty search ignores case and diacritics and matches anywhere in the name; it does not search notes.
+- The running balance is not published per movement; the account's current balance is.
+- Small negative movements described as *Transakčná daň* are the bank's transaction tax on a payment.
+- Only Slovenská sporiteľňa is covered. Parties also hold transparent accounts at ČSOB, VÚB, Tatra banka and Fio, which are not.
+
 ## Being a polite robot
 
 Each source has its own throttle:
@@ -263,6 +294,8 @@ Each source has its own throttle:
 - **Courts:** the ISU API publishes no limits or licence, and its robots.txt does not cover `/pilot/api`; requests are spaced 1 s apart, and page numbers are 1-based. Decision PDFs and asset declarations are fetched one at a time when a tool asks for text, and the last few are kept in memory, not on disk. Súdna rada publishes no robots.txt. No licence is published for either source.
 - **RÚZ** uses its [open API](https://www.registeruz.sk/cruz-public/home/api), which needs no key and publishes no limits; robots.txt only disallows the XLS exports. Requests are spaced 0.5 s apart. Every statement and report is a separate request, so the first look at a large filer takes 10–30 s. Statements and reports are then cached for 3 days, and report templates (which RÚZ never changes) for good. RÚZ data are licensed [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
 - **PPA** lists are XLSX files on www.apa.sk, which has no robots.txt and publishes no limits or licence. The sync fetches the page and the changed files only, 2 s apart.
+- **Slovenská sporiteľňa** transparent accounts use the unauthenticated JSON API behind its web page (`api.slsp.sk/ta-accounts`, `api.slsp.sk/ta-turnovers`). It serves no robots.txt and no terms of use or licence were found, so requests are spaced at least 1 s apart and pages kept small (50 movements by default).
+- **minv.sk** (party annual reports): robots.txt disallows only `/?poslat-stranku`, and no limits are published. Listing pages and PDFs are fetched 1.5 s apart, PDFs one at a time and only when a report is read.
 
 CRZ daily exports and attachments are cached in `~/.cache/sk-public-money`, or in
 `$SK_PUBLIC_MONEY_CACHE_DIR` when it's set. CRZ export data is licensed

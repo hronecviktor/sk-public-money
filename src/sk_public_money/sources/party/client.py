@@ -83,3 +83,36 @@ class SLSPClient(ThrottledClient):
         if amount_to is not None:
             params["amountTo"] = f"{amount_to:.2f}"
         return await self._json(SLSP_TURNOVERS_URL.format(iban=iban), params)
+
+
+# --- annual reports (výročné správy) on minv.sk -------------------------------------------------
+
+MINV_URL = "https://www.minv.sk"
+REPORTS_OVERVIEW = MINV_URL + "/?vyrocnespravyps"
+REPORTS_INDEX = MINV_URL + "/?vyrocne-spravy-politickych-stran-a-politickych-hnuti-za-rok-{year}"
+REPORTS_PATH = "/swift_data/source/statna_komisia_pre_volby/30_annual_report/"
+MINV_INTERVAL = 1.5
+
+
+class MinvClient(ThrottledClient):
+    """The State Commission's pages on minv.sk: an overview page linking one index page per year, and
+    one PDF per party and year. robots.txt disallows only /?poslat-stranku; no rate limit is
+    published, so requests are spaced 1.5 s apart and PDFs fetched one at a time, on demand."""
+
+    def __init__(self, http: httpx.AsyncClient | None = None, cache: Path | None = None, interval: float = MINV_INTERVAL):
+        super().__init__(lambda: interval, http=http, cache=cache)
+
+    async def page(self, url: str) -> str:
+        if not url.startswith(MINV_URL + "/?"):
+            raise ValueError(f"Not a minv.sk page: {url}")
+        resp = await self._get(url)
+        if resp.status_code == 404:
+            raise LookupError(f"minv.sk has no page {url}.")
+        if resp.status_code != 200:
+            raise SourceUnavailable(f"minv.sk returned HTTP {resp.status_code} for {url}; try again later.")
+        return resp.text
+
+    async def download_pdf(self, url: str, path: Path) -> Path:
+        if not url.startswith(MINV_URL + REPORTS_PATH):
+            raise ValueError(f"Not an annual-report address on minv.sk: {url}")
+        return await self._download(url, path, expect=b"%PDF")

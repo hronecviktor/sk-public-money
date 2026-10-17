@@ -44,3 +44,4 @@ The tests run offline:
 - **Courts:** a mocked ISU API and Súdna rada list with fictional judges, companies and disqualified persons, and generated PDFs. The RPO tests mock the register of disqualified persons too, with the index in a temporary cache.
 - **RÚZ:** real report templates in `tests/ruz/fixtures` with fictional entities and amounts, and a mocked API.
 - **PPA:** workbooks built in the tests in both published layouts with fictional beneficiaries, the real download section of the PPA page in `tests/ppa/fixtures`, and a mocked RPO.
+- **Party financing:** a mocked Slovenská sporiteľňa API with fictional accounts and payments, minv.sk listing pages with fictional parties, and report PDFs generated in the tests (text pages, a scanned page and a page with an invisible scanner OCR layer).

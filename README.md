@@ -21,6 +21,7 @@ obstarávania, firmy, ich skutočných vlastníkov a účtovné závierky. Asist
 | **Finančná správa SR** | Registrácia pre DPH, index daňovej spoľahlivosti, platitelia DPH s dôvodom na zrušenie registrácie a vymazaní, vyrubená daň z príjmov právnických osôb a daňová strata po rokoch, nadmerné odpočty DPH, daňoví dlžníci | Otvorené dáta [opendata.financnasprava.sk](https://opendata.financnasprava.sk) (zoznamy v lokálnom indexe) | `fs_*` |
 | **Súdy**: rozhodnutia a sudcovia | Rozhodnutia všeobecných súdov (asi 4,7 milióna, s textom z PDF), v ktorých vystupuje firma s daným IČO; sudcovia a ich majetkové priznania | Pilotné API Ministerstva spravodlivosti SR ([obcan.justice.sk](https://obcan.justice.sk)) a [Súdna rada SR](https://www.sudnarada.gov.sk) | `court_*` |
 | **PPA**: poľnohospodárske dotácie | Kto dostal peniaze zo spoločnej poľnohospodárskej politiky (EPZF a EPFRV) a z národného spolufinancovania, koľko, na aké opatrenie a v ktorej obci; za posledné dva finančné roky | Zoznamy prijímateľov, ktoré zverejňuje [Pôdohospodárska platobná agentúra](https://www.apa.sk/o-nas/zverejnovane-udaje/prehlad-prijimatelia-pomoci-z-epzf-epfrv) (XLSX, v lokálnom indexe) | `ppa_*` |
+| **Financovanie politických strán** | Pohyby na transparentných účtoch strán, kandidátov a kampaní v Slovenskej sporiteľni; výročné správy strán od roku 2015 s osobitnými evidenciami darov, pôžičiek a členských príspevkov | API [transparentných účtov Slovenskej sporiteľne](https://www.slsp.sk/sk/ludia/transparentne-ucty); výročné správy na [minv.sk](https://www.minv.sk/?vyrocnespravyps) (PDF, väčšinou skeny, ktoré asistent číta ako obrázky) | `party_*` |
 
 Ako sú registre prepojené:
 
@@ -72,6 +73,9 @@ Príklady otázok pre asistenta:
 | `court_disqualified` | Register diskvalifikácií: osoby, ktoré nesmú byť štatutármi firiem, s adresou, spisovou značkou a obdobím zákazu |
 | `ppa_search_beneficiary` | Poľnohospodárske dotácie prijímateľa podľa mena alebo IČO (cez názov v RPO): sumy po fondoch a opatreniach, obec, materská spoločnosť |
 | `ppa_top` | Najväčší prijímatelia za finančný rok, podľa opatrenia, obce alebo druhu prijímateľa |
+| `party_account_transactions` | Pohyby na transparentnom účte v Slovenskej sporiteľni podľa IBAN alebo názvu účtu, s filtrom protistrany, dátumu, sumy a smeru |
+| `party_annual_reports` | Výročné správy strany alebo roka: odkaz na PDF, opravená verzia, nedostatky, ktoré strany sú naskenované |
+| `party_read_report` | Strany výročnej správy: textové strany ako text, naskenované ako obrázky, bez zadaných strán náhľady na nájdenie evidencií |
 
 Na čo si dať pozor:
 
@@ -176,6 +180,7 @@ licencie:
 - Súdne rozhodnutia a sudcovia (Ministerstvo spravodlivosti SR) a majetkové priznania sudcov (Súdna rada SR): licencia nie je zverejnená
 - PPA: licencia nie je uvedená; zoznamy zverejňuje Pôdohospodárska platobná agentúra podľa čl. 98
   nariadenia (EÚ) 2021/2116
+- Transparentné účty Slovenskej sporiteľne a výročné správy strán (minv.sk): licencia ani podmienky použitia nie sú zverejnené
 
 Server dodržiava pravidlá jednotlivých portálov pre automatizovaný prístup a požiadavky na ne posiela
 s odstupom. Podrobnosti o každom zdroji sú v [docs/SOURCES.md](docs/SOURCES.md) a o vývoji
@@ -200,6 +205,7 @@ can search and read them, and combine data from several registers in one answer.
 | **Finančná správa SR**: the tax authority | VAT registration, tax reliability index, VAT payers facing cancellation and struck off, corporate income tax assessed and tax loss by year, VAT excess deductions, tax debtors | Open data at [opendata.financnasprava.sk](https://opendata.financnasprava.sk) (lists kept in a local index) | `fs_*` |
 | **Courts**: decisions and judges | Decisions of the general courts (about 4.7 million, with text from the PDF) that mention a company's IČO; judges and their asset declarations | The Ministry of Justice's pilot API ([obcan.justice.sk](https://obcan.justice.sk)) and the [Judicial Council](https://www.sudnarada.gov.sk) | `court_*` |
 | **PPA**: farm subsidies | Who got money from the Common Agricultural Policy (EAGF and EAFRD) and national co-financing, how much, under which measure and in which municipality; the last two financial years | The beneficiary lists published by the [Agricultural Paying Agency](https://www.apa.sk/o-nas/zverejnovane-udaje/prehlad-prijimatelia-pomoci-z-epzf-epfrv) (XLSX, in a local index) | `ppa_*` |
+| **Political-party financing** | Movements on the transparent accounts of parties, candidates and campaigns at Slovenská sporiteľňa; parties' annual reports since 2015 with their registers of gifts, loans and membership fees | The [Slovenská sporiteľňa transparent-account](https://www.slsp.sk/sk/ludia/transparentne-ucty) API; annual reports on [minv.sk](https://www.minv.sk/?vyrocnespravyps) (PDFs, mostly scans, which the assistant reads as images) | `party_*` |
 
 How the registers connect:
 
@@ -252,6 +258,9 @@ Example questions for the assistant:
 | `court_disqualified` | The register of disqualified persons: people banned from company boards, with address, case number and ban period |
 | `ppa_search_beneficiary` | A beneficiary's farm subsidies by name or IČO (via its name in RPO): amounts by fund and measure, municipality, parent company |
 | `ppa_top` | The largest beneficiaries in a financial year, by measure, municipality or kind of beneficiary |
+| `party_account_transactions` | Movements on a Slovenská sporiteľňa transparent account by IBAN or account name, filtered by counterparty, date, amount and direction |
+| `party_annual_reports` | A party's or a year's annual reports: PDF link, corrected version, deficiencies, which pages are scans |
+| `party_read_report` | Pages of an annual report: text pages as text, scanned pages as images; without pages, thumbnails to find the registers |
 
 Things to watch out for:
 
@@ -356,6 +365,7 @@ licences:
 - Court decisions and judges (Ministry of Justice) and judges' asset declarations (Judicial Council of the Slovak Republic): no licence published
 - PPA: no licence stated; the lists are published by the Agricultural Paying Agency under Article 98
   of Regulation (EU) 2021/2116
+- Slovenská sporiteľňa transparent accounts and the parties' annual reports (minv.sk): no licence or terms of use published
 
 The server follows each portal's rules for automated access and spaces out its requests. Details on
 each source are in [docs/SOURCES.md](docs/SOURCES.md), and on development in
